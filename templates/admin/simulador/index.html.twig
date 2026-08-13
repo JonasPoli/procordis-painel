@@ -1,0 +1,146 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}Simulador & Painel em Tempo Real{% endblock %}
+
+{% block body %}
+<div class="max-w-7xl mx-auto space-y-6">
+    <!-- Card Header -->
+    <sl-card class="w-full">
+        <div slot="header" class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <sl-icon name="play-circle" class="text-3xl text-sky-500"></sl-icon>
+                <div>
+                    <h2 class="text-xl font-bold dark:text-white">Gerador de Dados & Simulador em Tempo Real</h2>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Controle a injeção minuto a minuto de pacientes, recepção, chamadas no telão e consultas</p>
+                </div>
+            </div>
+
+            <div>
+                {% if config.modoSimulacao %}
+                    <sl-badge variant="success" pill>
+                        <sl-icon name="check-circle" class="mr-1"></sl-icon> Modo Simulador Ativo
+                    </sl-badge>
+                {% else %}
+                    <sl-badge variant="danger" pill>
+                        <sl-icon name="wifi" class="mr-1"></sl-icon> API Real Medware
+                    </sl-badge>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Coluna 1: Ações do Simulador -->
+            <div class="bg-slate-50 dark:bg-slate-900/60 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-4">
+                <h3 class="font-bold text-sm text-slate-800 dark:text-slate-200">Ações Rápidas de Simulação</h3>
+
+                <form method="post" class="space-y-3">
+                    <input type="hidden" name="action" value="passo">
+                    <sl-button type="submit" variant="primary" class="w-full">
+                        <sl-icon slot="prefix" name="fast-forward"></sl-icon>
+                        Simular +1 Minuto no Atendimento
+                    </sl-button>
+                </form>
+
+                <form method="post">
+                    <input type="hidden" name="action" value="toggle_modo">
+                    <sl-button type="submit" variant="neutral" outline class="w-full">
+                        <sl-icon slot="prefix" name="arrow-repeat"></sl-icon>
+                        Alternar Fonte (Simulador / API Real)
+                    </sl-button>
+                </form>
+
+                <form method="post" onsubmit="return confirm('Tem certeza que deseja resetar os dados da simulação?');">
+                    <input type="hidden" name="action" value="reset">
+                    <sl-button type="submit" variant="danger" outline class="w-full">
+                        <sl-icon slot="prefix" name="trash"></sl-icon>
+                        Resetar Todos os Dados
+                    </sl-button>
+                </form>
+            </div>
+
+            <!-- Coluna 2: Auto-Loop JS -->
+            <div class="bg-slate-50 dark:bg-slate-900/60 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-4">
+                <h3 class="font-bold text-sm text-slate-800 dark:text-slate-200">Auto-Simulador Continuo (Navegador)</h3>
+                <p class="text-xs text-slate-500 dark:text-slate-400">Ative para simular a cada N segundos automaticamente enquanto esta tela estiver aberta.</p>
+
+                <div class="flex items-center gap-3">
+                    <sl-button id="btn-toggle-loop" onclick="toggleAutoLoop()" variant="success" class="w-full">
+                        <sl-icon slot="prefix" name="play-fill"></sl-icon>
+                        Iniciar Auto-Loop (3s)
+                    </sl-button>
+                </div>
+
+                <div id="status-loop" class="text-xs font-mono text-slate-400 text-center">
+                    Status: Parado
+                </div>
+            </div>
+
+            <!-- Coluna 3: Links Diretos -->
+            <div class="bg-slate-50 dark:bg-slate-900/60 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-3">
+                <h3 class="font-bold text-sm text-slate-800 dark:text-slate-200">Painéis Visuais em Funcionamento</h3>
+
+                <a href="/painel/espera" target="_blank" class="flex items-center justify-between p-2.5 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 hover:border-cyan-500 transition text-xs font-semibold text-cyan-500">
+                    <span>Painel de Espera</span>
+                    <sl-icon name="box-arrow-up-right"></sl-icon>
+                </a>
+                <a href="/painel/chamada" target="_blank" class="flex items-center justify-between p-2.5 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 hover:border-cyan-500 transition text-xs font-semibold text-cyan-500">
+                    <span>Telão de Chamadas (TV)</span>
+                    <sl-icon name="tv"></sl-icon>
+                </a>
+                <a href="/painel/medicos" target="_blank" class="flex items-center justify-between p-2.5 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 hover:border-cyan-500 transition text-xs font-semibold text-cyan-500">
+                    <span>Painel dos Médicos</span>
+                    <sl-icon name="activity"></sl-icon>
+                </a>
+                <a href="/painel/dashboard" target="_blank" class="flex items-center justify-between p-2.5 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 hover:border-cyan-500 transition text-xs font-semibold text-cyan-500">
+                    <span>Dashboard Executivo</span>
+                    <sl-icon name="graph-up-arrow"></sl-icon>
+                </a>
+            </div>
+        </div>
+
+        <!-- Section Logs da Ultima Ação -->
+        {% if logs is not empty %}
+            <div class="mt-6 border-t border-slate-200 dark:border-slate-800 pt-6">
+                <h3 class="font-bold text-sm mb-3">Movimentos Gerados na Última Simulação:</h3>
+                <div class="bg-slate-950 text-emerald-400 font-mono text-xs p-4 rounded-xl space-y-1">
+                    {% for l in logs %}
+                        <div>✓ {{ l }}</div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+    </sl-card>
+</div>
+
+<script>
+    let loopTimer = null;
+    let rodando = false;
+
+    function toggleAutoLoop() {
+        const btn = document.getElementById('btn-toggle-loop');
+        const st = document.getElementById('status-loop');
+
+        if (!rodando) {
+            rodando = true;
+            btn.variant = 'danger';
+            btn.innerHTML = '<sl-icon slot="prefix" name="pause-fill"></sl-icon> Pausar Auto-Loop';
+            st.innerText = 'Status: Executando a cada 3s...';
+
+            loopTimer = setInterval(async () => {
+                try {
+                    await fetch('/api/v1/simulador/passo', { method: 'POST' });
+                    st.innerText = `Status: Rodando... Última atualização ${new Date().toLocaleTimeString()}`;
+                } catch (e) {
+                    console.error(e);
+                }
+            }, 3000);
+        } else {
+            rodando = false;
+            clearInterval(loopTimer);
+            btn.variant = 'success';
+            btn.innerHTML = '<sl-icon slot="prefix" name="play-fill"></sl-icon> Iniciar Auto-Loop (3s)';
+            st.innerText = 'Status: Parado';
+        }
+    }
+</script>
+{% endblock %}

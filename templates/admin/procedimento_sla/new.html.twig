@@ -1,0 +1,25 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}Nova Regra de SLA{% endblock %}
+
+{% block body %}
+<div class="max-w-4xl mx-auto">
+    <sl-card class="w-full">
+        <div slot="header" class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <sl-icon name="plus-circle" class="text-3xl text-cyan-500"></sl-icon>
+                <div>
+                    <h2 class="text-xl font-bold dark:text-white">Nova Regra de SLA</h2>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Cadastrar limites de tempo de espera para um exame ou procedimento</p>
+                </div>
+            </div>
+
+            <sl-button variant="neutral" size="small" href="{{ path('app_admin_sla_index') }}">
+                Voltar à Lista
+            </sl-button>
+        </div>
+
+        {{ include('admin/procedimento_sla/_form.html.twig', {'button_label': 'Cadastrar Regra SLA'}) }}
+    </sl-card>
+</div>
+{% endblock %}

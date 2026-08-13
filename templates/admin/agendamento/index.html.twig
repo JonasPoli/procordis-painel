@@ -1,0 +1,70 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}Agendamentos & Fluxo de Pacientes{% endblock %}
+
+{% block body %}
+<div class="max-w-7xl mx-auto space-y-6">
+    <sl-card class="w-full">
+        <div slot="header" class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <sl-icon name="calendar-event" class="text-3xl text-cyan-500"></sl-icon>
+                <div>
+                    <h2 class="text-xl font-bold dark:text-white">Gerenciamento de Agendamentos</h2>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Listagem de todos os pacientes e histórico do fluxo de atendimento</p>
+                </div>
+            </div>
+
+            <sl-button variant="primary" size="small" href="/painel/espera" target="_blank">
+                <sl-icon slot="prefix" name="box-arrow-up-right"></sl-icon>
+                Ver Painel ao Vivo
+            </sl-button>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm border-collapse">
+                <thead>
+                    <tr class="border-b border-slate-200 dark:border-slate-800 text-xs font-bold uppercase text-slate-500">
+                        <th class="py-3 px-4">Código</th>
+                        <th class="py-3 px-4">Paciente</th>
+                        <th class="py-3 px-4">Médico</th>
+                        <th class="py-3 px-4">Especialidade</th>
+                        <th class="py-3 px-4">Status</th>
+                        <th class="py-3 px-4">Chegada</th>
+                        <th class="py-3 px-4">Tempo Espera</th>
+                        <th class="py-3 px-4 text-right">Ação</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 dark:divide-slate-800/60">
+                    {% for a in agendamentos %}
+                        <tr class="hover:bg-slate-50 dark:hover:bg-slate-900/50 transition">
+                            <td class="py-3 px-4 font-mono font-bold text-xs">{{ a.codigoAgendamento }}</td>
+                            <td class="py-3 px-4 font-semibold dark:text-white">
+                                {{ a.paciente ? a.paciente.nomeExibicao : 'Paciente' }}
+                                {% if a.prioridade %}
+                                    <sl-badge variant="danger" size="small">Prioritário</sl-badge>
+                                {% endif %}
+                            </td>
+                            <td class="py-3 px-4">{{ a.medico ? a.medico.nome : 'A definir' }}</td>
+                            <td class="py-3 px-4 text-xs text-slate-500">{{ a.especialidade ? a.especialidade.nome : 'Clínica' }}</td>
+                            <td class="py-3 px-4">
+                                <sl-badge variant="neutral">{{ a.status|upper }}</sl-badge>
+                            </td>
+                            <td class="py-3 px-4 font-mono text-xs">{{ a.horarioChegada ? a.horarioChegada|date("H:i") : '--:--' }}</td>
+                            <td class="py-3 px-4 font-mono font-bold text-cyan-500">{{ a.tempoEsperaMinutos ?? 0 }} min</td>
+                            <td class="py-3 px-4 text-right">
+                                <sl-button size="small" variant="neutral" href="/painel/paciente/{{ a.id }}" target="_blank">
+                                    Histórico
+                                </sl-button>
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="8" class="text-center py-8 text-slate-400">Nenhum agendamento registrado ainda. Execute a simulação no menu "Simulador".</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </sl-card>
+</div>
+{% endblock %}

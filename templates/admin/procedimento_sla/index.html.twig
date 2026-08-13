@@ -1,0 +1,85 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}Parâmetros & Regras de SLA{% endblock %}
+
+{% block body %}
+<div class="max-w-7xl mx-auto space-y-6">
+    {% for label, messages in app.flashes %}
+        {% for message in messages %}
+            <sl-alert variant="{{ label == 'success' ? 'success' : 'danger' }}" open closable class="mb-4">
+                <sl-icon slot="icon" name="{{ label == 'success' ? 'check-circle' : 'exclamation-triangle' }}"></sl-icon>
+                {{ message }}
+            </sl-alert>
+        {% endfor %}
+    {% endfor %}
+
+    <sl-card class="w-full">
+        <div slot="header" class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <sl-icon name="sliders" class="text-3xl text-cyan-500"></sl-icon>
+                <div>
+                    <h2 class="text-xl font-bold dark:text-white">Parâmetros & Regras de Tempo (SLA)</h2>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Definição dos 2 limites numéricos de tempo por exame (Abaixo do Limite 1 = Verde | Entre Limite 1 e Limite 2 = Amarelo | Acima do Limite 2 = Vermelho)</p>
+                </div>
+            </div>
+
+            <sl-button variant="primary" size="medium" href="{{ path('app_admin_sla_new') }}">
+                <sl-icon slot="prefix" name="plus-lg"></sl-icon>
+                Nova Regra de SLA
+            </sl-button>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm border-collapse">
+                <thead>
+                    <tr class="border-b border-slate-200 dark:border-slate-800 text-xs font-bold uppercase text-slate-500">
+                        <th class="py-3 px-4">Código</th>
+                        <th class="py-3 px-4">Procedimento / Exame</th>
+                        <th class="py-3 px-4 text-center">🟢 Limite 1 (Verde)</th>
+                        <th class="py-3 px-4 text-center">🟡 Limite 2 (Amarelo)</th>
+                        <th class="py-3 px-4 text-center">🔴 Vermelho</th>
+                        <th class="py-3 px-4">Descrição</th>
+                        <th class="py-3 px-4 text-right">Ações</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 dark:divide-slate-800/60">
+                    {% for r in regrasSla %}
+                        <tr class="hover:bg-slate-50 dark:hover:bg-slate-900/50 transition">
+                            <td class="py-3 px-4 font-mono font-bold text-xs text-cyan-600 dark:text-cyan-400">{{ r.codigo }}</td>
+                            <td class="py-3 px-4 font-bold dark:text-white">{{ r.nomeProcedimento }}</td>
+                            <td class="py-3 px-4 text-center font-mono">
+                                <sl-badge variant="success">Até {{ r.limiteVerdeMinutos }} min</sl-badge>
+                            </td>
+                            <td class="py-3 px-4 text-center font-mono">
+                                <sl-badge variant="warning">{{ r.limiteVerdeMinutos + 1 }} a {{ r.limiteAmareloMinutos }} min</sl-badge>
+                            </td>
+                            <td class="py-3 px-4 text-center font-mono">
+                                <sl-badge variant="danger">Acima de {{ r.limiteAmareloMinutos }} min</sl-badge>
+                            </td>
+                            <td class="py-3 px-4 text-xs text-slate-500 dark:text-slate-400">{{ r.descricao ?? 'Sem observações' }}</td>
+                            <td class="py-3 px-4 text-right flex items-center justify-end gap-2">
+                                <sl-button size="small" variant="default" href="{{ path('app_admin_sla_edit', {'id': r.id}) }}">
+                                    <sl-icon slot="prefix" name="pencil"></sl-icon>
+                                    Editar
+                                </sl-button>
+
+                                <form method="post" action="{{ path('app_admin_sla_delete', {'id': r.id}) }}" onsubmit="return confirm('Tem certeza que deseja excluir esta regra de SLA?');" class="inline">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ r.id) }}">
+                                    <sl-button size="small" variant="danger" type="submit">
+                                        <sl-icon slot="prefix" name="trash"></sl-icon>
+                                        Excluir
+                                    </sl-button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="7" class="text-center py-8 text-slate-400">Nenhuma regra de SLA cadastrada ainda. Clique no botão acima para adicionar.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </sl-card>
+</div>
+{% endblock %}

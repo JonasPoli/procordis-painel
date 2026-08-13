@@ -1,0 +1,171 @@
+{% extends 'pub/base.html.twig' %}
+
+{% block title %}Dashboard Executivo | Procordis{% endblock %}
+
+{% block body %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+<div class="h-full w-full flex flex-col justify-between overflow-hidden gap-[1vh]">
+    <!-- Top KPI Cards (16vh de Altura) -->
+    <div class="h-[16vh] w-full grid grid-cols-4 gap-[1vw] shrink-0">
+        <div class="bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-[1vw] rounded-xl shadow-sm flex flex-col justify-between">
+            <p class="text-[0.65vw] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Total Atendidos Hoje</p>
+            <h3 id="kpi-atendidos" class="text-[2.2vw] font-black text-emerald-600 dark:text-emerald-400 font-mono leading-none">0</h3>
+            <p class="text-[0.65vw] text-slate-400 dark:text-slate-500">Atendimentos concluídos</p>
+        </div>
+
+        <div class="bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-[1vw] rounded-xl shadow-sm flex flex-col justify-between">
+            <p class="text-[0.65vw] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Aguardando Agora</p>
+            <h3 id="kpi-aguardando" class="text-[2.2vw] font-black text-amber-600 dark:text-amber-400 font-mono leading-none">0</h3>
+            <p class="text-[0.65vw] text-slate-400 dark:text-slate-500">Em triagem ou consulta</p>
+        </div>
+
+        <div class="bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-[1vw] rounded-xl shadow-sm flex flex-col justify-between">
+            <p class="text-[0.65vw] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Tempo Médio Espera</p>
+            <h3 id="kpi-media-espera" class="text-[2.2vw] font-black text-cyan-600 dark:text-cyan-400 font-mono leading-none">0 <span class="text-[1vw]">min</span></h3>
+            <p class="text-[0.65vw] text-slate-400 dark:text-slate-500">Da chegada ao atendimento</p>
+        </div>
+
+        <div class="bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-[1vw] rounded-xl shadow-sm flex flex-col justify-between">
+            <p class="text-[0.65vw] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Tempo Médio Consulta</p>
+            <h3 id="kpi-media-consulta" class="text-[2.2vw] font-black text-indigo-600 dark:text-indigo-400 font-mono leading-none">0 <span class="text-[1vw]">min</span></h3>
+            <p class="text-[0.65vw] text-slate-400 dark:text-slate-500">Duração média médica</p>
+        </div>
+    </div>
+
+    <!-- Charts Section (74vh de Altura) -->
+    <div class="flex-1 w-full grid grid-cols-3 gap-[1vw] overflow-hidden">
+        <div class="col-span-2 bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-xl p-[1vw] shadow-sm flex flex-col justify-between">
+            <h3 class="text-[0.9vw] font-bold text-slate-900 dark:text-white shrink-0">Volume de Pacientes por Horário</h3>
+            <div class="flex-1 w-full relative min-h-0">
+                <canvas id="chart-fluxo-hora"></canvas>
+            </div>
+        </div>
+
+        <div class="bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-xl p-[1vw] shadow-sm flex flex-col justify-between">
+            <h3 class="text-[0.9vw] font-bold text-slate-900 dark:text-white shrink-0">Distribuição do Fluxo</h3>
+            <div class="flex-1 w-full relative flex items-center justify-center min-h-0">
+                <canvas id="chart-status-donut"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let fluxChart = null;
+    let donutChart = null;
+
+    async function carregarDashboard() {
+        try {
+            const res = await fetch('/api/v1/painel/dashboard');
+            const data = await res.json();
+
+            if (data.sucesso) {
+                document.getElementById('kpi-atendidos').innerText = data.totalAtendidosHoje;
+                document.getElementById('kpi-aguardando').innerText = data.totalAguardandoHoje;
+                document.getElementById('kpi-media-espera').innerHTML = `${data.tempoMedioEsperaMinutos} <span class="text-[1vw] font-normal text-slate-400">min</span>`;
+                document.getElementById('kpi-media-consulta').innerHTML = `${data.tempoMedioConsultaMinutos} <span class="text-[1vw] font-normal text-slate-400">min</span>`;
+
+                renderizarGraficoFluxo(data.fluxoPorHora);
+                renderizarGraficoDonut(data.resumo);
+            }
+        } catch (e) {
+            console.error("Erro ao carregar dashboard:", e);
+        }
+    }
+
+    function renderizarGraficoFluxo(fluxoMap) {
+        const labels = Object.keys(fluxoMap).map(h => `${h.padStart(2, '0')}:00`);
+        const valores = Object.values(fluxoMap);
+        const isDark = document.documentElement.classList.contains('dark');
+        const gridColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+        const textColor = isDark ? '#94a3b8' : '#64748b';
+
+        const ctx = document.getElementById('chart-fluxo-hora').getContext('2d');
+
+        if (fluxChart) {
+            fluxChart.data.labels = labels;
+            fluxChart.data.datasets[0].data = valores;
+            fluxChart.options.scales.x.ticks.color = textColor;
+            fluxChart.options.scales.y.ticks.color = textColor;
+            fluxChart.options.scales.x.grid.color = gridColor;
+            fluxChart.options.scales.y.grid.color = gridColor;
+            fluxChart.update();
+            return;
+        }
+
+        fluxChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Pacientes que chegaram',
+                    data: valores,
+                    borderColor: '#10b981',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    fill: true,
+                    tension: 0.4,
+                    borderWidth: 2,
+                    pointRadius: 3,
+                    pointBackgroundColor: '#10b981'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { color: gridColor }, ticks: { color: textColor, font: { size: 10 } } },
+                    y: { grid: { color: gridColor }, ticks: { color: textColor, font: { size: 10 } }, beginAtZero: true }
+                }
+            }
+        });
+    }
+
+    function renderizarGraficoDonut(resumo) {
+        const labels = ['Aguardando Triagem', 'Em Triagem', 'Aguardando Médico', 'Em Consulta', 'Finalizados'];
+        const valores = [
+            resumo.aguardando_triagem || 0,
+            resumo.em_triagem || 0,
+            resumo.aguardando_medico || 0,
+            resumo.em_consulta || 0,
+            resumo.finalizado || 0
+        ];
+        const isDark = document.documentElement.classList.contains('dark');
+
+        const ctx = document.getElementById('chart-status-donut').getContext('2d');
+
+        if (donutChart) {
+            donutChart.data.datasets[0].data = valores;
+            donutChart.options.plugins.legend.labels.color = isDark ? '#94a3b8' : '#64748b';
+            donutChart.update();
+            return;
+        }
+
+        donutChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: valores,
+                    backgroundColor: ['#f59e0b', '#38bdf8', '#6366f1', '#10b981', '#94a3b8'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { color: isDark ? '#94a3b8' : '#64748b', font: { size: 9 } }
+                    }
+                }
+            }
+        });
+    }
+
+    setInterval(carregarDashboard, 3000);
+    carregarDashboard();
+</script>
+{% endblock %}

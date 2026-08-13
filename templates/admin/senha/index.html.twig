@@ -1,0 +1,84 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}Senhas & Chamadas do Telão{% endblock %}
+
+{% block body %}
+<div class="max-w-7xl mx-auto space-y-6">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Tabela Chamadas no Telão -->
+        <sl-card class="w-full">
+            <div slot="header" class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <sl-icon name="megaphone" class="text-3xl text-emerald-500"></sl-icon>
+                    <div>
+                        <h2 class="text-lg font-bold dark:text-white">Últimas Chamadas no Telão</h2>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">Histórico transmitido para as TVs da clínica</p>
+                    </div>
+                </div>
+                <sl-button size="small" variant="primary" href="/painel/chamada" target="_blank">
+                    Abrir Telão TV
+                </sl-button>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm border-collapse">
+                    <thead>
+                        <tr class="border-b border-slate-200 dark:border-slate-800 text-xs font-bold uppercase text-slate-500">
+                            <th class="py-3 px-4">Senha</th>
+                            <th class="py-3 px-4">Paciente</th>
+                            <th class="py-3 px-4">Consultório / Guichê</th>
+                            <th class="py-3 px-4">Hora</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 dark:divide-slate-800/60">
+                        {% for c in chamadas %}
+                            <tr class="hover:bg-slate-50 dark:hover:bg-slate-900/50 transition">
+                                <td class="py-3 px-4 font-mono font-black text-cyan-500 text-base">{{ c.senha ? c.senha.numeroFormatado : '---' }}</td>
+                                <td class="py-3 px-4 font-semibold dark:text-white">{{ c.pacienteNomeMascarado }}</td>
+                                <td class="py-3 px-4 font-bold text-emerald-500">{{ c.guicheOuConsultorio }}</td>
+                                <td class="py-3 px-4 font-mono text-xs text-slate-400">{{ c.dataHoraChamada ? c.dataHoraChamada|date("H:i:s") : '' }}</td>
+                            </tr>
+                        {% else %}
+                            <tr><td colspan="4" class="text-center py-6 text-slate-400">Nenhuma chamada realizada.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </sl-card>
+
+        <!-- Tabela Senhas Emitidas -->
+        <sl-card class="w-full">
+            <div slot="header">
+                <h3 class="font-bold dark:text-white">Senhas Emitidas na Recepção</h3>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm border-collapse">
+                    <thead>
+                        <tr class="border-b border-slate-200 dark:border-slate-800 text-xs font-bold uppercase text-slate-500">
+                            <th class="py-3 px-4">Número</th>
+                            <th class="py-3 px-4">Tipo</th>
+                            <th class="py-3 px-4">Emissão</th>
+                            <th class="py-3 px-4">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 dark:divide-slate-800/60">
+                        {% for s in senhas %}
+                            <tr class="hover:bg-slate-50 dark:hover:bg-slate-900/50 transition">
+                                <td class="py-3 px-4 font-mono font-bold">{{ s.numeroFormatado }}</td>
+                                <td class="py-3 px-4 text-xs uppercase">{{ s.tipoSenha }}</td>
+                                <td class="py-3 px-4 font-mono text-xs text-slate-400">{{ s.dataHoraEmissao ? s.dataHoraEmissao|date("H:i") : '' }}</td>
+                                <td class="py-3 px-4">
+                                    <sl-badge variant="neutral" size="small">{{ s.status|upper }}</sl-badge>
+                                </td>
+                            </tr>
+                        {% else %}
+                            <tr><td colspan="4" class="text-center py-6 text-slate-400">Nenhuma senha emitida.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </sl-card>
+    </div>
+</div>
+{% endblock %}

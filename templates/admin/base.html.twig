@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title> | Administração {% block title %}{% endblock %}</title>
+        <link rel="icon" href="/images/fav.png">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.19.1/cdn/themes/light.css" />
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.19.1/cdn/themes/dark.css" />
+        <script type="module" src="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.19.1/cdn/shoelace-autoloader.js"></script>
+        
+        {% block stylesheets %}
+            <link rel="stylesheet" href="{{ asset('styles/app.css') }}">
+        {% endblock %}
+        <script>
+            function applyTheme() {
+                const theme = localStorage.theme || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+                if (theme === 'dark') {
+                    document.documentElement.classList.add('dark', 'sl-theme-dark');
+                    document.documentElement.classList.remove('sl-theme-light');
+                } else {
+                    document.documentElement.classList.remove('dark', 'sl-theme-dark');
+                    document.documentElement.classList.add('sl-theme-light');
+                }
+            }
+            window.lightMode = function() {
+                localStorage.theme = 'light';
+                applyTheme();
+            };
+            window.darkMode = function() {
+                localStorage.theme = 'dark';
+                applyTheme();
+            };
+            applyTheme();
+        </script>
+        {% block javascripts %}
+            {% block importmap %}{{ importmap('app') }}{% endblock %}
+        {% endblock %}
+    </head>
+    <body>
+        <div class="bg-gradient-to-tr from-slate-200 to-slate-50 dark:from-slate-950 dark:to-slate-900 dark:text-white resize-x ">
+            <div class="h-full min-h-screen bg-left-bottom bg-cover bg-fixed" style="background-image: radial-gradient(circle at top, rgba(255,255,255,0.7), transparent 55%), radial-gradient(circle at 20% 20%, rgba(148,163,184,0.35), transparent 45%), radial-gradient(circle at 80% 0%, rgba(125,211,252,0.25), transparent 35%);">
+                <div class="grid grid-cols-[250px_auto] grid-rols-1 lg:ml-0 ml-[-250px] transition-all min-h-screen" id="page-wrap">
+                    <nav class="pt-10 flex flex-col h-screen sticky top-0 overflow-y-auto" > 
+                        <div class="flex-auto">
+                            <div class="px-4 mb-3 text-[11px] font-bold uppercase tracking-wider text-slate-400">Procordis Gestão</div>
+
+                            {% set isSimulador = app.current_route starts with 'app_admin_simulador_' %}
+                            <a class='py-2 px-4 mx-4 mb-2 block rounded hover:shadow hover:from-white hover:to-white/60 hover:bg-gradient-to-r dark:hover:from-white/5 dark:hover:via-white/10 dark:hover:to-white/5 {% if isSimulador %}shadow bg-gradient-to-r from-cyan-500/20 to-sky-500/20 font-bold text-cyan-400 border border-cyan-500/30{% endif %}' href="{{ path('app_admin_simulador_index') }}">
+                                <sl-icon name="play-circle" class="mr-2 align-text-top"></sl-icon>
+                                Simulador & Tempo Real
+                            </a>
+
+                            {% set isAgendamento = app.current_route starts with 'app_admin_agendamento_' %}
+                            <a class='py-2 px-4 mx-4 mb-2 block rounded hover:shadow hover:from-white hover:to-white/60 hover:bg-gradient-to-r dark:hover:from-white/5 dark:hover:via-white/10 dark:hover:to-white/5 {% if isAgendamento %}shadow bg-gradient-to-r from-cyan-500/20 to-sky-500/20 font-bold text-cyan-400 border border-cyan-500/30{% endif %}' href="{{ path('app_admin_agendamento_index') }}">
+                                <sl-icon name="calendar-event" class="mr-2 align-text-top"></sl-icon>
+                                Agendamentos
+                            </a>
+
+                            {% set isPaciente = app.current_route starts with 'app_admin_paciente_' %}
+                            <a class='py-2 px-4 mx-4 mb-2 block rounded hover:shadow hover:from-white hover:to-white/60 hover:bg-gradient-to-r dark:hover:from-white/5 dark:hover:via-white/10 dark:hover:to-white/5 {% if isPaciente %}shadow bg-gradient-to-r from-cyan-500/20 to-sky-500/20 font-bold text-cyan-400 border border-cyan-500/30{% endif %}' href="{{ path('app_admin_paciente_index') }}">
+                                <sl-icon name="people" class="mr-2 align-text-top"></sl-icon>
+                                Pacientes
+                            </a>
+
+                            {% set isMedico = app.current_route starts with 'app_admin_medico_' %}
+                            <a class='py-2 px-4 mx-4 mb-2 block rounded hover:shadow hover:from-white hover:to-white/60 hover:bg-gradient-to-r dark:hover:from-white/5 dark:hover:via-white/10 dark:hover:to-white/5 {% if isMedico %}shadow bg-gradient-to-r from-cyan-500/20 to-sky-500/20 font-bold text-cyan-400 border border-cyan-500/30{% endif %}' href="{{ path('app_admin_medico_index') }}">
+                                <sl-icon name="person-badge" class="mr-2 align-text-top"></sl-icon>
+                                Médicos & Salas
+                            </a>
+
+                            {% set isSenha = app.current_route starts with 'app_admin_senha_' %}
+                            <a class='py-2 px-4 mx-4 mb-2 block rounded hover:shadow hover:from-white hover:to-white/60 hover:bg-gradient-to-r dark:hover:from-white/5 dark:hover:via-white/10 dark:hover:to-white/5 {% if isSenha %}shadow bg-gradient-to-r from-cyan-500/20 to-sky-500/20 font-bold text-cyan-400 border border-cyan-500/30{% endif %}' href="{{ path('app_admin_senha_index') }}">
+                                <sl-icon name="megaphone" class="mr-2 align-text-top"></sl-icon>
+                                Senhas & Telão
+                            </a>
+
+                            {% set isSla = app.current_route starts with 'app_admin_sla_' %}
+                            <a class='py-2 px-4 mx-4 mb-2 block rounded hover:shadow hover:from-white hover:to-white/60 hover:bg-gradient-to-r dark:hover:from-white/5 dark:hover:via-white/10 dark:hover:to-white/5 {% if isSla %}shadow bg-gradient-to-r from-cyan-500/20 to-sky-500/20 font-bold text-cyan-400 border border-cyan-500/30{% endif %}' href="{{ path('app_admin_sla_index') }}">
+                                <sl-icon name="sliders" class="mr-2 align-text-top"></sl-icon>
+                                Regras de SLA
+                            </a>
+
+                            {% set isConfig = app.current_route starts with 'app_admin_configuracao_' %}
+                            <a class='py-2 px-4 mx-4 mb-2 block rounded hover:shadow hover:from-white hover:to-white/60 hover:bg-gradient-to-r dark:hover:from-white/5 dark:hover:via-white/10 dark:hover:to-white/5 {% if isConfig %}shadow bg-gradient-to-r from-cyan-500/20 to-sky-500/20 font-bold text-cyan-400 border border-cyan-500/30{% endif %}' href="{{ path('app_admin_configuracao_index') }}">
+                                <sl-icon name="gear" class="mr-2 align-text-top"></sl-icon>
+                                Integracão Medware
+                            </a>
+
+                            <div class="px-4 my-3 text-[11px] font-bold uppercase tracking-wider text-slate-400 border-t border-slate-800 pt-3">Painéis Visuais</div>
+
+                            <a target="_blank" class='py-1.5 px-4 mx-4 mb-1.5 block text-xs rounded hover:bg-slate-800 text-cyan-400 font-semibold' href="/painel/espera">
+                                <sl-icon name="box-arrow-up-right" class="mr-2 align-text-top"></sl-icon>
+                                Painel de Espera
+                            </a>
+                            <a target="_blank" class='py-1.5 px-4 mx-4 mb-1.5 block text-xs rounded hover:bg-slate-800 text-cyan-400 font-semibold' href="/painel/chamada">
+                                <sl-icon name="tv" class="mr-2 align-text-top"></sl-icon>
+                                Telão de Chamadas (TV)
+                            </a>
+                            <a target="_blank" class='py-1.5 px-4 mx-4 mb-1.5 block text-xs rounded hover:bg-slate-800 text-cyan-400 font-semibold' href="/painel/medicos">
+                                <sl-icon name="activity" class="mr-2 align-text-top"></sl-icon>
+                                Painel dos Médicos
+                            </a>
+                            <a target="_blank" class='py-1.5 px-4 mx-4 mb-1.5 block text-xs rounded hover:bg-slate-800 text-cyan-400 font-semibold' href="/painel/dashboard">
+                                <sl-icon name="graph-up-arrow" class="mr-2 align-text-top"></sl-icon>
+                                Dashboard Executivo
+                            </a>
+
+                            <div class="px-4 my-3 border-t border-slate-800 pt-3"></div>
+
+                            <a class='py-2 px-4 mx-4 mb-2 block rounded hover:shadow hover:from-white hover:to-white/60 hover:bg-gradient-to-r dark:hover:from-white/5 dark:hover:via-white/10 dark:hover:to-white/5 align-middle' href="{{path('app_logout')}}"><sl-icon name="box-arrow-left" class="mr-2 align-text-top"></sl-icon> Logout</a>
+                        </div>
+                        <div class="flex-none p-2 icon-button-no-color-change">
+                            <sl-icon-button class="text-white text-xl hover:text-white hidden dark:inline-block" onclick="lightMode()" name="brightness-high" label="modo claro"></sl-icon-button>
+                            <sl-icon-button class="text-slate-900 text-xl hover:text-slate-900 inline-block dark:hidden" onclick="darkMode()" name="moon" label="modo escuro"></sl-icon-button>
+                        </div>
+                    </nav>
+                    <main class="lg:py-10 px-8 relative bg-transparent">
+                        <div class="lg:hidden icon-button-no-color-change my-4 w-full"><sl-icon-button class="dark:text-white text-xl" onclick="toggleNav()" name="list" label="abrir menu"></sl-icon-button></div>
+                        {% block body %}{% endblock %}
+                    </main>
+                </div>
+            </div>
+            
+        </div>
+        
+    <script>
+        const pageWrap = document.getElementById('page-wrap');
+        
+        function toggleNav(){
+            if(pageWrap.style.transform == "translateX(250px)"){
+                pageWrap.style.transform = "";
+            }else{
+                pageWrap.style.transform = "translateX(250px)";
+            }
+        }
+
+        function toggleDebug() {
+            document.querySelectorAll('.debug-panel').forEach(el => {
+                el.style.display = el.style.display === 'none' ? 'block' : 'none';
+            });
+        }
+    </script>
+    <div class="fixed bottom-4 right-4 z-50">
+        <sl-button circle variant="neutral" size="large" onclick="toggleDebug()">
+            <sl-icon name="bug" label="Debug"></sl-icon>
+        </sl-button>
+    </div>
+    </body>
+</html>

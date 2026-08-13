@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="{{ app.request is defined and app.request ? app.request.locale : 'pt-BR' }}" class="dark">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>{% block title %}Procordis Painel{% endblock %}</title>
+        <link rel="icon" href="/images/fav.png">
+
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.19.1/cdn/themes/light.css" />
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.19.1/cdn/themes/dark.css" />
+        <script type="module" src="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.19.1/cdn/shoelace-autoloader.js"></script>
+
+        {% block stylesheets %}
+            <link rel="stylesheet" href="{{ asset('styles/app.css') }}">
+        {% endblock %}
+
+        <script>
+            function applyTheme() {
+                const theme = localStorage.theme || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+                if (theme === 'dark') {
+                    document.documentElement.classList.add('dark', 'sl-theme-dark');
+                    document.documentElement.classList.remove('sl-theme-light');
+                } else {
+                    document.documentElement.classList.remove('dark', 'sl-theme-dark');
+                    document.documentElement.classList.add('sl-theme-light');
+                }
+            }
+            window.lightMode = function() {
+                localStorage.theme = 'light';
+                applyTheme();
+            };
+            window.darkMode = function() {
+                localStorage.theme = 'dark';
+                applyTheme();
+            };
+            window.toggleTheme = function() {
+                const current = localStorage.theme || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+                if (current === 'dark') {
+                    window.lightMode();
+                } else {
+                    window.darkMode();
+                }
+            };
+            applyTheme();
+        </script>
+
+        {% block javascripts %}
+            {{ importmap('app') }}
+        {% endblock %}
+    </head>
+    <body class="h-screen w-screen overflow-hidden bg-slate-100 text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100 transition-colors duration-200">
+
+        <!-- Overlay de Fundo Escuro para o Menu Hambúrguer -->
+        <div id="drawer-backdrop" onclick="closePublicDrawer()" class="fixed inset-0 z-[70] bg-slate-950/60 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300"></div>
+
+        <!-- Gaveta de Menu Estilo Mobile / Slide-Over Drawer -->
+        <aside id="public-drawer" class="fixed top-0 right-0 bottom-0 w-[300px] max-w-[85vw] bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 shadow-2xl z-[80] flex flex-col justify-between p-5 transform translate-x-full transition-transform duration-300">
+            <!-- Cabeçalho do Drawer -->
+            <div>
+                <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4 mb-4">
+                    <div class="flex items-center gap-2">
+                        <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 font-black text-slate-950 text-xs">
+                            P
+                        </span>
+                        <span class="font-bold text-sm tracking-tight text-slate-800 dark:text-white uppercase">
+                            Procordis Menu
+                        </span>
+                    </div>
+
+                    <button type="button" onclick="closePublicDrawer()" class="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+
+                <!-- Lista de Links Numerados -->
+                <nav class="space-y-1.5 font-semibold text-xs">
+                    <a href="/painel/aguardando" onclick="closePublicDrawer()" class="flex items-center gap-3 px-3 py-2.5 rounded-xl transition {% if app.request.pathInfo == '/painel/aguardando' %}bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 font-bold border border-cyan-500/20{% else %}text-slate-600 hover:text-cyan-600 dark:text-slate-300 dark:hover:text-cyan-400 hover:bg-slate-100 dark:hover:bg-slate-800/60{% endif %}">
+                        <span class="font-mono text-cyan-500 font-bold">01.</span>
+                        <span>Pré-Atendimento</span>
+                    </a>
+
+                    <a href="/painel/finalizados" onclick="closePublicDrawer()" class="flex items-center gap-3 px-3 py-2.5 rounded-xl transition {% if app.request.pathInfo == '/painel/finalizados' %}bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 font-bold border border-cyan-500/20{% else %}text-slate-600 hover:text-cyan-600 dark:text-slate-300 dark:hover:text-cyan-400 hover:bg-slate-100 dark:hover:bg-slate-800/60{% endif %}">
+                        <span class="font-mono text-cyan-500 font-bold">02.</span>
+                        <span>Pós-Atendimento</span>
+                    </a>
+
+                    <a href="/painel/espera" onclick="closePublicDrawer()" class="flex items-center gap-3 px-3 py-2.5 rounded-xl transition {% if app.request.pathInfo == '/painel/espera' %}bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 font-bold border border-cyan-500/20{% else %}text-slate-600 hover:text-cyan-600 dark:text-slate-300 dark:hover:text-cyan-400 hover:bg-slate-100 dark:hover:bg-slate-800/60{% endif %}">
+                        <span class="font-mono text-cyan-500 font-bold">03.</span>
+                        <span>Fila de Espera</span>
+                    </a>
+
+                    <a href="/painel/chamada" onclick="closePublicDrawer()" class="flex items-center gap-3 px-3 py-2.5 rounded-xl transition {% if app.request.pathInfo == '/painel/chamada' %}bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 font-bold border border-cyan-500/20{% else %}text-slate-600 hover:text-cyan-600 dark:text-slate-300 dark:hover:text-cyan-400 hover:bg-slate-100 dark:hover:bg-slate-800/60{% endif %}">
+                        <span class="font-mono text-cyan-500 font-bold">04.</span>
+                        <span>Telão TV</span>
+                    </a>
+
+                    <a href="/painel/medicos" onclick="closePublicDrawer()" class="flex items-center gap-3 px-3 py-2.5 rounded-xl transition {% if app.request.pathInfo == '/painel/medicos' %}bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 font-bold border border-cyan-500/20{% else %}text-slate-600 hover:text-cyan-600 dark:text-slate-300 dark:hover:text-cyan-400 hover:bg-slate-100 dark:hover:bg-slate-800/60{% endif %}">
+                        <span class="font-mono text-cyan-500 font-bold">05.</span>
+                        <span>Médicos & Salas</span>
+                    </a>
+
+                    <a href="/painel/triagem" onclick="closePublicDrawer()" class="flex items-center gap-3 px-3 py-2.5 rounded-xl transition {% if app.request.pathInfo == '/painel/triagem' %}bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 font-bold border border-cyan-500/20{% else %}text-slate-600 hover:text-cyan-600 dark:text-slate-300 dark:hover:text-cyan-400 hover:bg-slate-100 dark:hover:bg-slate-800/60{% endif %}">
+                        <span class="font-mono text-cyan-500 font-bold">06.</span>
+                        <span>Triagem</span>
+                    </a>
+
+                    <a href="/painel/dashboard" onclick="closePublicDrawer()" class="flex items-center gap-3 px-3 py-2.5 rounded-xl transition {% if app.request.pathInfo == '/painel/dashboard' %}bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 font-bold border border-cyan-500/20{% else %}text-slate-600 hover:text-cyan-600 dark:text-slate-300 dark:hover:text-cyan-400 hover:bg-slate-100 dark:hover:bg-slate-800/60{% endif %}">
+                        <span class="font-mono text-cyan-500 font-bold">07.</span>
+                        <span>Dashboard</span>
+                    </a>
+
+                    <a href="/admin/sla" onclick="closePublicDrawer()" class="flex items-center gap-3 px-3 py-2.5 rounded-xl transition text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60 border border-slate-200 dark:border-slate-800 mt-2">
+                        <span class="font-mono text-amber-500 font-bold">08.</span>
+                        <span>Regras SLA (Admin)</span>
+                    </a>
+                </nav>
+            </div>
+
+            <!-- Rodapé do Drawer: Alternador de Tema Claro/Escuro -->
+            <div class="border-t border-slate-200 dark:border-slate-800 pt-4 space-y-3">
+                <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Aparência do Painel</p>
+                <div class="grid grid-cols-2 gap-2 bg-slate-100 dark:bg-slate-950 p-1.5 rounded-xl border border-slate-200 dark:border-slate-800">
+                    <button type="button" onclick="lightMode()" class="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-bold transition hover:bg-white dark:hover:bg-slate-900 text-slate-700 dark:text-slate-400 border border-transparent hover:border-slate-200 dark:hover:border-slate-800">
+                        ☀️ Claro
+                    </button>
+                    <button type="button" onclick="darkMode()" class="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-bold transition hover:bg-white dark:hover:bg-slate-900 text-slate-700 dark:text-slate-200 border border-transparent hover:border-slate-200 dark:hover:border-slate-800">
+                        🌙 Escuro
+                    </button>
+                </div>
+
+                <div class="flex items-center justify-between text-xs text-slate-400 pt-1">
+                    <span>Horário Local:</span>
+                    <span id="drawer-header-clock" class="font-mono font-bold text-cyan-500">00:00:00</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Layout Principal da Área Pública -->
+        <div class="h-screen w-screen flex flex-col justify-between overflow-hidden relative">
+            <!-- Topo Minimalista Único (4.5vh de Altura) -->
+            <header class="h-[4.5vh] min-h-[36px] w-full border-b border-slate-200/80 bg-white/90 backdrop-blur dark:border-slate-800/80 dark:bg-slate-950/90 flex items-center justify-between px-[1.5vw] text-[0.85vw] leading-none shrink-0 z-50">
+                <!-- Marca & Live Indicator (Esquerda) -->
+                <div class="flex items-center gap-[0.75vw]">
+                    <a href="/painel/espera" class="flex items-center gap-[0.5vw]">
+                        <span class="flex h-[2.5vh] w-[2.5vh] items-center justify-center rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 font-black text-slate-950 text-[0.8vw]">
+                            P
+                        </span>
+                        <span class="font-black tracking-tight text-slate-800 dark:text-slate-100 uppercase text-[0.85vw]">
+                            Procordis <span class="text-cyan-500 font-normal">Painel</span>
+                        </span>
+                    </a>
+                    <div class="flex items-center gap-[0.3vw] pl-[0.75vw] border-l border-slate-300 dark:border-slate-800">
+                        <span class="relative flex h-[0.6vh] w-[0.6vh]">
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                            <span class="relative inline-flex rounded-full h-[0.6vh] w-[0.6vh] bg-emerald-500"></span>
+                        </span>
+                        <span class="text-[0.7vw] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Ao Vivo</span>
+                    </div>
+                </div>
+
+                <!-- Lado Direito: Relógio + Ícone do Menu Hambúrguer -->
+                <div class="flex items-center gap-[1vw]">
+                    <span id="global-header-clock" class="font-mono font-bold text-[0.85vw] text-cyan-600 dark:text-cyan-400">00:00:00</span>
+
+                    <!-- Ícone do Menu Hambúrguer -->
+                    <button type="button" onclick="openPublicDrawer()" title="Abrir Menu de Navegação" class="flex items-center gap-[0.4vw] px-[0.6vw] py-[0.4vh] rounded-lg bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-cyan-500/50 hover:text-cyan-500 text-slate-700 dark:text-slate-200 font-bold text-[0.75vw] transition active:scale-95 shadow-sm">
+                        <svg class="w-[1.2vw] h-[1.2vw] min-w-[16px] min-h-[16px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 6h16M4 12h16M4 18h16"></path>
+                        </svg>
+                        <span>Menu</span>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Conteúdo Principal (93vh de Altura com Vh/Vw) -->
+            <main class="h-[93vh] w-full overflow-hidden p-[1vh] lg:p-[1.5vh] shrink-0">
+                {% block body %}{% endblock %}
+            </main>
+
+            <!-- Rodapé Minimalista Único (2.5vh de Altura) -->
+            <footer class="h-[2.5vh] min-h-[20px] w-full border-t border-slate-200/80 bg-white/90 backdrop-blur dark:border-slate-800/80 dark:bg-slate-950/90 text-[0.7vw] text-slate-500 dark:text-slate-400 flex items-center justify-between px-[1.5vw] leading-none shrink-0">
+                <p>&copy; {{ "now"|date("Y") }} Procordis Medicina Diagnóstica. Todos os direitos reservados.</p>
+                <p class="font-medium">Medware API Sync &bull; Painel em Tempo Real</p>
+            </footer>
+        </div>
+
+        <script>
+            function updateGlobalClock() {
+                const now = new Date().toLocaleTimeString('pt-BR');
+                const el1 = document.getElementById('global-header-clock');
+                const el2 = document.getElementById('drawer-header-clock');
+                if (el1) el1.innerText = now;
+                if (el2) el2.innerText = now;
+            }
+            setInterval(updateGlobalClock, 1000);
+            updateGlobalClock();
+
+            // Funções para Abrir e Fechar a Gaveta de Menu (Hambúrguer)
+            function openPublicDrawer() {
+                const drawer = document.getElementById('public-drawer');
+                const backdrop = document.getElementById('drawer-backdrop');
+                if (drawer && backdrop) {
+                    backdrop.classList.remove('opacity-0', 'pointer-events-none');
+                    backdrop.classList.add('opacity-100', 'pointer-events-auto');
+                    drawer.classList.remove('translate-x-full');
+                    drawer.classList.add('translate-x-0');
+                }
+            }
+
+            function closePublicDrawer() {
+                const drawer = document.getElementById('public-drawer');
+                const backdrop = document.getElementById('drawer-backdrop');
+                if (drawer && backdrop) {
+                    backdrop.classList.remove('opacity-100', 'pointer-events-auto');
+                    backdrop.classList.add('opacity-0', 'pointer-events-none');
+                    drawer.classList.remove('translate-x-0');
+                    drawer.classList.add('translate-x-full');
+                }
+            }
+
+            window.openPublicDrawer = openPublicDrawer;
+            window.closePublicDrawer = closePublicDrawer;
+        </script>
+    </body>
+</html>

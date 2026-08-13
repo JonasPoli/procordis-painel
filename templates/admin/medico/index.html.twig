@@ -1,0 +1,78 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}Médicos, Especialidades & Salas{% endblock %}
+
+{% block body %}
+<div class="max-w-7xl mx-auto space-y-6">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Tabela de Médicos -->
+        <div class="lg:col-span-2 space-y-6">
+            <sl-card class="w-full">
+                <div slot="header" class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <sl-icon name="person-badge" class="text-3xl text-indigo-500"></sl-icon>
+                        <div>
+                            <h2 class="text-xl font-bold dark:text-white">Médicos Cadastrados</h2>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">Corpo clínico Procordis e estado de atividade</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm border-collapse">
+                        <thead>
+                            <tr class="border-b border-slate-200 dark:border-slate-800 text-xs font-bold uppercase text-slate-500">
+                                <th class="py-3 px-4">Médico</th>
+                                <th class="py-3 px-4">CRM</th>
+                                <th class="py-3 px-4">Especialidade</th>
+                                <th class="py-3 px-4">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 dark:divide-slate-800/60">
+                            {% for m in medicos %}
+                                <tr class="hover:bg-slate-50 dark:hover:bg-slate-900/50 transition">
+                                    <td class="py-3 px-4 font-bold dark:text-white">{{ m.nome }}</td>
+                                    <td class="py-3 px-4 font-mono text-xs text-slate-500">{{ m.crm }}</td>
+                                    <td class="py-3 px-4 text-xs font-semibold text-indigo-400">{{ m.especialidade ? m.especialidade.nome : 'Clínica Geral' }}</td>
+                                    <td class="py-3 px-4">
+                                        {% if m.statusAtividade == 'em_atendimento' %}
+                                            <sl-badge variant="primary" pill>Em Consulta</sl-badge>
+                                        {% else %}
+                                            <sl-badge variant="success" pill>Disponível</sl-badge>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% else %}
+                                <tr>
+                                    <td colspan="4" class="text-center py-8 text-slate-400">Nenhum médico cadastrado.</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </sl-card>
+        </div>
+
+        <!-- Coluna de Salas & Setores -->
+        <div class="space-y-6">
+            <sl-card class="w-full">
+                <div slot="header">
+                    <h3 class="font-bold dark:text-white">Salas & Setores</h3>
+                </div>
+
+                <div class="space-y-2">
+                    {% for s in salas %}
+                        <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs">
+                            <div>
+                                <p class="font-bold dark:text-slate-200">{{ s.nomeSala }}</p>
+                                <p class="text-[10px] text-slate-400">{{ s.nomeSetor }}</p>
+                            </div>
+                            <sl-badge variant="neutral" size="small">{{ s.tipo|upper }}</sl-badge>
+                        </div>
+                    {% endfor %}
+                </div>
+            </sl-card>
+        </div>
+    </div>
+</div>
+{% endblock %}

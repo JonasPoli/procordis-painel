@@ -1,0 +1,84 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}Configurações de Integração Medware API{% endblock %}
+
+{% block body %}
+<div class="max-w-7xl mx-auto space-y-6">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Formulário de Credenciais API -->
+        <div class="lg:col-span-2 space-y-6">
+            <sl-card class="w-full">
+                <div slot="header" class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <sl-icon name="gear" class="text-3xl text-cyan-500"></sl-icon>
+                        <div>
+                            <h2 class="text-xl font-bold dark:text-white">Integração API Medware</h2>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">Configurações de conexão exclusiva para leitura (`api.procordis.org.br`)</p>
+                        </div>
+                    </div>
+                </div>
+
+                <form method="post" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Endereço Base da API (Base URL)</label>
+                        <input type="text" name="apiBaseUrl" value="{{ config.apiBaseUrl }}" required class="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-sm">
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Usuário API / Identificação</label>
+                            <input type="text" name="apiUsuario" value="{{ config.apiUsuario }}" placeholder="Ex: procordis_consulta" class="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Senha de Acesso</label>
+                            <input type="password" name="apiSenha" placeholder="••••••••" class="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-sm">
+                        </div>
+                    </div>
+
+                    <div class="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                        <div>
+                            <p class="font-bold text-sm dark:text-slate-200">Fonte de Dados Atual</p>
+                            <p class="text-xs text-slate-500">Marque para simular dados locais; desmarque para consultar a API Medware real.</p>
+                        </div>
+                        <select name="modoSimulacao" class="p-2 rounded-xl bg-white dark:bg-slate-950 border text-xs font-bold">
+                            <option value="1" {% if config.modoSimulacao %}selected{% endif %}>Modo Simulador Local</option>
+                            <option value="0" {% if not config.modoSimulacao %}selected{% endif %}>API Medware Real</option>
+                        </select>
+                    </div>
+
+                    <sl-button type="submit" variant="primary">
+                        <sl-icon slot="prefix" name="save"></sl-icon>
+                        Salvar e Testar Conexão
+                    </sl-button>
+                </form>
+            </sl-card>
+        </div>
+
+        <!-- Logs de Sincronização -->
+        <div class="space-y-6">
+            <sl-card class="w-full">
+                <div slot="header">
+                    <h3 class="font-bold dark:text-white">Logs da API Medware</h3>
+                </div>
+
+                <div class="space-y-2 max-h-96 overflow-y-auto pr-1">
+                    {% for l in logs %}
+                        <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 text-xs font-mono">
+                            <div class="flex items-center justify-between">
+                                <span class="font-bold text-cyan-500">{{ l.metodo }} {{ l.endpoint }}</span>
+                                <sl-badge variant="{{ l.httpStatus == 200 ? 'success' : 'danger' }}" size="small">{{ l.httpStatus ?? 'ERR' }}</sl-badge>
+                            </div>
+                            <div class="flex items-center justify-between text-[10px] text-slate-400 mt-1">
+                                <span>{{ l.dataHora|date("H:i:s") }} ({{ l.tempoRespostaMs }}ms)</span>
+                                <span>{{ l.registrosProcessados }} iten(s)</span>
+                            </div>
+                        </div>
+                    {% else %}
+                        <p class="text-center py-6 text-slate-400 text-xs">Nenhum log gravado ainda.</p>
+                    {% endfor %}
+                </div>
+            </sl-card>
+        </div>
+    </div>
+</div>
+{% endblock %}

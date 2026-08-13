@@ -1,0 +1,48 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}Pacientes Cadastrados{% endblock %}
+
+{% block body %}
+<div class="max-w-7xl mx-auto space-y-6">
+    <sl-card class="w-full">
+        <div slot="header" class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <sl-icon name="people" class="text-3xl text-sky-500"></sl-icon>
+                <div>
+                    <h2 class="text-xl font-bold dark:text-white">Cadastro de Pacientes</h2>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Listagem de pacientes cadastrados com anonimização LGPD para exibição pública</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm border-collapse">
+                <thead>
+                    <tr class="border-b border-slate-200 dark:border-slate-800 text-xs font-bold uppercase text-slate-500">
+                        <th class="py-3 px-4">Código</th>
+                        <th class="py-3 px-4">Nome Completo</th>
+                        <th class="py-3 px-4">Nome Exibição (LGPD)</th>
+                        <th class="py-3 px-4">CPF</th>
+                        <th class="py-3 px-4">Celular</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 dark:divide-slate-800/60">
+                    {% for p in pacientes %}
+                        <tr class="hover:bg-slate-50 dark:hover:bg-slate-900/50 transition">
+                            <td class="py-3 px-4 font-mono text-xs font-bold text-slate-400">{{ p.codigoExterno }}</td>
+                            <td class="py-3 px-4 font-semibold dark:text-white">{{ p.nomeCompleto }}</td>
+                            <td class="py-3 px-4 font-bold text-cyan-500">{{ p.nomeExibicao }}</td>
+                            <td class="py-3 px-4 font-mono text-xs text-slate-500">{{ p.cpf ?? '***.***.***-**' }}</td>
+                            <td class="py-3 px-4 font-mono text-xs text-slate-500">{{ p.celular ?? '(81) 9****-****' }}</td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center py-8 text-slate-400">Nenhum paciente cadastrado.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </sl-card>
+</div>
+{% endblock %}

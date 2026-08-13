@@ -1,0 +1,310 @@
+{% extends 'pub/base.html.twig' %}
+
+{% block title %}Tela 2: Atendimentos Finalizados (Pós-Atendimento) | Procordis{% endblock %}
+
+{% block body %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+<div class="h-full w-full flex flex-col justify-between overflow-hidden gap-[1vh]">
+    <!-- Top KPIs Bar (6 Indicadores de Resumo - 10vh) -->
+    <div class="h-[10vh] w-full grid grid-cols-6 gap-[0.6vw] shrink-0">
+        <div class="bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-[0.6vw] rounded-xl shadow-sm flex flex-col justify-between">
+            <p class="text-[0.55vw] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Exames Concluídos</p>
+            <h3 id="kpi-fin-senhas" class="text-[1.5vw] font-black text-emerald-600 dark:text-emerald-400 font-mono leading-none">0</h3>
+            <p class="text-[0.55vw] text-slate-400">Total finalizado hoje</p>
+        </div>
+
+        <div class="bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-[0.6vw] rounded-xl shadow-sm flex flex-col justify-between">
+            <p class="text-[0.55vw] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Média P/ Recepção</p>
+            <h3 id="kpi-fin-p-recepcao" class="text-[1.5vw] font-black text-indigo-600 dark:text-indigo-400 font-mono leading-none">00:00</h3>
+            <p class="text-[0.55vw] text-slate-400">Da senha ao guichê</p>
+        </div>
+
+        <div class="bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-[0.6vw] rounded-xl shadow-sm flex flex-col justify-between">
+            <p class="text-[0.55vw] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Média de Recepção</p>
+            <h3 id="kpi-fin-de-recepcao" class="text-[1.5vw] font-black text-sky-600 dark:text-sky-400 font-mono leading-none">00:00</h3>
+            <p class="text-[0.55vw] text-slate-400">Duração no guichê</p>
+        </div>
+
+        <div class="bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-[0.6vw] rounded-xl shadow-sm flex flex-col justify-between">
+            <p class="text-[0.55vw] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Média Espera Exame</p>
+            <h3 id="kpi-fin-espera-exame" class="text-[1.5vw] font-black text-cyan-600 dark:text-cyan-400 font-mono leading-none">00:00</h3>
+            <p class="text-[0.55vw] text-slate-400">Da recepção ao exame</p>
+        </div>
+
+        <div class="bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-[0.6vw] rounded-xl shadow-sm flex flex-col justify-between">
+            <p class="text-[0.55vw] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Média Total Atend.</p>
+            <h3 id="kpi-fin-total" class="text-[1.5vw] font-black text-emerald-600 dark:text-emerald-400 font-mono leading-none">00:00</h3>
+            <p class="text-[0.55vw] text-slate-400">Permanência geral</p>
+        </div>
+
+        <div class="bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-[0.6vw] rounded-xl shadow-sm flex flex-col justify-between">
+            <p class="text-[0.55vw] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Maior Tempo Atend.</p>
+            <h3 id="kpi-fin-maior-tempo" class="text-[1.5vw] font-black text-amber-600 dark:text-amber-400 font-mono leading-none">00:00</h3>
+            <p class="text-[0.55vw] text-slate-400">Maior jornada do dia</p>
+        </div>
+    </div>
+
+    <!-- Metade Intermediária: Tabela de Histórico de Finalizados (40vh de Altura) -->
+    <div class="h-[40vh] w-full bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-md flex flex-col shrink-0">
+        <div class="w-full overflow-y-auto flex-1">
+            <table class="w-full text-left text-[0.7vw] text-slate-700 dark:text-slate-300">
+                <thead class="bg-slate-100 dark:bg-slate-950/90 text-[0.6vw] uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-10 backdrop-blur">
+                    <tr>
+                        <th scope="col" class="py-[0.6vh] px-[0.6vw]">Senha</th>
+                        <th scope="col" class="py-[0.6vh] px-[0.6vw]">Tipo Senha</th>
+                        <th scope="col" class="py-[0.6vh] px-[0.6vw]">Etapa</th>
+                        <th scope="col" class="py-[0.6vh] px-[0.6vw] text-center">Qtd</th>
+                        <th scope="col" class="py-[0.6vh] px-[0.6vw]">Atendimento</th>
+                        <th scope="col" class="py-[0.6vh] px-[0.6vw]">AN (Access No.)</th>
+                        <th scope="col" class="py-[0.6vh] px-[0.6vw]">Data</th>
+                        <th scope="col" class="py-[0.6vh] px-[0.6vw]">Hora Senha</th>
+                        <th scope="col" class="py-[0.6vh] px-[0.6vw]">Início Rec.</th>
+                        <th scope="col" class="py-[0.6vh] px-[0.6vw]">Fim Rec.</th>
+                        <th scope="col" class="py-[0.6vh] px-[0.6vw]">Hr 1ª Imagem</th>
+                        <th scope="col" class="py-[0.6vh] px-[0.6vw] text-center">Tempo & SLA</th>
+                        <th scope="col" class="py-[0.6vh] px-[0.6vw]">Guichê</th>
+                        <th scope="col" class="py-[0.6vh] px-[0.6vw]">Procedimento</th>
+                    </tr>
+                </thead>
+                <tbody id="tabela-finalizados-corpo" class="divide-y divide-slate-200/80 dark:divide-slate-800/60">
+                    <tr>
+                        <td colspan="14" class="py-[4vh] text-center text-slate-400">
+                            Carregando exames finalizados...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Metade Inferior: 4 Painéis Gráficos Analíticos (40vh de Altura) -->
+    <div class="h-[40vh] w-full grid grid-cols-4 gap-[0.8vw] shrink-0">
+        <!-- 1. Procedimentos por Hora -->
+        <div class="bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-xl p-[0.6vw] shadow-sm flex flex-col justify-between">
+            <h4 class="text-[0.7vw] font-bold text-slate-900 dark:text-white shrink-0">Exames por Hora</h4>
+            <div class="flex-1 w-full relative min-h-0">
+                <canvas id="chart-fin-hora"></canvas>
+            </div>
+        </div>
+
+        <!-- 2. Produtividade e Média por Procedimento -->
+        <div class="bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-xl p-[0.6vw] shadow-sm flex flex-col justify-between">
+            <h4 class="text-[0.7vw] font-bold text-slate-900 dark:text-white shrink-0">Produtividade por Exame</h4>
+            <div class="flex-1 w-full relative min-h-0">
+                <canvas id="chart-fin-procedimento"></canvas>
+            </div>
+        </div>
+
+        <!-- 3. Atendimentos por Guichê -->
+        <div class="bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-xl p-[0.6vw] shadow-sm flex flex-col justify-between">
+            <h4 class="text-[0.7vw] font-bold text-slate-900 dark:text-white shrink-0">Atendimentos por Guichê</h4>
+            <div class="flex-1 w-full relative min-h-0">
+                <canvas id="chart-fin-guiche"></canvas>
+            </div>
+        </div>
+
+        <!-- 4. SLA Meta Pizza -->
+        <div class="bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-xl p-[0.6vw] shadow-sm flex flex-col justify-between">
+            <h4 class="text-[0.7vw] font-bold text-slate-900 dark:text-white shrink-0">Sinalização SLA Meta</h4>
+            <div class="flex-1 w-full relative flex items-center justify-center min-h-0">
+                <canvas id="chart-fin-sla-pizza"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let chartHora = null;
+    let chartProc = null;
+    let chartGuiche = null;
+    let chartSla = null;
+
+    async function carregarPainelFinalizados() {
+        try {
+            const res = await fetch('/api/v1/painel/finalizados');
+            const data = await res.json();
+
+            if (data.sucesso) {
+                document.getElementById('kpi-fin-senhas').innerText = data.kpis.totalSenhas;
+                document.getElementById('kpi-fin-p-recepcao').innerText = data.kpis.mediaTempoParaRecepcao;
+                document.getElementById('kpi-fin-de-recepcao').innerText = data.kpis.mediaTempoDeRecepcao;
+                document.getElementById('kpi-fin-espera-exame').innerText = data.kpis.mediaEsperaExameConsulta;
+                document.getElementById('kpi-fin-total').innerText = data.kpis.mediaTempoTotalAtendimento;
+                document.getElementById('kpi-fin-maior-tempo').innerText = data.kpis.maiorTempoAtendimento;
+
+                renderizarTabela(data.pacientes);
+                renderizarGraficos(data.graficos);
+            }
+        } catch (e) {
+            console.error("Erro ao carregar pós-atendimento:", e);
+        }
+    }
+
+    function renderizarTabela(pacientes) {
+        const tbody = document.getElementById('tabela-finalizados-corpo');
+        if (!pacientes || pacientes.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="14" class="py-[4vh] text-center text-slate-400 font-medium">
+                        Nenhum exame finalizado registrado hoje.
+                    </td>
+                </tr>`;
+            return;
+        }
+
+        tbody.innerHTML = pacientes.map(p => {
+            let slaIcon = '🟢';
+            let slaBadgeClass = 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950 dark:text-emerald-400 dark:border-emerald-800';
+
+            if (p.slaCor === 'amarelo') {
+                slaIcon = '⚠️';
+                slaBadgeClass = 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950 dark:text-amber-400 dark:border-amber-800';
+            } else if (p.slaCor === 'vermelho') {
+                slaIcon = '🚨';
+                slaBadgeClass = 'bg-rose-100 text-rose-800 border-rose-300 dark:bg-rose-950 dark:text-rose-400 dark:border-rose-800';
+            }
+
+            return `
+                <tr class="hover:bg-slate-50 dark:hover:bg-slate-900/90 transition-colors">
+                    <td class="py-[0.6vh] px-[0.6vw] font-black font-mono text-cyan-600 dark:text-cyan-400 text-[0.75vw]">${p.senha}</td>
+                    <td class="py-[0.6vh] px-[0.6vw] font-semibold text-slate-800 dark:text-slate-200">${p.tipoSenha}</td>
+                    <td class="py-[0.6vh] px-[0.6vw]">
+                        <span class="px-[0.4vw] py-[0.1vh] text-[0.55vw] font-bold rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800">
+                            ${p.etapaAtual}
+                        </span>
+                    </td>
+                    <td class="py-[0.6vh] px-[0.6vw] text-center font-mono font-bold text-slate-800 dark:text-slate-200">${p.qtd}</td>
+                    <td class="py-[0.6vh] px-[0.6vw] font-mono text-slate-500 dark:text-slate-400 text-[0.65vw]">${p.atendimento}</td>
+                    <td class="py-[0.6vh] px-[0.6vw] font-mono text-slate-500 dark:text-slate-400 text-[0.65vw]">${p.an}</td>
+                    <td class="py-[0.6vh] px-[0.6vw] font-mono text-slate-600 dark:text-slate-400">${p.data}</td>
+                    <td class="py-[0.6vh] px-[0.6vw] font-mono text-slate-700 dark:text-slate-300">${p.horaSenha}</td>
+                    <td class="py-[0.6vh] px-[0.6vw] font-mono text-slate-600 dark:text-slate-400">${p.inicioRecepcao}</td>
+                    <td class="py-[0.6vh] px-[0.6vw] font-mono text-slate-600 dark:text-slate-400">${p.fimRecepcao}</td>
+                    <td class="py-[0.6vh] px-[0.6vw] font-mono text-emerald-600 dark:text-emerald-400 font-bold">${p.hrExameConsulta}</td>
+                    <td class="py-[0.6vh] px-[0.6vw] text-center">
+                        <span class="inline-flex items-center gap-[0.2vw] px-[0.5vw] py-[0.1vh] text-[0.65vw] font-mono font-bold rounded-full border ${slaBadgeClass}">
+                            ${slaIcon} ${p.tempoTotalFormatado}
+                        </span>
+                    </td>
+                    <td class="py-[0.6vh] px-[0.6vw] font-medium text-slate-800 dark:text-slate-200">${p.guiche}</td>
+                    <td class="py-[0.6vh] px-[0.6vw] font-semibold text-indigo-600 dark:text-indigo-400">${p.procedimento}</td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    function renderizarGraficos(graficos) {
+        const isDark = document.documentElement.classList.contains('dark');
+        const gridColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+        const textColor = isDark ? '#94a3b8' : '#64748b';
+
+        // 1. Hora
+        const ctxHora = document.getElementById('chart-fin-hora').getContext('2d');
+        const horas = Object.keys(graficos.procedimentoPorHora).map(h => `${h.padStart(2, '0')}:00`);
+        const valoresHora = Object.values(graficos.procedimentoPorHora);
+
+        if (chartHora) {
+            chartHora.data.datasets[0].data = valoresHora;
+            chartHora.update();
+        } else {
+            chartHora = new Chart(ctxHora, {
+                type: 'bar',
+                data: {
+                    labels: horas,
+                    datasets: [{ label: 'Exames', data: valoresHora, backgroundColor: '#38bdf8', borderRadius: 4 }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { color: gridColor }, ticks: { color: textColor, font: { size: 9 } } },
+                        y: { grid: { color: gridColor }, ticks: { color: textColor, font: { size: 9 } }, beginAtZero: true }
+                    }
+                }
+            });
+        }
+
+        // 2. Procedimentos
+        const ctxProc = document.getElementById('chart-fin-procedimento').getContext('2d');
+        const procNames = graficos.procedimentosAnalise.map(p => p.procedimento);
+        const procQtds = graficos.procedimentosAnalise.map(p => p.quantidade);
+
+        if (chartProc) {
+            chartProc.data.labels = procNames;
+            chartProc.data.datasets[0].data = procQtds;
+            chartProc.update();
+        } else {
+            chartProc = new Chart(ctxProc, {
+                type: 'bar',
+                data: {
+                    labels: procNames,
+                    datasets: [{ label: 'Qtd Exames', data: procQtds, backgroundColor: '#818cf8', borderRadius: 4 }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { color: gridColor }, ticks: { color: textColor, font: { size: 9 } } },
+                        y: { grid: { color: gridColor }, ticks: { color: textColor, font: { size: 9 } }, beginAtZero: true }
+                    }
+                }
+            });
+        }
+
+        // 3. Guichês
+        const ctxGuiche = document.getElementById('chart-fin-guiche').getContext('2d');
+        const guicheNames = Object.keys(graficos.atendimentosPorGuiche);
+        const guicheQtds = Object.values(graficos.atendimentosPorGuiche);
+
+        if (chartGuiche) {
+            chartGuiche.data.labels = guicheNames;
+            chartGuiche.data.datasets[0].data = guicheQtds;
+            chartGuiche.update();
+        } else {
+            chartGuiche = new Chart(ctxGuiche, {
+                type: 'bar',
+                data: {
+                    labels: guicheNames,
+                    datasets: [{ label: 'Atendimentos', data: guicheQtds, backgroundColor: '#34d399', borderRadius: 4 }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { color: gridColor }, ticks: { color: textColor, font: { size: 9 } }, beginAtZero: true },
+                        y: { grid: { color: gridColor }, ticks: { color: textColor, font: { size: 9 } } }
+                    }
+                }
+            });
+        }
+
+        // 4. SLA Pizza
+        const ctxSla = document.getElementById('chart-fin-sla-pizza').getContext('2d');
+        const slaVals = [graficos.slaDistribuicao.verde || 0, graficos.slaDistribuicao.amarelo || 0, graficos.slaDistribuicao.vermelho || 0];
+
+        if (chartSla) {
+            chartSla.data.datasets[0].data = slaVals;
+            chartSla.update();
+        } else {
+            chartSla = new Chart(ctxSla, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Dentro Meta (Verde)', 'Atenção (Amarelo)', 'Estourado (Vermelho)'],
+                    datasets: [{ data: slaVals, backgroundColor: ['#10b981', '#f59e0b', '#f43f5e'], borderWidth: 0 }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { color: textColor, font: { size: 9 } } }
+                    }
+                }
+            });
+        }
+    }
+
+    setInterval(carregarPainelFinalizados, 3000);
+    carregarPainelFinalizados();
+</script>
+{% endblock %}

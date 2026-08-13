@@ -1,0 +1,83 @@
+{% extends 'pub/base.html.twig' %}
+
+{% block title %}Painel dos Médicos | Procordis{% endblock %}
+
+{% block body %}
+<div class="h-full w-full flex flex-col justify-between overflow-hidden gap-[1vh]">
+    <div id="grid-medicos" class="h-full w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[1vw] overflow-y-auto p-[0.2vh]">
+        <div class="col-span-3 text-center py-[10vh] text-slate-400 text-[1vw]">
+            Carregando médicos e consultórios...
+        </div>
+    </div>
+</div>
+
+<script>
+    async function carregarMedicos() {
+        try {
+            const res = await fetch('/api/v1/painel/medicos');
+            const data = await res.json();
+
+            if (data.sucesso && data.medicos) {
+                renderizarGrid(data.medicos);
+            }
+        } catch (e) {
+            console.error("Erro ao carregar médicos:", e);
+        }
+    }
+
+    function renderizarGrid(medicos) {
+        const grid = document.getElementById('grid-medicos');
+        if (!medicos || medicos.length === 0) {
+            grid.innerHTML = `<div class="col-span-3 text-center py-[10vh] text-slate-400 text-[1vw]">Nenhum médico cadastrado</div>`;
+            return;
+        }
+
+        grid.innerHTML = medicos.map(m => {
+            const emAtendimento = m.statusAtividade === 'em_atendimento';
+            let statusBadge = `<span class="px-[0.6vw] py-[0.2vh] text-[0.7vw] font-bold rounded-full bg-emerald-100 text-emerald-700 border border-emerald-300 dark:bg-emerald-950 dark:text-emerald-400 dark:border-emerald-800">Disponível</span>`;
+            if (emAtendimento) {
+                statusBadge = `<span class="px-[0.6vw] py-[0.2vh] text-[0.7vw] font-bold rounded-full bg-indigo-100 text-indigo-700 border border-indigo-300 dark:bg-indigo-950 dark:text-indigo-400 dark:border-indigo-800 animate-pulse">Em Consulta</span>`;
+            } else if (m.statusAtividade === 'em_pausa') {
+                statusBadge = `<span class="px-[0.6vw] py-[0.2vh] text-[0.7vw] font-bold rounded-full bg-amber-100 text-amber-700 border border-amber-300 dark:bg-amber-950 dark:text-amber-400 dark:border-amber-800">Em Pausa</span>`;
+            }
+
+            return `
+                <div class="rounded-xl bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-[1.5vw] flex flex-col justify-between shadow-md hover:border-slate-300 dark:hover:border-slate-700 transition">
+                    <div>
+                        <div class="flex items-center justify-between gap-[0.5vw] mb-[1vh]">
+                            <span class="text-[0.65vw] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-950 px-[0.5vw] py-[0.2vh] rounded border border-slate-200 dark:border-slate-800">${m.crm || 'CRM'}</span>
+                            ${statusBadge}
+                        </div>
+
+                        <h3 class="text-[1.2vw] font-bold text-slate-900 dark:text-white leading-tight">${m.nome}</h3>
+                        <p class="text-[0.8vw] font-semibold text-indigo-600 dark:text-indigo-400 mt-[0.2vh]">${m.especialidade}</p>
+
+                        ${m.pacienteAtual ? `
+                            <div class="mt-[1.5vh] p-[1vw] rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-indigo-200 dark:border-indigo-500/30">
+                                <p class="text-[0.6vw] text-slate-500 dark:text-slate-400 uppercase tracking-widest font-semibold">Paciente em Consulta</p>
+                                <p class="text-[1vw] font-bold text-slate-900 dark:text-white mt-[0.2vh]">${m.pacienteAtual.nome}</p>
+                                <div class="flex items-center justify-between mt-[1vh] pt-[0.8vh] border-t border-slate-200 dark:border-slate-800 text-[0.75vw]">
+                                    <span class="text-slate-600 dark:text-slate-400">${m.pacienteAtual.sala}</span>
+                                    <span class="font-mono font-bold text-indigo-600 dark:text-indigo-400">${m.pacienteAtual.tempoDecorridoMinutos} min decorridos</span>
+                                </div>
+                            </div>
+                        ` : `
+                            <div class="mt-[1.5vh] p-[1vw] rounded-xl bg-slate-50 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800 text-center text-slate-400 text-[0.75vw]">
+                                Nenhuma consulta em andamento no momento
+                            </div>
+                        `}
+                    </div>
+
+                    <div class="mt-[1.5vh] pt-[1vh] border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-[0.8vw]">
+                        <span class="text-slate-500 dark:text-slate-400">Pacientes na Fila:</span>
+                        <span class="font-mono font-bold text-[1.1vw] text-cyan-600 dark:text-cyan-400">${m.pacientesAguardandoCount}</span>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    setInterval(carregarMedicos, 2000);
+    carregarMedicos();
+</script>
+{% endblock %}

@@ -1,0 +1,192 @@
+{% extends 'pub/base.html.twig' %}
+
+{% block title %}Painel de Espera | Procordis{% endblock %}
+
+{% block body %}
+<div class="h-full w-full flex flex-col justify-between overflow-hidden gap-[1vh]">
+    <!-- Top Sub-Bar: Filtros, Ação de Simulação e Contadores -->
+    <div class="h-[6vh] w-full flex items-center justify-between gap-[1vw] bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-xl px-[1vw] py-[0.5vh] shadow-sm shrink-0">
+        <div class="flex items-center gap-[0.75vw] text-[0.8vw]">
+            <span class="font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-[0.7vw]">Filtrar:</span>
+            <select id="filtro-medico" onchange="carregarDadosEspera()" class="bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 text-slate-800 dark:text-slate-200 text-[0.75vw] rounded-lg px-[0.6vw] py-[0.3vh] outline-none focus:border-cyan-500">
+                <option value="">Todos os Médicos</option>
+                {% for m in medicos %}
+                    <option value="{{ m.id }}">{{ m.nome }} ({{ m.especialidade ? m.especialidade.nome : 'Clínica' }})</option>
+                {% endfor %}
+            </select>
+            <select id="filtro-especialidade" onchange="carregarDadosEspera()" class="bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 text-slate-800 dark:text-slate-200 text-[0.75vw] rounded-lg px-[0.6vw] py-[0.3vh] outline-none focus:border-cyan-500">
+                <option value="">Todas as Especialidades</option>
+                {% for e in especialidades %}
+                    <option value="{{ e.id }}">{{ e.nome }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="flex items-center gap-[1.2vw]">
+            <div class="flex items-center gap-[1vw] text-[0.8vw] font-medium text-slate-600 dark:text-slate-300">
+                <div>Aguardando: <span id="stat-total-aguardando" class="font-bold text-cyan-600 dark:text-cyan-400 text-[0.9vw]">0</span></div>
+                <div class="h-[2vh] w-px bg-slate-300 dark:bg-slate-800"></div>
+                <div>Em Consulta: <span id="stat-total-consulta" class="font-bold text-emerald-600 dark:text-emerald-400 text-[0.9vw]">0</span></div>
+            </div>
+
+            <button onclick="simularPasso()" class="flex items-center gap-[0.3vw] bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-[0.75vw] px-[0.8vw] py-[0.4vh] rounded-lg transition active:scale-95 shadow">
+                <svg class="w-[0.9vw] h-[0.9vw]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                +1 Minuto Simulação
+            </button>
+        </div>
+    </div>
+
+    <!-- Card Destaque: Paciente com Maior Tempo de Espera -->
+    <div id="card-maior-espera" class="h-[12vh] w-full hidden shrink-0">
+        <div class="h-full w-full rounded-xl bg-amber-500/10 dark:bg-gradient-to-r dark:from-amber-500/15 dark:via-orange-500/10 dark:to-rose-500/15 border border-amber-500/40 p-[1vh] px-[1.5vw] flex items-center justify-between shadow-sm">
+            <div class="flex items-center gap-[1vw]">
+                <div class="h-[6vh] w-[6vh] rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0">
+                    <svg class="w-[3vh] h-[3vh] animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </div>
+                <div>
+                    <span class="text-[0.65vw] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-950/80 px-[0.5vw] py-[0.1vh] rounded border border-amber-300 dark:border-amber-700/50">Maior Tempo de Espera</span>
+                    <h3 id="top-paciente-nome" class="text-[1.2vw] font-bold text-slate-900 dark:text-white leading-tight">---</h3>
+                    <p class="text-[0.75vw] text-slate-600 dark:text-slate-300">Médico Previsto: <span id="top-paciente-medico" class="font-semibold text-amber-700 dark:text-amber-300">---</span></p>
+                </div>
+            </div>
+            <div class="flex items-center gap-[1.5vw] bg-white/80 dark:bg-slate-950/60 border border-amber-500/30 px-[1vw] py-[0.5vh] rounded-xl">
+                <div>
+                    <p class="text-[0.6vw] text-slate-500 dark:text-slate-400 uppercase tracking-wider">Chegada</p>
+                    <p id="top-paciente-chegada" class="text-[1.1vw] font-mono font-bold text-slate-800 dark:text-slate-200">--:--</p>
+                </div>
+                <div class="h-[4vh] w-px bg-slate-300 dark:bg-slate-800"></div>
+                <div>
+                    <p class="text-[0.6vw] text-amber-700 dark:text-amber-400 font-semibold uppercase tracking-wider">Tempo Espera</p>
+                    <p id="top-paciente-tempo" class="text-[1.4vw] font-mono font-black text-amber-600 dark:text-amber-400">0 min</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabela Principal do Fluxo -->
+    <div class="flex-1 w-full bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-lg flex flex-col min-h-0">
+        <div class="w-full overflow-y-auto flex-1">
+            <table class="w-full text-left text-[0.85vw] text-slate-700 dark:text-slate-300">
+                <thead class="bg-slate-100 dark:bg-slate-950/80 text-[0.75vw] uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-10 backdrop-blur">
+                    <tr>
+                        <th scope="col" class="py-[1vh] px-[1.2vw]">Paciente</th>
+                        <th scope="col" class="py-[1vh] px-[1.2vw]">Chegada</th>
+                        <th scope="col" class="py-[1vh] px-[1.2vw]">Tempo Espera</th>
+                        <th scope="col" class="py-[1vh] px-[1.2vw]">Etapa Atual</th>
+                        <th scope="col" class="py-[1vh] px-[1.2vw]">Médico / Especialidade</th>
+                        <th scope="col" class="py-[1vh] px-[1.2vw]">Setor / Sala</th>
+                        <th scope="col" class="py-[1vh] px-[1.2vw] text-right">Linha do Tempo</th>
+                    </tr>
+                </thead>
+                <tbody id="tabela-pacientes-corpo" class="divide-y divide-slate-200/80 dark:divide-slate-800/60">
+                    <tr>
+                        <td colspan="7" class="py-[5vh] text-center text-slate-400">
+                            Carregando fluxo em tempo real...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    async function carregarDadosEspera() {
+        const medico = document.getElementById('filtro-medico').value;
+        const esp = document.getElementById('filtro-especialidade').value;
+        const url = `/api/v1/painel/espera?medico=${medico}&especialidade=${esp}`;
+
+        try {
+            const res = await fetch(url);
+            const data = await res.json();
+
+            if (data.sucesso) {
+                renderizarTopEspera(data.maiorEspera);
+                renderizarTabela(data.pacientes);
+                document.getElementById('stat-total-aguardando').innerText = data.totalAguardando;
+                if (data.resumoMetricas) {
+                    document.getElementById('stat-total-consulta').innerText = data.resumoMetricas.em_consulta || 0;
+                }
+            }
+        } catch (e) {
+            console.error("Erro ao carregar dados do painel:", e);
+        }
+    }
+
+    function renderizarTopEspera(maiorEspera) {
+        const container = document.getElementById('card-maior-espera');
+        if (!maiorEspera) {
+            container.classList.add('hidden');
+            return;
+        }
+
+        container.classList.remove('hidden');
+        document.getElementById('top-paciente-nome').innerText = maiorEspera.pacienteNome;
+        document.getElementById('top-paciente-medico').innerText = maiorEspera.medicoNome;
+        document.getElementById('top-paciente-chegada').innerText = maiorEspera.horarioChegada;
+        document.getElementById('top-paciente-tempo').innerText = `${maiorEspera.tempoEsperaMinutos} min`;
+    }
+
+    function renderizarTabela(pacientes) {
+        const tbody = document.getElementById('tabela-pacientes-corpo');
+        if (!pacientes || pacientes.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" class="py-[6vh] text-center text-slate-400 font-medium">
+                        Nenhum paciente aguardando atendimento no momento.
+                    </td>
+                </tr>`;
+            return;
+        }
+
+        tbody.innerHTML = pacientes.map(p => {
+            let badgeClass = 'bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700';
+            if (p.status === 'aguardando_triagem') badgeClass = 'bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/80 dark:text-amber-400 dark:border-amber-800/80';
+            if (p.status === 'em_triagem') badgeClass = 'bg-sky-50 text-sky-700 border-sky-300 dark:bg-sky-950/80 dark:text-sky-400 dark:border-sky-800/80';
+            if (p.status === 'aguardando_medico') badgeClass = 'bg-indigo-50 text-indigo-700 border-indigo-300 dark:bg-indigo-950/80 dark:text-indigo-400 dark:border-indigo-800/80';
+            if (p.status === 'em_consulta') badgeClass = 'bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/80 dark:text-emerald-400 dark:border-emerald-800/80';
+
+            return `
+                <tr class="hover:bg-slate-50 dark:hover:bg-slate-900/90 transition-colors">
+                    <td class="py-[1vh] px-[1.2vw] font-semibold text-slate-900 dark:text-white">
+                        <div class="flex items-center gap-[0.3vw]">
+                            ${p.pacienteNome}
+                            ${p.prioridade ? '<span class="px-[0.4vw] py-[0.1vh] text-[0.6vw] font-bold uppercase rounded bg-rose-100 text-rose-700 border border-rose-300 dark:bg-rose-950 dark:text-rose-400 dark:border-rose-800">Prioritário</span>' : ''}
+                            ${p.encaixe ? '<span class="px-[0.4vw] py-[0.1vh] text-[0.6vw] font-bold uppercase rounded bg-purple-100 text-purple-700 border border-purple-300 dark:bg-purple-950 dark:text-purple-400 dark:border-purple-800">Encaixe</span>' : ''}
+                        </div>
+                    </td>
+                    <td class="py-[1vh] px-[1.2vw] font-mono text-slate-600 dark:text-slate-300">${p.horarioChegada}</td>
+                    <td class="py-[1vh] px-[1.2vw] font-mono font-bold ${p.tempoEsperaMinutos > 30 ? 'text-rose-600 dark:text-rose-400' : 'text-cyan-600 dark:text-cyan-400'}">
+                        ${p.tempoEsperaMinutos} min
+                    </td>
+                    <td class="py-[1vh] px-[1.2vw]">
+                        <span class="inline-block px-[0.6vw] py-[0.2vh] text-[0.7vw] font-semibold rounded-full border ${badgeClass}">
+                            ${p.statusRotulo}
+                        </span>
+                    </td>
+                    <td class="py-[1vh] px-[1.2vw]">
+                        <div class="font-medium text-slate-900 dark:text-slate-200">${p.medicoNome}</div>
+                        <div class="text-[0.7vw] text-slate-500 dark:text-slate-400">${p.especialidadeNome}</div>
+                    </td>
+                    <td class="py-[1vh] px-[1.2vw] text-slate-700 dark:text-slate-300 font-medium">${p.setorSala}</td>
+                    <td class="py-[1vh] px-[1.2vw] text-right">
+                        <a href="/painel/paciente/${p.id}" class="text-[0.75vw] text-cyan-600 hover:text-cyan-700 dark:text-cyan-400 dark:hover:text-cyan-300 underline font-semibold">Ver Histórico</a>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    async function simularPasso() {
+        try {
+            await fetch('/api/v1/simulador/passo', { method: 'POST' });
+            carregarDadosEspera();
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    setInterval(carregarDadosEspera, 2000);
+    carregarDadosEspera();
+</script>
+{% endblock %}
