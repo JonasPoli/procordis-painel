@@ -29,29 +29,47 @@ class ConfiguracaoAdminController extends AbstractController
         $logs = $this->logRepo->findBy([], ['id' => 'DESC'], 30);
 
         if ($request->isMethod('POST')) {
-            $baseUrl = $request->request->get('apiBaseUrl');
-            $usuario = $request->request->get('apiUsuario');
-            $senha = $request->request->get('apiSenha');
-            $modoSimulacao = $request->request->get('modoSimulacao') === '1';
+            $action = $request->request->get('action', 'save');
 
-            $config->setApiBaseUrl($baseUrl);
-            $config->setApiUsuario($usuario);
-            if ($senha) {
-                $config->setApiSenha($senha);
-            }
-            $config->setModoSimulacao($modoSimulacao);
-
-            $this->em->flush();
-            $this->addFlash('success', 'Configurações de integração atualizadas!');
-
-            if (!$modoSimulacao && $usuario && $senha) {
-                $sucesso = $this->medwareClient->autenticar();
-                if ($sucesso) {
-                    $this->addFlash('success', 'Conexão com a API Medware estabelecida com sucesso!');
+            if ($action === 'sync') {
+                $res = $this->medwareClient->sincronizarAgendamentosHoje();
+                if (isset($res['erro'])) {
+                    $this->addFlash('danger', 'Erro na sincronização: ' . $res['erro']);
                 } else {
-                    $this->addFlash('danger', 'Falha ao autenticar na API Medware. Verifique as credenciais.');
+                    $this->addFlash('success', "Sincronização realizada! {$res['total']} registros processados ({$res['novos']} novos, {$res['atualizados']} atualizados).");
+                }
+            } else {
+                $baseUrl = $request->request->get('apiBaseUrl');
+                $usuario = $request->request->get('apiUsuario');
+                $senha = $request->request->get('apiSenha');
+                $modoSimulacao = $request->request->get('modoSimulacao') === '1';
+
+                $config->setApiBaseUrl($baseUrl);
+                $config->setApiUsuario($usuario);
+                if ($senha) {
+                    $config->setApiSenha($senha);
+                }
+                $config->setModoSimulacao($modoSimulacao);
+
+                $this->em->flush();
+                $this->addFlash('success', 'Configurações de integração atualizadas!');
+
+                if (!$modoSimulacao && $usuario && ($senha || $config->getApiSenha())) {
+                    $sucesso = $this->medwareClient->autenticar();
+                    if ($sucesso) {
+                        $this->addFlash('success', 'Conexão com a API Medware estabelecida com sucesso!');
+                        // Sincroniza logo após autenticar
+                        $res = $this->medwareClient->sincronizarAgendamentosHoje();
+                        if (!isset($res['erro'])) {
+                            $this->addFlash('info', "Sincronização inicial concluída ({$res['total']} registros).");
+                        }
+                    } else {
+                        $this->addFlash('danger', 'Falha ao autenticar na API Medware. Verifique as credenciais.');
+                    }
                 }
             }
+
+            return $this->redirectToRoute('app_admin_configuracao_index');
         }
 
         return $this->render('admin/configuracao/index.html.twig', [

@@ -4,6 +4,29 @@
 
 {% block body %}
 <div class="max-w-7xl mx-auto space-y-6">
+    <!-- Status Bar -->
+    <div class="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+            <div class="w-3 h-3 rounded-full {{ config.statusConexao == 'conectado' ? 'bg-emerald-500 animate-pulse' : (config.statusConexao == 'modo_simulacao' ? 'bg-amber-500' : 'bg-rose-500') }}"></div>
+            <div>
+                <span class="text-xs uppercase font-bold text-slate-400">Status da Conexão</span>
+                <p class="font-bold text-sm dark:text-white capitalize">{{ config.statusConexao|replace({'_': ' '}) }}</p>
+            </div>
+        </div>
+        <div class="text-xs text-slate-500">
+            Último sync: <strong class="dark:text-slate-200">{{ config.ultimoSyncEm ? config.ultimoSyncEm|date('d/m/Y H:i:s') : 'Nunca' }}</strong>
+        </div>
+        {% if not config.modoSimulacao %}
+        <form method="post" class="inline">
+            <input type="hidden" name="action" value="sync">
+            <sl-button type="submit" variant="default" size="small">
+                <sl-icon slot="prefix" name="arrow-repeat"></sl-icon>
+                Sincronizar Agora
+            </sl-button>
+        </form>
+        {% endif %}
+    </div>
+
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- Formulário de Credenciais API -->
         <div class="lg:col-span-2 space-y-6">
@@ -13,21 +36,23 @@
                         <sl-icon name="gear" class="text-3xl text-cyan-500"></sl-icon>
                         <div>
                             <h2 class="text-xl font-bold dark:text-white">Integração API Medware</h2>
-                            <p class="text-xs text-slate-500 dark:text-slate-400">Configurações de conexão exclusiva para leitura (`api.procordis.org.br`)</p>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">Conexão oficial com a API da Clínica Procordis (`api.procordis.org.br`)</p>
                         </div>
                     </div>
                 </div>
 
                 <form method="post" class="space-y-4">
+                    <input type="hidden" name="action" value="save">
                     <div>
                         <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Endereço Base da API (Base URL)</label>
                         <input type="text" name="apiBaseUrl" value="{{ config.apiBaseUrl }}" required class="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-sm">
+                        <p class="text-[11px] text-slate-400 mt-1">Ex: <code>https://api.procordis.org.br/api</code> ou <code>https://api.procordis.org.br</code></p>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Usuário API / Identificação</label>
-                            <input type="text" name="apiUsuario" value="{{ config.apiUsuario }}" placeholder="Ex: procordis_consulta" class="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-sm">
+                            <input type="text" name="apiUsuario" value="{{ config.apiUsuario }}" placeholder="Ex: agendamentoweb" class="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-sm">
                         </div>
                         <div>
                             <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Senha de Acesso</label>
@@ -37,18 +62,18 @@
 
                     <div class="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 flex items-center justify-between">
                         <div>
-                            <p class="font-bold text-sm dark:text-slate-200">Fonte de Dados Atual</p>
-                            <p class="text-xs text-slate-500">Marque para simular dados locais; desmarque para consultar a API Medware real.</p>
+                            <p class="font-bold text-sm dark:text-slate-200">Fonte de Dados Ativa</p>
+                            <p class="text-xs text-slate-500">Alterne entre simulação de testes e dados de produção reais da Medware.</p>
                         </div>
                         <select name="modoSimulacao" class="p-2 rounded-xl bg-white dark:bg-slate-950 border text-xs font-bold">
                             <option value="1" {% if config.modoSimulacao %}selected{% endif %}>Modo Simulador Local</option>
-                            <option value="0" {% if not config.modoSimulacao %}selected{% endif %}>API Medware Real</option>
+                            <option value="0" {% if not config.modoSimulacao %}selected{% endif %}>API Medware Real (Produção)</option>
                         </select>
                     </div>
 
                     <sl-button type="submit" variant="primary">
                         <sl-icon slot="prefix" name="save"></sl-icon>
-                        Salvar e Testar Conexão
+                        Salvar e Conectar
                     </sl-button>
                 </form>
             </sl-card>

@@ -89,7 +89,7 @@ class Agendamento
     #[ORM\Column(length: 50, nullable: true)]
     private ?string $guicheAtendimento = null;
 
-    #[ORM\Column(length: 150, nullable: true)]
+    #[ORM\Column(length: 255, nullable: true)]
     private ?string $procedimentoNome = null;
 
     #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]

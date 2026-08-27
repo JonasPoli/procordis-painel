@@ -24,7 +24,7 @@ class Paciente
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $nomeExibicao = null; // Formatado LGPD Ex: João S.
 
-    #[ORM\Column(length: 20, nullable: true)]
+    #[ORM\Column(length: 50, nullable: true)]
     private ?string $cpf = null;
 
     #[ORM\Column(type: Types::DATE_MUTABLE, nullable: true)]
@@ -33,7 +33,7 @@ class Paciente
     #[ORM\Column(length: 20, nullable: true)]
     private ?string $sexo = null;
 
-    #[ORM\Column(length: 30, nullable: true)]
+    #[ORM\Column(length: 100, nullable: true)]
     private ?string $celular = null;
 
     public function getId(): ?int

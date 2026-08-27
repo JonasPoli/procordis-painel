@@ -16,6 +16,8 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
 
 use App\Repository\ProcedimentoSlaRepository;
+use App\Repository\ConfiguracaoIntegracaoRepository;
+use App\Service\MedwareApiClientService;
 use App\Entity\ProcedimentoSla;
 
 #[Route('/api/v1', name: 'api_v1_')]
@@ -29,13 +31,36 @@ class PainelApiController extends AbstractController
         private SetorSalaRepository $setorSalaRepo,
         private PacienteRepository $pacienteRepo,
         private DataSimulatorService $simulatorService,
-        private ProcedimentoSlaRepository $slaRepo
+        private ProcedimentoSlaRepository $slaRepo,
+        private ?ConfiguracaoIntegracaoRepository $configRepo = null,
+        private ?MedwareApiClientService $medwareClient = null
     ) {
+    }
+
+    private function verificarAutoSync(): void
+    {
+        if (!$this->configRepo || !$this->medwareClient) {
+            return;
+        }
+
+        try {
+            $config = $this->configRepo->getObterOuCriarConfiguracao();
+            if (!$config->isModoSimulacao()) {
+                $ultimo = $config->getUltimoSyncEm();
+                $agora = new \DateTime();
+                if (!$ultimo || ($agora->getTimestamp() - $ultimo->getTimestamp()) > 10) {
+                    $this->medwareClient->sincronizarAgendamentosHoje();
+                }
+            }
+        } catch (\Throwable $e) {
+            // Silencioso em caso de timeout transitório para não travar resposta do painel
+        }
     }
 
     #[Route('/painel/espera', name: 'painel_espera', methods: ['GET'])]
     public function painelEspera(Request $request): JsonResponse
     {
+        $this->verificarAutoSync();
         $medicoId = $request->query->get('medico') ? (int) $request->query->get('medico') : null;
         $espId = $request->query->get('especialidade') ? (int) $request->query->get('especialidade') : null;
 
@@ -85,6 +110,7 @@ class PainelApiController extends AbstractController
     #[Route('/painel/chamada/ultimas', name: 'painel_chamada_ultimas', methods: ['GET'])]
     public function painelChamadaUltimas(): JsonResponse
     {
+        $this->verificarAutoSync();
         $chamadas = $this->chamadaRepo->findUltimasChamadas(5);
         $dados = array_map(function ($c) {
             return [
@@ -110,6 +136,7 @@ class PainelApiController extends AbstractController
     #[Route('/painel/medicos', name: 'painel_medicos', methods: ['GET'])]
     public function painelMedicos(): JsonResponse
     {
+        $this->verificarAutoSync();
         $medicos = $this->medicoRepo->findAll();
         $dados = [];
 
@@ -160,6 +187,7 @@ class PainelApiController extends AbstractController
     #[Route('/painel/triagem', name: 'painel_triagem', methods: ['GET'])]
     public function painelTriagem(): JsonResponse
     {
+        $this->verificarAutoSync();
         $aguardandoTriagem = $this->agendamentoRepo->findBy(['status' => 'aguardando_triagem'], ['horarioChegada' => 'ASC']);
         $emTriagem = $this->agendamentoRepo->findBy(['status' => 'em_triagem'], ['horarioInicioTriagem' => 'ASC']);
 
@@ -186,6 +214,7 @@ class PainelApiController extends AbstractController
     #[Route('/painel/dashboard', name: 'painel_dashboard', methods: ['GET'])]
     public function painelDashboard(): JsonResponse
     {
+        $this->verificarAutoSync();
         $resumo = $this->agendamentoRepo->getResumoMetricasHoje();
         $todosHoje = $this->agendamentoRepo->findAll();
 
@@ -276,6 +305,7 @@ class PainelApiController extends AbstractController
     #[Route('/painel/aguardando', name: 'painel_aguardando', methods: ['GET'])]
     public function painelAguardando(): JsonResponse
     {
+        $this->verificarAutoSync();
         $aguardando = $this->agendamentoRepo->createQueryBuilder('a')
             ->where('a.status IN (:st)')
             ->setParameter('st', ['aguardando_triagem', 'em_triagem', 'aguardando_medico'])
@@ -366,6 +396,7 @@ class PainelApiController extends AbstractController
     #[Route('/painel/finalizados', name: 'painel_finalizados', methods: ['GET'])]
     public function painelFinalizados(): JsonResponse
     {
+        $this->verificarAutoSync();
         $finalizados = $this->agendamentoRepo->findBy(['status' => 'finalizado'], ['horarioSaida' => 'DESC']);
 
         $slas = $this->slaRepo->findAll();
