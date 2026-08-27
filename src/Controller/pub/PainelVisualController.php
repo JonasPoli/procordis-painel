@@ -76,6 +76,12 @@ class PainelVisualController extends AbstractController
     {
         return $this->render('pub/painel/finalizados.html.twig');
     }
+
+    #[Route('/status', name: 'status')]
+    public function status(): Response
+    {
+        return $this->redirectToRoute('app_admin_testes_index');
+    }
 }
 
 
