@@ -1,87 +1,144 @@
 {% extends 'pub/base.html.twig' %}
 
-{% block title %}Tela 1: Pacientes Aguardando (Pré-Atendimento) | Procordis{% endblock %}
+{% block title %}Painel de Pré-Atendimento (SLA) | Procordis{% endblock %}
 
 {% block body %}
-<div class="w-full flex flex-col justify-between gap-4 lg:gap-5">
-    <!-- Top KPIs Bar (5 Indicadores de Resumo - Responsivo) -->
-    <div class="w-full grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 shrink-0">
-        <div class="bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl shadow-sm flex flex-col justify-between">
-            <p class="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Senhas na Fila</p>
-            <h3 id="kpi-senhas" class="text-2xl sm:text-3xl font-black text-cyan-600 dark:text-cyan-400 font-mono leading-none my-1.5">0</h3>
-            <p class="text-[11px] text-slate-400">Aguardando atendimento</p>
+<div class="w-full max-w-[1600px] mx-auto space-y-4 sm:space-y-5">
+
+    <!-- Top Sub-Bar: Título do Painel + Status SLA -->
+    <div class="w-full flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white/95 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-2xl p-3.5 sm:p-4 shadow-sm">
+        <div class="flex items-center gap-3">
+            <div class="h-10 w-10 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-600 dark:text-cyan-400 shrink-0">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </div>
+            <div>
+                <div class="flex items-center gap-2">
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-cyan-600 dark:text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">Recepção & Triagem</span>
+                    <span class="text-xs text-slate-400">• Atualização a cada 2.5s</span>
+                </div>
+                <h1 class="text-lg sm:text-xl font-black text-slate-900 dark:text-white leading-tight mt-0.5">
+                    Painel de Pré-Atendimento & SLA
+                </h1>
+            </div>
         </div>
 
-        <div class="bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl shadow-sm flex flex-col justify-between">
-            <p class="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Média P/ Recepção</p>
-            <h3 id="kpi-media-p-recepcao" class="text-2xl sm:text-3xl font-black text-indigo-600 dark:text-indigo-400 font-mono leading-none my-1.5">00:00</h3>
-            <p class="text-[11px] text-slate-400">Da senha ao guichê</p>
+        <!-- Indicador de Legenda SLA -->
+        <div class="flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-300">
+            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 text-[11px]">
+                <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span> Normal (&le;59m)
+            </span>
+            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/30 text-[11px]">
+                <span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span> Alerta (60-119m)
+            </span>
+            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-500/30 text-[11px]">
+                <span class="h-1.5 w-1.5 rounded-full bg-rose-500 animate-ping"></span> Crítico (&ge;120m)
+            </span>
+        </div>
+    </div>
+
+    <!-- Top KPIs Bar (5 Indicadores de Resumo) -->
+    <div class="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5 sm:gap-4">
+        <!-- KPI 1 -->
+        <div class="bg-white/95 dark:bg-slate-900/90 border-2 border-cyan-500/30 dark:border-cyan-500/30 p-4 rounded-2xl shadow-sm flex flex-col justify-between relative overflow-hidden">
+            <div class="flex items-center justify-between">
+                <span class="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Senhas na Fila</span>
+                <span class="h-6 w-6 rounded-lg bg-cyan-500/10 flex items-center justify-center text-cyan-500 text-xs font-bold">#</span>
+            </div>
+            <h3 id="kpi-senhas" class="text-3xl font-black text-cyan-600 dark:text-cyan-400 font-mono leading-none my-2">0</h3>
+            <p class="text-[11px] text-slate-400 font-medium">Aguardando atendimento</p>
         </div>
 
-        <div class="bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl shadow-sm flex flex-col justify-between">
-            <p class="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Média de Recepção</p>
-            <h3 id="kpi-media-de-recepcao" class="text-2xl sm:text-3xl font-black text-sky-600 dark:text-sky-400 font-mono leading-none my-1.5">00:00</h3>
-            <p class="text-[11px] text-slate-400">Duração no guichê</p>
+        <!-- KPI 2 -->
+        <div class="bg-white/95 dark:bg-slate-900/90 border border-indigo-200 dark:border-indigo-900/60 p-4 rounded-2xl shadow-sm flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+                <span class="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Média P/ Recepção</span>
+                <span class="h-6 w-6 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-500 text-xs font-bold">⏱</span>
+            </div>
+            <h3 id="kpi-media-p-recepcao" class="text-3xl font-black text-indigo-600 dark:text-indigo-400 font-mono leading-none my-2">00:00</h3>
+            <p class="text-[11px] text-slate-400 font-medium">Da senha ao guichê</p>
         </div>
 
-        <div class="bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl shadow-sm flex flex-col justify-between">
-            <p class="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Média Tempo Total</p>
-            <h3 id="kpi-media-total" class="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400 font-mono leading-none my-1.5">00:00</h3>
-            <p class="text-[11px] text-slate-400">Permanência na clínica</p>
+        <!-- KPI 3 -->
+        <div class="bg-white/95 dark:bg-slate-900/90 border border-sky-200 dark:border-sky-900/60 p-4 rounded-2xl shadow-sm flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+                <span class="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Média de Recepção</span>
+                <span class="h-6 w-6 rounded-lg bg-sky-500/10 flex items-center justify-center text-sky-500 text-xs font-bold">📋</span>
+            </div>
+            <h3 id="kpi-media-de-recepcao" class="text-3xl font-black text-sky-600 dark:text-sky-400 font-mono leading-none my-2">00:00</h3>
+            <p class="text-[11px] text-slate-400 font-medium">Duração no guichê</p>
         </div>
 
-        <div class="col-span-2 sm:col-span-1 bg-amber-500/10 dark:bg-amber-500/10 border border-amber-500/30 p-4 rounded-2xl shadow-sm flex flex-col justify-between">
-            <p class="text-[11px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider">Maior Tempo Atend.</p>
-            <h3 id="kpi-maior-tempo" class="text-2xl sm:text-3xl font-black text-amber-600 dark:text-amber-400 font-mono leading-none my-1.5">00:00</h3>
-            <p class="text-[11px] text-amber-700/80 dark:text-amber-400/80 font-medium">Alerta de maior espera</p>
+        <!-- KPI 4 -->
+        <div class="bg-white/95 dark:bg-slate-900/90 border border-emerald-200 dark:border-emerald-900/60 p-4 rounded-2xl shadow-sm flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+                <span class="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Média Tempo Total</span>
+                <span class="h-6 w-6 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500 text-xs font-bold">✓</span>
+            </div>
+            <h3 id="kpi-media-total" class="text-3xl font-black text-emerald-600 dark:text-emerald-400 font-mono leading-none my-2">00:00</h3>
+            <p class="text-[11px] text-slate-400 font-medium">Permanência na clínica</p>
+        </div>
+
+        <!-- KPI 5 -->
+        <div class="bg-amber-500/10 dark:bg-amber-500/10 border-2 border-amber-500/40 p-4 rounded-2xl shadow-sm flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+                <span class="text-[11px] font-bold text-amber-800 dark:text-amber-400 uppercase tracking-wider">Maior Espera</span>
+                <span class="h-6 w-6 rounded-lg bg-amber-500/20 flex items-center justify-center text-amber-600 text-xs font-bold">⚠️</span>
+            </div>
+            <h3 id="kpi-maior-tempo" class="text-3xl font-black text-amber-700 dark:text-amber-400 font-mono leading-none my-2">00:00</h3>
+            <p class="text-[11px] text-amber-700/90 dark:text-amber-400/90 font-semibold">Alerta de maior tempo</p>
         </div>
     </div>
 
     <!-- Tabela Principal de Pacientes em Pré-Atendimento -->
-    <div class="flex-1 w-full bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden shadow-lg flex flex-col min-h-0">
-        <div class="w-full overflow-x-auto overflow-y-auto flex-1">
-            <table class="w-full text-left text-xs sm:text-sm text-slate-700 dark:text-slate-300 min-w-[900px]">
-                <thead class="bg-slate-100 dark:bg-slate-950/90 text-[10px] sm:text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-10 backdrop-blur">
+    <div class="w-full bg-white/95 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden shadow-lg flex flex-col">
+        <div class="w-full overflow-x-auto">
+            <table class="w-full text-left text-xs text-slate-700 dark:text-slate-300 min-w-[1000px]">
+                <thead class="bg-slate-100 dark:bg-slate-950 text-[11px] uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
                     <tr>
-                        <th scope="col" class="py-3 px-3">Senha</th>
-                        <th scope="col" class="py-3 px-3">Tipo Senha</th>
-                        <th scope="col" class="py-3 px-3">Etapa Atual</th>
-                        <th scope="col" class="py-3 px-3 text-center">Qtd</th>
-                        <th scope="col" class="py-3 px-3">Atendimento</th>
-                        <th scope="col" class="py-3 px-3">AN (Access No.)</th>
-                        <th scope="col" class="py-3 px-3">Data</th>
-                        <th scope="col" class="py-3 px-3">Hora Senha</th>
-                        <th scope="col" class="py-3 px-3">Início Rec.</th>
-                        <th scope="col" class="py-3 px-3">Fim Rec.</th>
-                        <th scope="col" class="py-3 px-3 text-center">Tempo & SLA</th>
-                        <th scope="col" class="py-3 px-3">Guichê</th>
-                        <th scope="col" class="py-3 px-3">Procedimento</th>
+                        <th scope="col" class="py-3 px-4 font-bold">Senha</th>
+                        <th scope="col" class="py-3 px-3 font-bold">Tipo Senha</th>
+                        <th scope="col" class="py-3 px-3 font-bold">Etapa Atual</th>
+                        <th scope="col" class="py-3 px-2 text-center font-bold">Qtd</th>
+                        <th scope="col" class="py-3 px-3 font-bold">Atendimento</th>
+                        <th scope="col" class="py-3 px-3 font-bold">AN (Access No.)</th>
+                        <th scope="col" class="py-3 px-3 font-bold">Data</th>
+                        <th scope="col" class="py-3 px-3 font-bold">Hora Senha</th>
+                        <th scope="col" class="py-3 px-3 font-bold">Início Rec.</th>
+                        <th scope="col" class="py-3 px-3 font-bold">Fim Rec.</th>
+                        <th scope="col" class="py-3 px-3 text-center font-bold">Tempo & SLA</th>
+                        <th scope="col" class="py-3 px-3 font-bold">Guichê</th>
+                        <th scope="col" class="py-3 px-4 font-bold">Procedimento</th>
                     </tr>
                 </thead>
                 <tbody id="tabela-aguardando-corpo" class="divide-y divide-slate-200/80 dark:divide-slate-800/60 font-mono text-xs">
                     <tr>
-                        <td colspan="13" class="py-12 text-center text-slate-400">
-                            Carregando pré-atendimento em tempo real...
+                        <td colspan="13" class="py-16 text-center text-slate-400">
+                            <div class="inline-flex items-center gap-2 text-sm font-semibold text-cyan-600 dark:text-cyan-400">
+                                <svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                <span>Carregando dados da recepção em tempo real...</span>
+                            </div>
                         </td>
                     </tr>
                 </tbody>
             </table>
         </div>
     </div>
+
 </div>
 
 <script>
     async function carregarPainelAguardando() {
         try {
             const res = await fetch('/api/v1/painel/aguardando');
+            if (!res.ok) throw new Error("HTTP error " + res.status);
             const data = await res.json();
 
-            if (data.sucesso) {
-                document.getElementById('kpi-senhas').innerText = data.kpis.totalSenhas;
-                document.getElementById('kpi-media-p-recepcao').innerText = data.kpis.mediaTempoParaRecepcao;
-                document.getElementById('kpi-media-de-recepcao').innerText = data.kpis.mediaTempoDeRecepcao;
-                document.getElementById('kpi-media-total').innerText = data.kpis.mediaTempoTotalAtendimento;
-                document.getElementById('kpi-maior-tempo').innerText = data.kpis.maiorTempoAtendimento;
+            if (data.sucesso && data.kpis) {
+                document.getElementById('kpi-senhas').innerText = data.kpis.totalSenhas ?? 0;
+                document.getElementById('kpi-media-p-recepcao').innerText = data.kpis.mediaTempoParaRecepcao ?? '00:00';
+                document.getElementById('kpi-media-de-recepcao').innerText = data.kpis.mediaTempoDeRecepcao ?? '00:00';
+                document.getElementById('kpi-media-total').innerText = data.kpis.mediaTempoTotalAtendimento ?? '00:00';
+                document.getElementById('kpi-maior-tempo').innerText = data.kpis.maiorTempoAtendimento ?? '00:00';
 
                 renderizarTabela(data.pacientes);
             }
@@ -95,8 +152,12 @@
         if (!pacientes || pacientes.length === 0) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="13" class="py-[8vh] text-center text-slate-400 font-medium">
-                        Nenhum paciente na fila de pré-atendimento no momento.
+                    <td colspan="13" class="py-16 text-center text-slate-400 font-medium">
+                        <div class="flex flex-col items-center justify-center gap-2">
+                            <span class="text-2xl">⏳</span>
+                            <p class="text-sm font-semibold text-slate-600 dark:text-slate-300">Nenhum paciente aguardando pré-atendimento no momento.</p>
+                            <p class="text-xs text-slate-400">Novas senhas emitidas aparecerão automaticamente aqui.</p>
+                        </div>
                     </td>
                 </tr>`;
             return;
@@ -104,39 +165,45 @@
 
         tbody.innerHTML = pacientes.map(p => {
             let slaIcon = '🟢';
-            let slaBadgeClass = 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950 dark:text-emerald-400 dark:border-emerald-800';
+            let slaBadgeClass = 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30';
 
             if (p.slaCor === 'amarelo') {
-                slaIcon = '⚠️';
-                slaBadgeClass = 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950 dark:text-amber-400 dark:border-amber-800';
+                slaIcon = '🟡';
+                slaBadgeClass = 'bg-amber-500/15 text-amber-800 dark:text-amber-300 border-amber-500/40 font-bold';
             } else if (p.slaCor === 'vermelho') {
-                slaIcon = '🚨';
-                slaBadgeClass = 'bg-rose-100 text-rose-800 border-rose-300 dark:bg-rose-950 dark:text-rose-400 dark:border-rose-800 animate-pulse';
+                slaIcon = '🔴';
+                slaBadgeClass = 'bg-rose-500/20 text-rose-700 dark:text-rose-300 border-rose-500/50 font-black animate-pulse';
             }
 
+            const isPrio = p.tipoSenha && p.tipoSenha.toLowerCase().includes('pref');
+            const prioridadeBadge = isPrio
+                ? `<span class="px-2 py-0.5 text-[10px] font-bold rounded-md bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30">Preferencial</span>`
+                : `<span class="px-2 py-0.5 text-[10px] font-medium rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">Normal</span>`;
+
             return `
-                <tr class="hover:bg-slate-50 dark:hover:bg-slate-900/90 transition-colors">
-                    <td class="py-[0.8vh] px-[0.8vw] font-black font-mono text-cyan-600 dark:text-cyan-400 text-[0.85vw]">${p.senha}</td>
-                    <td class="py-[0.8vh] px-[0.8vw] font-semibold text-slate-800 dark:text-slate-200">${p.tipoSenha}</td>
-                    <td class="py-[0.8vh] px-[0.8vw]">
-                        <span class="px-[0.5vw] py-[0.1vh] text-[0.6vw] font-bold rounded-md uppercase bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300">
+                <tr class="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors">
+                    <td class="py-3 px-4 font-black font-mono text-cyan-600 dark:text-cyan-400 text-sm">${p.senha}</td>
+                    <td class="py-3 px-3 font-semibold">${prioridadeBadge}</td>
+                    <td class="py-3 px-3">
+                        <span class="px-2.5 py-1 text-[11px] font-bold rounded-lg uppercase bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200">
                             ${p.etapaAtual}
                         </span>
                     </td>
-                    <td class="py-[0.8vh] px-[0.8vw] text-center font-mono font-bold text-slate-800 dark:text-slate-200">${p.qtd}</td>
-                    <td class="py-[0.8vh] px-[0.8vw] font-mono text-slate-500 dark:text-slate-400 text-[0.7vw]">${p.atendimento}</td>
-                    <td class="py-[0.8vh] px-[0.8vw] font-mono text-slate-500 dark:text-slate-400 text-[0.7vw]">${p.an}</td>
-                    <td class="py-[0.8vh] px-[0.8vw] font-mono text-slate-600 dark:text-slate-400">${p.data}</td>
-                    <td class="py-[0.8vh] px-[0.8vw] font-mono text-slate-700 dark:text-slate-300">${p.horaSenha}</td>
-                    <td class="py-[0.8vh] px-[0.8vw] font-mono text-slate-600 dark:text-slate-400">${p.inicioRecepcao}</td>
-                    <td class="py-[0.8vh] px-[0.8vw] font-mono text-slate-600 dark:text-slate-400">${p.fimRecepcao}</td>
-                    <td class="py-[0.8vh] px-[0.8vw] text-center">
-                        <span class="inline-flex items-center gap-[0.3vw] px-[0.6vw] py-[0.1vh] text-[0.7vw] font-mono font-bold rounded-full border ${slaBadgeClass}">
-                            ${slaIcon} ${p.tempoTotalFormatado}
+                    <td class="py-3 px-2 text-center font-mono font-bold text-slate-800 dark:text-slate-200">${p.qtd || 1}</td>
+                    <td class="py-3 px-3 font-mono text-slate-500 dark:text-slate-400 text-xs">${p.atendimento}</td>
+                    <td class="py-3 px-3 font-mono text-slate-500 dark:text-slate-400 text-xs font-bold">${p.an}</td>
+                    <td class="py-3 px-3 font-mono text-slate-600 dark:text-slate-400">${p.data}</td>
+                    <td class="py-3 px-3 font-mono text-slate-800 dark:text-slate-200 font-bold">${p.horaSenha}</td>
+                    <td class="py-3 px-3 font-mono text-slate-600 dark:text-slate-400">${p.inicioRecepcao}</td>
+                    <td class="py-3 px-3 font-mono text-slate-600 dark:text-slate-400">${p.fimRecepcao}</td>
+                    <td class="py-3 px-3 text-center">
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-mono font-bold rounded-full border ${slaBadgeClass}">
+                            <span>${slaIcon}</span>
+                            <span>${p.tempoTotalFormatado}</span>
                         </span>
                     </td>
-                    <td class="py-[0.8vh] px-[0.8vw] font-medium text-slate-800 dark:text-slate-200">${p.guiche}</td>
-                    <td class="py-[0.8vh] px-[0.8vw] font-semibold text-indigo-600 dark:text-indigo-400">${p.procedimento}</td>
+                    <td class="py-3 px-3 font-bold text-slate-800 dark:text-slate-200">${p.guiche}</td>
+                    <td class="py-3 px-4 font-bold text-indigo-600 dark:text-indigo-400">${p.procedimento}</td>
                 </tr>
             `;
         }).join('');

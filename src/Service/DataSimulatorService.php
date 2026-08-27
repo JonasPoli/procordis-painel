@@ -264,6 +264,28 @@ class DataSimulatorService
             $this->em->flush();
         }
 
+        // Garantir histórico de chamadas no telão para exibição na TV
+        if ($this->chamadaRepo->count([]) === 0) {
+            $medicos = $this->medicoRepo->findAll();
+            $salas = $this->setorSalaRepo->findBy(['tipo' => 'consultorio']);
+            $agendamentos = $this->agendamentoRepo->findBy(['status' => 'aguardando_medico'], null, 3);
+
+            foreach ($agendamentos as $idx => $ag) {
+                $medico = $ag->getMedico() ?? ($medicos[array_rand($medicos)] ?? null);
+                $sala = count($salas) > 0 ? $salas[$idx % count($salas)] : null;
+
+                $chamada = new ChamadaTelao();
+                $chamada->setAgendamento($ag);
+                $chamada->setPacienteNomeMascarado($ag->getPaciente() ? $ag->getPaciente()->getNomeExibicao() : 'Paciente');
+                $chamada->setMedico($medico);
+                $chamada->setSetorSala($sala);
+                $chamada->setGuicheOuConsultorio($sala ? $sala->getNomeSala() : 'Consultório 01');
+                $chamada->setDataHoraChamada((new \DateTime())->modify('-' . ($idx * 4 + 1) . ' minutes'));
+                $this->em->persist($chamada);
+            }
+            $this->em->flush();
+        }
+
         $this->garantirPacientesFinalizadosDia();
     }
 
