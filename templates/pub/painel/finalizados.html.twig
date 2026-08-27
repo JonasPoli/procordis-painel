@@ -5,43 +5,61 @@
 {% block body %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
-<div class="w-full flex flex-col justify-between gap-4 lg:gap-5">
+<div class="w-full max-w-[1600px] mx-auto space-y-4 sm:space-y-5">
+    <!-- Top Sub-Bar: Título do Painel -->
+    <div class="w-full flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white/95 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-2xl p-3.5 sm:p-4 shadow-sm">
+        <div class="flex items-center gap-3">
+            <div class="h-10 w-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </div>
+            <div>
+                <div class="flex items-center gap-2">
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">Pós-Atendimento</span>
+                    <span class="text-xs text-slate-400">• Histórico Completo do Dia</span>
+                </div>
+                <h1 class="text-lg sm:text-xl font-black text-slate-900 dark:text-white leading-tight mt-0.5">
+                    Painel de Atendimentos Finalizados
+                </h1>
+            </div>
+        </div>
+    </div>
+
     <!-- Top KPIs Bar (6 Indicadores de Resumo - Responsivo) -->
-    <div class="w-full grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 shrink-0">
-        <div class="bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-3.5 rounded-2xl shadow-sm flex flex-col justify-between">
-            <p class="text-[10px] sm:text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Exames Concluídos</p>
-            <h3 id="kpi-fin-senhas" class="text-xl sm:text-2xl font-black text-emerald-600 dark:text-emerald-400 font-mono leading-none my-1">0</h3>
+    <div class="w-full grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+        <div class="bg-white/95 dark:bg-slate-900/90 border-2 border-emerald-500/30 dark:border-emerald-500/30 p-3.5 rounded-2xl shadow-sm flex flex-col justify-between">
+            <p class="text-[10px] sm:text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Concluídos</p>
+            <h3 id="kpi-fin-senhas" class="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400 font-mono leading-none my-1.5">0</h3>
             <p class="text-[10px] text-slate-400">Total finalizado hoje</p>
         </div>
 
-        <div class="bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-3.5 rounded-2xl shadow-sm flex flex-col justify-between">
-            <p class="text-[10px] sm:text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Média P/ Recepção</p>
-            <h3 id="kpi-fin-p-recepcao" class="text-xl sm:text-2xl font-black text-indigo-600 dark:text-indigo-400 font-mono leading-none my-1">00:00</h3>
-            <p class="text-[10px] text-slate-400">Da senha ao guichê</p>
+        <div class="bg-white/95 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 p-3.5 rounded-2xl shadow-sm flex flex-col justify-between">
+            <p class="text-[10px] sm:text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">P/ Recepção</p>
+            <h3 id="kpi-fin-p-recepcao" class="text-2xl sm:text-3xl font-black text-indigo-600 dark:text-indigo-400 font-mono leading-none my-1.5">00:00</h3>
+            <p class="text-[10px] text-slate-400">Senha ao guichê</p>
         </div>
 
-        <div class="bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-3.5 rounded-2xl shadow-sm flex flex-col justify-between">
-            <p class="text-[10px] sm:text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Média de Recepção</p>
-            <h3 id="kpi-fin-de-recepcao" class="text-xl sm:text-2xl font-black text-sky-600 dark:text-sky-400 font-mono leading-none my-1">00:00</h3>
+        <div class="bg-white/95 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 p-3.5 rounded-2xl shadow-sm flex flex-col justify-between">
+            <p class="text-[10px] sm:text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">De Recepção</p>
+            <h3 id="kpi-fin-de-recepcao" class="text-2xl sm:text-3xl font-black text-sky-600 dark:text-sky-400 font-mono leading-none my-1.5">00:00</h3>
             <p class="text-[10px] text-slate-400">Duração no guichê</p>
         </div>
 
-        <div class="bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-3.5 rounded-2xl shadow-sm flex flex-col justify-between">
-            <p class="text-[10px] sm:text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Média Espera Exame</p>
-            <h3 id="kpi-fin-espera-exame" class="text-xl sm:text-2xl font-black text-cyan-600 dark:text-cyan-400 font-mono leading-none my-1">00:00</h3>
-            <p class="text-[10px] text-slate-400">Da recepção ao exame</p>
+        <div class="bg-white/95 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 p-3.5 rounded-2xl shadow-sm flex flex-col justify-between">
+            <p class="text-[10px] sm:text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Espera Exame</p>
+            <h3 id="kpi-fin-espera-exame" class="text-2xl sm:text-3xl font-black text-cyan-600 dark:text-cyan-400 font-mono leading-none my-1.5">00:00</h3>
+            <p class="text-[10px] text-slate-400">Recepção ao exame</p>
         </div>
 
-        <div class="bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-3.5 rounded-2xl shadow-sm flex flex-col justify-between">
-            <p class="text-[10px] sm:text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Média Total Atend.</p>
-            <h3 id="kpi-fin-total" class="text-xl sm:text-2xl font-black text-emerald-600 dark:text-emerald-400 font-mono leading-none my-1">00:00</h3>
-            <p class="text-[10px] text-slate-400">Permanência geral</p>
+        <div class="bg-white/95 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 p-3.5 rounded-2xl shadow-sm flex flex-col justify-between">
+            <p class="text-[10px] sm:text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Média Geral</p>
+            <h3 id="kpi-fin-total" class="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400 font-mono leading-none my-1.5">00:00</h3>
+            <p class="text-[10px] text-slate-400">Permanência média</p>
         </div>
 
-        <div class="bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-3.5 rounded-2xl shadow-sm flex flex-col justify-between">
-            <p class="text-[10px] sm:text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Maior Tempo Atend.</p>
-            <h3 id="kpi-fin-maior-tempo" class="text-xl sm:text-2xl font-black text-amber-600 dark:text-amber-400 font-mono leading-none my-1">00:00</h3>
-            <p class="text-[10px] text-slate-400">Maior jornada do dia</p>
+        <div class="bg-amber-500/10 dark:bg-amber-500/10 border border-amber-500/30 p-3.5 rounded-2xl shadow-sm flex flex-col justify-between">
+            <p class="text-[10px] sm:text-xs font-bold text-amber-800 dark:text-amber-400 uppercase tracking-wider">Maior Jornada</p>
+            <h3 id="kpi-fin-maior-tempo" class="text-2xl sm:text-3xl font-black text-amber-700 dark:text-amber-400 font-mono leading-none my-1.5">00:00</h3>
+            <p class="text-[10px] text-amber-700/80 dark:text-amber-400/80 font-medium">Maior tempo do dia</p>
         </div>
     </div>
 

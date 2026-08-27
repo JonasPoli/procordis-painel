@@ -3,9 +3,9 @@
 {% block title %}Painel de Espera | Procordis{% endblock %}
 
 {% block body %}
-<div class="w-full flex flex-col justify-between gap-4 lg:gap-5">
+<div class="w-full max-w-[1600px] mx-auto space-y-4 sm:space-y-5">
     <!-- Top Sub-Bar: Filtros, Ação de Simulação e Contadores (Responsivo) -->
-    <div class="w-full flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-2xl p-3 sm:p-4 shadow-sm shrink-0">
+    <div class="w-full flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white/95 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-2xl p-3.5 sm:p-4 shadow-sm">
         <div class="flex flex-wrap items-center gap-2 sm:gap-3 text-xs sm:text-sm">
             <span class="font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-[10px] sm:text-xs">Filtrar:</span>
             <select id="filtro-medico" onchange="carregarDadosEspera()" class="bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 text-slate-800 dark:text-slate-200 text-xs rounded-xl px-3 py-1.5 outline-none focus:border-cyan-500">
