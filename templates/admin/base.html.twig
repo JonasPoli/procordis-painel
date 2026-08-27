@@ -87,6 +87,12 @@
                                 Integracão Medware
                             </a>
 
+                            {% set isTestes = app.current_route starts with 'app_admin_testes_' %}
+                            <a class='py-2 px-4 mx-4 mb-2 block rounded hover:shadow hover:from-white hover:to-white/60 hover:bg-gradient-to-r dark:hover:from-white/5 dark:hover:via-white/10 dark:hover:to-white/5 {% if isTestes %}shadow bg-gradient-to-r from-cyan-500/20 to-sky-500/20 font-bold text-cyan-400 border border-cyan-500/30{% endif %}' href="{{ path('app_admin_testes_index') }}">
+                                <sl-icon name="check2-circle" class="mr-2 align-text-top text-emerald-400"></sl-icon>
+                                Diagnóstico & Testes
+                            </a>
+
                             <div class="px-4 my-3 text-[11px] font-bold uppercase tracking-wider text-slate-400 border-t border-slate-800 pt-3">Painéis Visuais</div>
 
                             <a target="_blank" class='py-1.5 px-4 mx-4 mb-1.5 block text-xs rounded hover:bg-slate-800 text-cyan-400 font-semibold' href="/painel/espera">
