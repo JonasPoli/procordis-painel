@@ -57,18 +57,20 @@ class PainelApiController extends AbstractController
 
     private function verificarAutoSync(): void
     {
-        if (!$this->configRepo || !$this->medwareClient) {
-            return;
-        }
-
         try {
-            $config = $this->configRepo->getObterOuCriarConfiguracao();
-            if (!$config->isModoSimulacao()) {
-                $ultimo = $config->getUltimoSyncEm();
-                $agora = new \DateTime();
-                if (!$ultimo || ($agora->getTimestamp() - $ultimo->getTimestamp()) > 10) {
-                    $this->medwareClient->sincronizarAgendamentosHoje();
+            if ($this->configRepo) {
+                $config = $this->configRepo->getObterOuCriarConfiguracao();
+                if ($config->isModoSimulacao()) {
+                    $this->simulatorService->garantirPacientesFilaVariada();
+                } elseif ($this->medwareClient) {
+                    $ultimo = $config->getUltimoSyncEm();
+                    $agora = new \DateTime();
+                    if (!$ultimo || ($agora->getTimestamp() - $ultimo->getTimestamp()) > 10) {
+                        $this->medwareClient->sincronizarAgendamentosHoje();
+                    }
                 }
+            } else {
+                $this->simulatorService->garantirPacientesFilaVariada();
             }
         } catch (\Throwable $e) {
             // Silencioso em caso de timeout transitório para não travar resposta do painel
