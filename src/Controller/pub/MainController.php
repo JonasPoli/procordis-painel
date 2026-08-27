@@ -68,7 +68,7 @@ class MainController extends AbstractController
 
         try{
             $email = (new TemplatedEmail())
-                ->from(new Address($parameters->get('emailFrom'), 'Site Base'))
+                ->from(new Address($parameters->get('emailFrom'), 'Procordis'))
                 ->to($parameters->get('emailContactTo'))
                 ->subject(sprintf('Novo contato: %s', $name))
                 ->htmlTemplate('email/contact.html.twig')

@@ -69,6 +69,11 @@
 
                 <!-- Lista de Links Numerados -->
                 <nav class="space-y-1.5 font-semibold text-xs">
+                    <a href="{{ path('pub_home') }}" onclick="closePublicDrawer()" class="flex items-center gap-3 px-3 py-2.5 rounded-xl transition {% if app.request.pathInfo == '/' %}bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 font-bold border border-cyan-500/20{% else %}text-slate-600 hover:text-cyan-600 dark:text-slate-300 dark:hover:text-cyan-400 hover:bg-slate-100 dark:hover:bg-slate-800/60{% endif %}">
+                        <span class="font-mono text-cyan-500 font-bold">00.</span>
+                        <span>Início / Hub de Painéis</span>
+                    </a>
+
                     <a href="/painel/aguardando" onclick="closePublicDrawer()" class="flex items-center gap-3 px-3 py-2.5 rounded-xl transition {% if app.request.pathInfo == '/painel/aguardando' %}bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 font-bold border border-cyan-500/20{% else %}text-slate-600 hover:text-cyan-600 dark:text-slate-300 dark:hover:text-cyan-400 hover:bg-slate-100 dark:hover:bg-slate-800/60{% endif %}">
                         <span class="font-mono text-cyan-500 font-bold">01.</span>
                         <span>Pré-Atendimento (SLA)</span>
@@ -136,7 +141,7 @@
             <header class="h-14 sm:h-16 lg:h-[5vh] min-h-[48px] w-full border-b border-slate-200/80 bg-white/90 backdrop-blur dark:border-slate-800/80 dark:bg-slate-950/90 flex items-center justify-between px-3 sm:px-6 text-xs sm:text-sm shrink-0 z-50 sticky top-0">
                 <!-- Marca: Apenas a Logo Oficial SVG -->
                 <div class="flex items-center gap-2 sm:gap-3">
-                    <a href="/painel/espera" class="flex items-center">
+                    <a href="{{ path('pub_home') }}" title="Procordis - Hub de Painéis" class="flex items-center">
                         <div class="h-9 sm:h-10 px-2.5 py-1 rounded-xl bg-white shadow-sm border border-slate-200/80 flex items-center justify-center hover:shadow transition">
                             <img src="/images/logo-A3qBa0m.svg" alt="Procordis" class="h-6 sm:h-7 w-auto max-w-[120px] sm:max-w-[160px]">
                         </div>

@@ -52,21 +52,21 @@ class DataSimulatorService
      */
     public function inicializarEstruturaBase(): void
     {
-        $unidade = $this->unidadeRepo->findOneBy(['nome' => 'Procordis Centro Médico']);
+        $unidade = $this->unidadeRepo->findOneBy(['nome' => 'Associação Procordis']);
         if (!$unidade) {
             $unidade = new Unidade();
-            $unidade->setNome('Procordis Centro Médico');
+            $unidade->setNome('Associação Procordis');
             $unidade->setCodigoExterno('UNI-01');
-            $unidade->setEndereco('Av. Principal, 1000 - Centro');
+            $unidade->setEndereco('Av. Queiroz Filho, 685 - Vila Sedenho, Araraquara - SP');
             $this->em->persist($unidade);
         }
 
         $especialidadesData = [
-            ['Cardiologia', 'Exames e consultas cardiológicas'],
-            ['Ecocardiografia', 'Exames de ecocardiograma em alta definição'],
-            ['Ergometria', 'Teste ergométrico computadorizado'],
-            ['Arritmologia', 'Avaliação e tratamento de arritmias'],
-            ['Check-up Preventivo', 'Avaliação preventiva de saúde cardíaca']
+            ['Cardiologia Clínica', 'Consultas clínicas cardiológicas, avaliação de risco e acompanhamento'],
+            ['Ecocardiografia', 'Ecocardiograma com Doppler colorido e ecodopplercardiografia'],
+            ['Ergometria & Teste de Esforço', 'Teste ergométrico computadorizado e capacidade funcional'],
+            ['Arritmologia & Eletrofisiologia', 'Holter 24h, ECG digital e avaliação de arritmias cardíacas'],
+            ['Check-up & Risco Cirúrgico', 'Avaliação preventiva cardiológica e risco pré-operatório']
         ];
 
         $especialidadesObj = [];
@@ -85,11 +85,11 @@ class DataSimulatorService
         $this->em->flush();
 
         $medicosData = [
-            ['Dr. Roberto Kalil Filho', 'CRM-PE 12345', $especialidadesObj[0]],
-            ['Dra. Mariana Arcoverde', 'CRM-PE 23456', $especialidadesObj[1]],
-            ['Dr. Eduardo Vasconcelos', 'CRM-PE 34567', $especialidadesObj[2]],
-            ['Dra. Paula Guimarães', 'CRM-PE 45678', $especialidadesObj[3]],
-            ['Dr. André Luiz Fontes', 'CRM-PE 56789', $especialidadesObj[4]],
+            ['Dr. Roberto Kalil', 'CRM-SP 64512', $especialidadesObj[0]],
+            ['Dra. Mariana Arcoverde', 'CRM-SP 78234', $especialidadesObj[1]],
+            ['Dr. Eduardo Vasconcelos', 'CRM-SP 89123', $especialidadesObj[2]],
+            ['Dra. Paula Guimarães', 'CRM-SP 95671', $especialidadesObj[3]],
+            ['Dr. André Luiz Fontes', 'CRM-SP 102345', $especialidadesObj[4]],
         ];
 
         foreach ($medicosData as $idx => [$nome, $crm, $esp]) {
@@ -106,12 +106,14 @@ class DataSimulatorService
         }
 
         $salasData = [
-            ['Triagem / Recepção', 'Guichê 01', 'triagem'],
-            ['Triagem / Recepção', 'Guichê 02', 'triagem'],
-            ['Setor Cardiologia', 'Consultório 101', 'consultorio'],
-            ['Setor Cardiologia', 'Consultório 102', 'consultorio'],
-            ['Setor Meios Diagnósticos', 'Sala Ergométrica 01', 'exame'],
-            ['Setor Meios Diagnósticos', 'Sala de Eco 02', 'exame'],
+            ['Recepção & Triagem', 'Guichê 01 - Recepção', 'triagem'],
+            ['Recepção & Triagem', 'Guichê 02 - Recepção', 'triagem'],
+            ['Setor de Enfermagem', 'Sala de Triagem / Anamnese', 'triagem'],
+            ['Consultórios Cardiológicos', 'Consultório 01', 'consultorio'],
+            ['Consultórios Cardiológicos', 'Consultório 02', 'consultorio'],
+            ['Consultórios Cardiológicos', 'Consultório 03', 'consultorio'],
+            ['Diagnóstico Cardiológico', 'Sala Ergométrica 01', 'exame'],
+            ['Diagnóstico Cardiológico', 'Sala de Ecocardiograma 02', 'exame'],
         ];
 
         foreach ($salasData as $idx => [$setor, $sala, $tipo]) {
@@ -128,11 +130,13 @@ class DataSimulatorService
         }
 
         $slasData = [
-            ['PROC-BIO', 'Biópsia de Mama', 119, 149, 'Biópsia mamária guiada por ultrassom (Verde <= 119m, Amarelo 120-149m, Vermelho > 149m)'],
-            ['PROC-MMG', 'Mamografia Digital', 59, 119, 'Exame rápido de mamografia em alta definição (Verde <= 59m, Amarelo 60-119m, Vermelho > 119m)'],
-            ['PROC-ECO', 'Ecocardiograma', 45, 89, 'Ecocardiograma transtorácico computadorizado'],
-            ['PROC-PAAF', 'Punção Aspirativa (PAAF)', 90, 120, 'Punção de nódulo com agulha fina'],
-            ['PROC-CONS', 'Consulta Cardiológica', 59, 119, 'Consulta clínica com cardiologista especialista']
+            ['PROC-ECG', 'Eletrocardiograma (ECG)', 15, 30, 'Eletrocardiograma digital de repouso (Verde <= 15m, Amarelo 16-30m, Vermelho > 30m)'],
+            ['PROC-ECO', 'Ecocardiograma Transtorácico', 30, 45, 'Ecocardiograma com Doppler colorido (Verde <= 30m, Amarelo 31-45m, Vermelho > 45m)'],
+            ['PROC-ERG', 'Teste Ergométrico Computadorizado', 40, 60, 'Teste ergométrico em esteira computadorizada'],
+            ['PROC-MAPA', 'Instalação / Retirada MAPA 24h', 20, 35, 'Monitorização Ambulatorial da Pressão Arterial 24h'],
+            ['PROC-HOLTER', 'Instalação / Retirada Holter 24h', 20, 35, 'Monitorização eletrocardiográfica contínua 24h'],
+            ['PROC-CONS', 'Consulta Cardiológica Especializada', 45, 60, 'Consulta clínica com cardiologista especialista'],
+            ['PROC-RISCO', 'Avaliação de Risco Cirúrgico', 30, 50, 'Avaliação e parecer cardiológico pré-operatório']
         ];
 
         foreach ($slasData as [$codigo, $nome, $verde, $amarelo, $desc]) {
@@ -188,13 +192,13 @@ class DataSimulatorService
         if (count($pacientesEmEspera) < 5 || !$temMaisDe2h || !$temMaisDe15m) {
             $configuracoesFila = [
                 // [Nome Paciente, minutos_atras_chegada, status, prioridade, encaixe, procedimento, guiche, qtd]
-                ['Roberto Carlos Pereira', 145, 'aguardando_medico', true, false, 'Biópsia de Mama', 'Guichê 01', 2],   // 2h25m de espera (>2h)
-                ['Juliana Fernandes', 132, 'aguardando_triagem', false, true, 'Mamografia Digital', 'Guichê 02', 1],      // 2h12m de espera (>2h)
-                ['Ana Beatriz Souza', 55, 'aguardando_medico', false, false, 'Ecocardiograma', 'Guichê 03', 1],       // 55m de espera (>15m)
-                ['Carlos Alberto Silva', 35, 'aguardando_triagem', false, false, 'Punção Aspirativa (PAAF)', 'Guichê 01', 1],   // 35m de espera (>15m)
-                ['Fernando Henrique Lima', 22, 'aguardando_medico', true, false, 'Consulta Cardiológica', 'Guichê 04', 1],   // 22m de espera (>15m)
-                ['Larissa Amanda Ribeiro', 12, 'aguardando_medico', false, false, 'Mamografia Digital', 'Guichê 02', 1],  // 12m de espera (<15m)
-                ['Camila Rodrigues', 6, 'aguardando_triagem', false, false, 'Ecocardiograma', 'Guichê 03', 1],        // 6m de espera (<15m)
+                ['Roberto Carlos Pereira', 145, 'aguardando_medico', true, false, 'Ecocardiograma Transtorácico', 'Guichê 01', 1],   // 2h25m de espera (>2h)
+                ['Juliana Fernandes', 132, 'aguardando_triagem', false, true, 'Teste Ergométrico Computadorizado', 'Guichê 02', 1],      // 2h12m de espera (>2h)
+                ['Ana Beatriz Souza', 55, 'aguardando_medico', false, false, 'Ecocardiograma Transtorácico', 'Guichê 01', 1],       // 55m de espera (>15m)
+                ['Carlos Alberto Silva', 35, 'aguardando_triagem', false, false, 'Holter 24 Horas', 'Guichê 02', 1],   // 35m de espera (>15m)
+                ['Fernando Henrique Lima', 22, 'aguardando_medico', true, false, 'Consulta Cardiológica Especializada', 'Guichê 01', 1],   // 22m de espera (>15m)
+                ['Larissa Amanda Ribeiro', 12, 'aguardando_medico', false, false, 'Eletrocardiograma (ECG)', 'Guichê 02', 1],  // 12m de espera (<15m)
+                ['Camila Rodrigues', 6, 'aguardando_triagem', false, false, 'Ecocardiograma Transtorácico', 'Guichê 01', 1],        // 6m de espera (<15m)
             ];
 
             foreach ($configuracoesFila as [$nomePac, $minutosAtras, $status, $prio, $encaixe, $procedimento, $guiche, $qtd]) {
@@ -282,21 +286,21 @@ class DataSimulatorService
 
         $finalizadosConfig = [
             // [Nome, Procedimento, Guiche, Qtd, HoraChegada, MinRecepcao, MinEspera, MinExame, AccessNumber, Prioridade]
-            ['Marcos Vinicius Andrade', 'Biópsia de Mama', 'Guichê 01', 2, '07:15', 5, 25, 40, 'AN-2026-9011', true],
-            ['Patricia Lima Meireles', 'Mamografia Digital', 'Guichê 02', 1, '07:30', 3, 15, 15, 'AN-2026-9012', false],
-            ['João Paulo Teixeira', 'Ecocardiograma', 'Guichê 03', 1, '07:45', 4, 20, 25, 'AN-2026-9013', false],
-            ['Luciana Ramos Costa', 'Punção Aspirativa (PAAF)', 'Guichê 04', 1, '08:00', 6, 30, 20, 'AN-2026-9014', false],
-            ['Gabriel Santos Ferreira', 'Consulta Cardiológica', 'Guichê 01', 1, '08:15', 4, 10, 20, 'AN-2026-9015', false],
-            ['Renata Oliveira Silva', 'Mamografia Digital', 'Guichê 02', 1, '08:30', 3, 20, 15, 'AN-2026-9016', false],
-            ['Thiago Alcantara Dias', 'Biópsia de Mama', 'Guichê 01', 2, '08:45', 5, 80, 50, 'AN-2026-9017', true],
-            ['Vanessa Cristina Nunes', 'Ecocardiograma', 'Guichê 03', 1, '09:00', 4, 25, 30, 'AN-2026-9018', false],
-            ['Bruno Eduardo Rocha', 'Consulta Cardiológica', 'Guichê 04', 1, '09:15', 3, 12, 18, 'AN-2026-9019', false],
-            ['Helena Maria Castro', 'Mamografia Digital', 'Guichê 02', 1, '09:30', 4, 18, 14, 'AN-2026-9020', false],
-            ['Rodrigo Duarte Prado', 'Punção Aspirativa (PAAF)', 'Guichê 03', 1, '09:45', 5, 35, 22, 'AN-2026-9021', false],
-            ['Isabela Fontana Cruz', 'Ecocardiograma', 'Guichê 01', 1, '10:00', 3, 22, 28, 'AN-2026-9022', false],
-            ['Daniel Freitas Alencar', 'Biópsia de Mama', 'Guichê 04', 2, '10:30', 6, 60, 45, 'AN-2026-9023', false],
-            ['Marcelo Nogueira Paes', 'Consulta Cardiológica', 'Guichê 03', 1, '11:00', 4, 15, 20, 'AN-2026-9024', false],
-            ['Sofia Martins Barbosa', 'Mamografia Digital', 'Guichê 02', 1, '11:30', 3, 16, 15, 'AN-2026-9025', false],
+            ['Marcos Vinicius Andrade', 'Ecocardiograma Transtorácico', 'Guichê 01', 1, '07:15', 5, 25, 30, 'AN-2026-9011', true],
+            ['Patricia Lima Meireles', 'Eletrocardiograma (ECG)', 'Guichê 02', 1, '07:30', 3, 15, 15, 'AN-2026-9012', false],
+            ['João Paulo Teixeira', 'Ecocardiograma Transtorácico', 'Guichê 01', 1, '07:45', 4, 20, 25, 'AN-2026-9013', false],
+            ['Luciana Ramos Costa', 'Teste Ergométrico Computadorizado', 'Guichê 02', 1, '08:00', 6, 30, 35, 'AN-2026-9014', false],
+            ['Gabriel Santos Ferreira', 'Consulta Cardiológica Especializada', 'Guichê 01', 1, '08:15', 4, 10, 20, 'AN-2026-9015', false],
+            ['Renata Oliveira Silva', 'Holter 24 Horas', 'Guichê 02', 1, '08:30', 3, 20, 15, 'AN-2026-9016', false],
+            ['Thiago Alcantara Dias', 'Ecocardiograma Transtorácico', 'Guichê 01', 1, '08:45', 5, 45, 30, 'AN-2026-9017', true],
+            ['Vanessa Cristina Nunes', 'MAPA 24 Horas', 'Guichê 02', 1, '09:00', 4, 25, 20, 'AN-2026-9018', false],
+            ['Bruno Eduardo Rocha', 'Consulta Cardiológica Especializada', 'Guichê 01', 1, '09:15', 3, 12, 18, 'AN-2026-9019', false],
+            ['Helena Maria Castro', 'Eletrocardiograma (ECG)', 'Guichê 02', 1, '09:30', 4, 18, 14, 'AN-2026-9020', false],
+            ['Rodrigo Duarte Prado', 'Teste Ergométrico Computadorizado', 'Guichê 01', 1, '09:45', 5, 35, 35, 'AN-2026-9021', false],
+            ['Isabela Fontana Cruz', 'Ecocardiograma Transtorácico', 'Guichê 02', 1, '10:00', 3, 22, 28, 'AN-2026-9022', false],
+            ['Daniel Freitas Alencar', 'Avaliação de Risco Cirúrgico', 'Guichê 01', 1, '10:30', 6, 40, 30, 'AN-2026-9023', false],
+            ['Marcelo Nogueira Paes', 'Consulta Cardiológica Especializada', 'Guichê 02', 1, '11:00', 4, 15, 20, 'AN-2026-9024', false],
+            ['Sofia Martins Barbosa', 'Eletrocardiograma (ECG)', 'Guichê 01', 1, '11:30', 3, 16, 15, 'AN-2026-9025', false],
         ];
 
         foreach ($finalizadosConfig as [$nomePac, $procedimento, $guiche, $qtd, $horaChegadaStr, $minRec, $minEsp, $minExame, $an, $prio]) {

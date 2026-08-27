@@ -17,11 +17,11 @@ class ProcedimentoSlaType extends AbstractType
         $builder
             ->add('codigo', TextType::class, [
                 'label' => 'Código do Procedimento',
-                'attr' => ['placeholder' => 'Ex: PROC-MMG'],
+                'attr' => ['placeholder' => 'Ex: PROC-ECO'],
             ])
             ->add('nomeProcedimento', TextType::class, [
                 'label' => 'Nome do Procedimento / Exame',
-                'attr' => ['placeholder' => 'Ex: Mamografia Digital'],
+                'attr' => ['placeholder' => 'Ex: Ecocardiograma com Doppler'],
             ])
             ->add('limiteVerdeMinutos', IntegerType::class, [
                 'label' => 'Limite Verde (Minutos)',
@@ -36,7 +36,7 @@ class ProcedimentoSlaType extends AbstractType
             ->add('descricao', TextareaType::class, [
                 'label' => 'Descrição / Observações',
                 'required' => false,
-                'attr' => ['rows' => 3, 'placeholder' => 'Ex: Exame de mamografia com tomossíntese...'],
+                'attr' => ['rows' => 3, 'placeholder' => 'Ex: Ecocardiograma transtorácico com mapeamento de fluxo a cores...'],
             ])
         ;
     }
