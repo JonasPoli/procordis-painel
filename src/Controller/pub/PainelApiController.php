@@ -18,6 +18,7 @@ use Symfony\Component\Routing\Attribute\Route;
 use App\Repository\ProcedimentoSlaRepository;
 use App\Repository\ConfiguracaoIntegracaoRepository;
 use App\Service\MedwareApiClientService;
+use App\Service\SystemHealthCheckService;
 use App\Entity\ProcedimentoSla;
 
 #[Route('/api/v1', name: 'api_v1_')]
@@ -33,8 +34,25 @@ class PainelApiController extends AbstractController
         private DataSimulatorService $simulatorService,
         private ProcedimentoSlaRepository $slaRepo,
         private ?ConfiguracaoIntegracaoRepository $configRepo = null,
-        private ?MedwareApiClientService $medwareClient = null
+        private ?MedwareApiClientService $medwareClient = null,
+        private ?SystemHealthCheckService $healthService = null
     ) {
+    }
+
+    #[Route('/diagnostico', name: 'painel_diagnostico', methods: ['GET'])]
+    public function diagnostico(Request $request): JsonResponse
+    {
+        if (!$this->healthService) {
+            return new JsonResponse(['sucesso' => false, 'erro' => 'Serviço de diagnóstico indisponível'], 500);
+        }
+
+        $appBaseUrl = $request->getSchemeAndHttpHost();
+        $dados = $this->healthService->executarTodosTestes($appBaseUrl);
+
+        return new JsonResponse([
+            'sucesso' => true,
+            'dados' => $dados,
+        ]);
     }
 
     private function verificarAutoSync(): void

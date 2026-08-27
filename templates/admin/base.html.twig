@@ -3,8 +3,8 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title> | Administração {% block title %}{% endblock %}</title>
-        <link rel="icon" href="/images/fav.png">
+        <title>Procordis | Administração {% block title %}{% endblock %}</title>
+        <link rel="icon" type="image/svg+xml" href="/images/logo-A3qBa0m.svg">
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.19.1/cdn/themes/light.css" />
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.19.1/cdn/themes/dark.css" />
         <script type="module" src="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.19.1/cdn/shoelace-autoloader.js"></script>
@@ -41,9 +41,20 @@
         <div class="bg-gradient-to-tr from-slate-200 to-slate-50 dark:from-slate-950 dark:to-slate-900 dark:text-white resize-x ">
             <div class="h-full min-h-screen bg-left-bottom bg-cover bg-fixed" style="background-image: radial-gradient(circle at top, rgba(255,255,255,0.7), transparent 55%), radial-gradient(circle at 20% 20%, rgba(148,163,184,0.35), transparent 45%), radial-gradient(circle at 80% 0%, rgba(125,211,252,0.25), transparent 35%);">
                 <div class="grid grid-cols-[250px_auto] grid-rols-1 lg:ml-0 ml-[-250px] transition-all min-h-screen" id="page-wrap">
-                    <nav class="pt-10 flex flex-col h-screen sticky top-0 overflow-y-auto" > 
+                    <nav class="pt-6 flex flex-col h-screen sticky top-0 overflow-y-auto" > 
                         <div class="flex-auto">
-                            <div class="px-4 mb-3 text-[11px] font-bold uppercase tracking-wider text-slate-400">Procordis Gestão</div>
+                            <div class="px-4 mb-4">
+                                <a href="{{ path('admin_dash') }}" class="block p-2 rounded-2xl bg-white shadow-sm border border-slate-200/80 hover:shadow transition">
+                                    <img src="/images/logo-A3qBa0m.svg" alt="Procordis Medicina Diagnóstica" class="h-8 w-auto mx-auto max-w-full">
+                                </a>
+                                <div class="px-1 mt-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">Procordis Gestão</div>
+                            </div>
+
+                            {% set isDash = app.current_route == 'admin_dash' %}
+                            <a class='py-2 px-4 mx-4 mb-2 block rounded hover:shadow hover:from-white hover:to-white/60 hover:bg-gradient-to-r dark:hover:from-white/5 dark:hover:via-white/10 dark:hover:to-white/5 {% if isDash %}shadow bg-gradient-to-r from-cyan-500/20 to-sky-500/20 font-bold text-cyan-400 border border-cyan-500/30{% endif %}' href="{{ path('admin_dash') }}">
+                                <sl-icon name="speedometer2" class="mr-2 align-text-top text-cyan-400"></sl-icon>
+                                Visão Geral & Qualidade
+                            </a>
 
                             {% set isSimulador = app.current_route starts with 'app_admin_simulador_' %}
                             <a class='py-2 px-4 mx-4 mb-2 block rounded hover:shadow hover:from-white hover:to-white/60 hover:bg-gradient-to-r dark:hover:from-white/5 dark:hover:via-white/10 dark:hover:to-white/5 {% if isSimulador %}shadow bg-gradient-to-r from-cyan-500/20 to-sky-500/20 font-bold text-cyan-400 border border-cyan-500/30{% endif %}' href="{{ path('app_admin_simulador_index') }}">

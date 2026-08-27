@@ -1,264 +1,324 @@
 {% extends 'admin/base.html.twig' %}
 
-{% block body %}
+{% block title %}Dashboard & Central de Comunicações{% endblock %}
 
-    <div class="space-y-10">
-        <section class="rounded-[32px] bg-white/80 p-8 shadow-xl shadow-slate-900/5 ring-1 ring-white/60 backdrop-blur dark:bg-slate-900/60 dark:ring-white/10">
-            <div class="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-                <div>
-                    <p class="text-xs font-semibold uppercase tracking-[0.35em] text-slate-500 dark:text-slate-400">Painel</p>
-                    <h1 class="mt-3 text-3xl font-semibold text-slate-900 dark:text-white">Visão geral do ecossistema</h1>
-                    <p class="mt-2 max-w-2xl text-sm text-slate-500 dark:text-slate-400">
-                        KPIs, atividade recente e formulários de controle usando componentes Shoelace.
+{% block body %}
+<div class="max-w-7xl mx-auto space-y-8" id="admin-dashboard-app">
+
+    <!-- Hero Header: Procordis Central Hub -->
+    <section class="relative overflow-hidden p-6 lg:p-8 rounded-3xl bg-gradient-to-br from-slate-900 via-slate-900/95 to-slate-950 border border-slate-800 shadow-2xl text-white">
+        <!-- Glow background accents -->
+        <div class="absolute -top-24 -right-24 w-96 h-96 bg-cyan-500/15 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="absolute -bottom-24 -left-24 w-96 h-96 bg-emerald-500/15 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div class="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+            <div class="flex items-start gap-4">
+                <div class="p-3 rounded-2xl bg-white shadow-md border border-slate-200 shrink-0 hidden sm:flex items-center justify-center">
+                    <img src="/images/logo-A3qBa0m.svg" alt="Procordis Medicina Diagnóstica" class="h-11 w-auto max-w-[190px]">
+                </div>
+                <div class="space-y-1.5">
+                    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider bg-slate-800/80 border border-slate-700 text-cyan-400">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                        Central de Comunicação e Qualidade de Dados
+                    </div>
+                    <h1 class="text-3xl lg:text-4xl font-black tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
+                        Painel de Controle e Integração Medware
+                    </h1>
+                    <p class="text-sm text-slate-400 max-w-2xl">
+                        Monitoramento em tempo real de latência, velocidade de sincronização, qualidade dos pacotes de dados e parâmetros de refresh dos painéis.
                     </p>
                 </div>
-                <div class="flex flex-wrap gap-3">
-                    <sl-button size="large" variant="primary">
-                        <sl-icon slot="prefix" name="rocket"></sl-icon>
-                        Nova campanha
-                    </sl-button>
-                    <sl-button size="large" variant="default" outline>
-                        <sl-icon slot="prefix" name="download"></sl-icon>
-                        Exportar dados
-                    </sl-button>
-                </div>
             </div>
-        </section>
 
-        <section class="grid gap-6 lg:grid-cols-4">
-            {% set statCards = [
-                {
-                    icon: 'speedometer',
-                    label: 'Performance',
-                    value: '98',
-                    suffix: '/100',
-                    tone: 'text-emerald-500',
-                    note: '+4 pts vs semana anterior'
-                },
-                {
-                    icon: 'people',
-                    label: 'Usuários ativos',
-                    value: '2.481',
-                    suffix: '',
-                    tone: 'text-sky-500',
-                    note: '+18% orgânico'
-                },
-                {
-                    icon: 'cart',
-                    label: 'Pedidos',
-                    value: '324',
-                    suffix: ' hoje',
-                    tone: 'text-indigo-500',
-                    note: '4% de aprovação manual'
-                },
-                {
-                    icon: 'piggy-bank',
-                    label: 'Receita',
-                    value: 'R$ 182k',
-                    suffix: '',
-                    tone: 'text-amber-500',
-                    note: 'Meta mensal em 76%'
-                }
-            ] %}
-            {% for card in statCards %}
-                <sl-card class="border-none bg-white/80 shadow-lg shadow-slate-900/5 ring-1 ring-white/70 backdrop-blur dark:bg-slate-900/70 dark:ring-white/10">
-                    <div class="flex items-start justify-between">
-                        <div>
-                            <p class="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400">{{ card.label }}</p>
-                            <p class="mt-2 text-3xl font-semibold text-slate-900 dark:text-white">
-                                {{ card.value }} <span class="text-base font-normal text-slate-400">{{ card.suffix }}</span>
-                            </p>
-                            <p class="mt-2 text-xs font-medium {{ card.tone }}">{{ card.note }}</p>
-                        </div>
-                        <sl-icon name="{{ card.icon }}" class="text-2xl text-slate-400 dark:text-slate-500"></sl-icon>
-                    </div>
-                </sl-card>
-            {% endfor %}
-        </section>
-
-        {# Indicadores e Seções (única vez) #}
-        <section class="space-y-6">
-            <h2 class="text-xl font-semibold text-slate-900 dark:text-white">Indicadores Adicionais</h2>
-            <sl-card class="border-none bg-white/80 shadow-lg shadow-slate-900/5 ring-1 ring-white/70 backdrop-blur dark:bg-slate-900/70 dark:ring-white/10">
-                <div slot="header">
-                    <p class="text-lg font-semibold text-slate-900 dark:text-white">Visão Detalhada</p>
-                </div>
-                <ul class="space-y-3 text-slate-700 dark:text-slate-300">
-                    <li><strong>Indicadores gerais:</strong> número total de projetos ativos, peças em produção, peças em pintura, grupos formados, pacotes prontos e montagens concluídas.</li>
-                    <li><strong>Progresso por projeto:</strong> barra de progresso para cada projeto mostrando percentuais de fabricação, pintura e embalagem.</li>
-                    <li><strong>Pacotes prontos para expedição:</strong> lista de pacotes fechados aguardando transporte, com destino e data prevista de envio.</li>
-                    <li><strong>Alertas e pendências:</strong> peças que entraram na pintura e ainda não saíram, projetos com peças fora do prazo, pacotes incompletos ou peças sem etiqueta.</li>
-                    <li><strong>Gráfico de produção diária/semana:</strong> peças produzidas por dia ou semana, permitindo identificar picos ou gargalos.</li>
-                    <li><strong>Gráfico de tempo de pintura:</strong> tempo médio gasto na pintura por tipo de peça ou projeto, facilitando ajustes no planejamento.</li>
-                    <li><strong>Status das máquinas de impressão:</strong> filas de etiquetas nas três impressoras (pré‑montagem, pintura, embalagem), último erro de impressão e volume de etiquetas geradas.</li>
-                    <li><strong>Tempo médio de montagem:</strong> indicador de quanto tempo os montadores levam para montar um projeto após receber os pacotes.</li>
-                    <li><strong>Comparativo de estimativas versus real:</strong> painel que mostra a diferença entre horas previstas e horas gastas em cada etapa, auxiliando na revisão das estimativas.</li>
-                    <li><strong>Top clientes / projetos:</strong> ranking de projetos com maior volume de peças ou valor de produção, útil para identificar clientes estratégicos.</li>
-                </ul>
-            </sl-card>
-        </section>
-
-        <section class="grid gap-6 lg:grid-cols-[2fr_1fr]">
-            <sl-card class="border-none bg-white/80 shadow-lg shadow-slate-900/5 ring-1 ring-white/70 backdrop-blur dark:bg-slate-900/70 dark:ring-white/10">
-                <div slot="header" class="flex flex-wrap items-center justify-between gap-4">
-                    <div>
-                        <p class="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400">Pipeline</p>
-                        <p class="text-lg font-semibold text-slate-900 dark:text-white">Novas contas</p>
-                    </div>
-                    <sl-badge variant="success" pill>Atualizado há 5 min</sl-badge>
-                </div>
-                <div class="grid gap-6 lg:grid-cols-2">
-                    <div class="space-y-3">
-                        <div>
-                            <p class="text-sm font-semibold text-slate-600 dark:text-slate-200">Onboarding</p>
-                            <sl-progress-bar value="68"></sl-progress-bar>
-                            <p class="text-xs text-slate-500 dark:text-slate-400">68% dos convites foram aceitos</p>
-                        </div>
-                        <div>
-                            <p class="text-sm font-semibold text-slate-600 dark:text-slate-200">Treinamentos</p>
-                            <sl-progress-bar value="42" class="accent-indigo-500"></sl-progress-bar>
-                            <p class="text-xs text-slate-500 dark:text-slate-400">42% concluíram a trilha obrigatória</p>
-                        </div>
-                        <div>
-                            <p class="text-sm font-semibold text-slate-600 dark:text-slate-200">KPIs entregues</p>
-                            <sl-progress-bar value="87" class="accent-emerald-500"></sl-progress-bar>
-                            <p class="text-xs text-slate-500 dark:text-slate-400">87% de aderência</p>
-                        </div>
-                    </div>
-                    <div class="flex flex-col items-center justify-center gap-4">
-                        <sl-progress-ring value="76" size="120" stroke-width="10"></sl-progress-ring>
-                        <div class="text-center">
-                            <p class="text-sm uppercase tracking-[0.35em] text-slate-500 dark:text-slate-400">Meta do mês</p>
-                            <p class="text-2xl font-semibold text-slate-900 dark:text-white">76%</p>
-                            <p class="text-xs text-slate-500 dark:text-slate-400">Faltam 48 contas para fechar.</p>
-                        </div>
-                        <sl-button variant="success" pill>
-                            <sl-icon slot="prefix" name="check2-circle"></sl-icon>
-                            Registrar conquista
-                        </sl-button>
-                    </div>
-                </div>
-            </sl-card>
-
-            <sl-card class="border-none bg-white/80 shadow-lg shadow-slate-900/5 ring-1 ring-white/70 backdrop-blur dark:bg-slate-900/70 dark:ring-white/10">
-                <div slot="header">
-                    <p class="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400">Quick Actions</p>
-                    <p class="text-lg font-semibold text-slate-900 dark:text-white">Criar registro</p>
-                </div>
-                <form class="space-y-4">
-                    <sl-input label="Título" placeholder="Nome da iniciativa"></sl-input>
-                    <sl-select label="Responsável" placeholder="Selecione">
-                        <sl-option value="ana">Ana Costa</sl-option>
-                        <sl-option value="jonas">Jonas Poli</sl-option>
-                        <sl-option value="marcos">Marcos Lima</sl-option>
-                    </sl-select>
-                    <sl-textarea label="Descrição" rows="3"></sl-textarea>
-                    <sl-checkbox>Adicionar à lista de destaques</sl-checkbox>
-                    <div class="flex justify-end gap-2">
-                        <sl-button variant="default" outline>Cancelar</sl-button>
-                        <sl-button variant="primary">Salvar</sl-button>
-                    </div>
-                </form>
-            </sl-card>
-        </section>
-
-        <section class="grid gap-6 lg:grid-cols-[1.3fr_1fr]">
-            <sl-card class="border-none bg-white/80 shadow-lg shadow-slate-900/5 ring-1 ring-white/70 backdrop-blur dark:bg-slate-900/70 dark:ring-white/10">
-                <div slot="header" class="flex flex-wrap items-center justify-between gap-3">
-                    <p class="text-lg font-semibold text-slate-900 dark:text-white">Atividade recente</p>
-                    <sl-button size="small" variant="default" outline>
-                        <sl-icon slot="prefix" name="funnel"></sl-icon>
-                        Filtrar
-                    </sl-button>
-                </div>
-                <div class="space-y-4">
-                    {% set timeline = [
-                        { title: 'Novo cliente enterprise', detail: 'Contrato anual aprovado para Branch.ai', time: 'há 12 min' },
-                        { title: 'Revisão de conteúdo', detail: 'Landing page do evento Flow foi publicada', time: 'há 1h' },
-                        { title: 'Integração pronta', detail: 'Webhook do CRM conectado ao DataLake', time: 'há 2h' },
-                        { title: 'Atualização financeira', detail: 'Relatório de MRR consolidado', time: 'há 4h' }
-                    ] %}
-                    {% for item in timeline %}
-                        <div class="flex gap-4 rounded-2xl border border-slate-100/80 p-4 dark:border-white/5">
-                            <sl-avatar shape="rounded" class="shrink-0" initials="{{ loop.index }}"></sl-avatar>
-                            <div>
-                                <p class="text-sm font-semibold text-slate-900 dark:text-white">{{ item.title }}</p>
-                                <p class="text-sm text-slate-500 dark:text-slate-400">{{ item.detail }}</p>
-                                <p class="text-xs text-slate-400 dark:text-slate-500">{{ item.time }}</p>
-                            </div>
-                        </div>
-                    {% endfor %}
-                </div>
-            </sl-card>
-
-            <sl-card class="border-none bg-white/80 shadow-lg shadow-slate-900/5 ring-1 ring-white/70 backdrop-blur dark:bg-slate-900/70 dark:ring-white/10">
-                <div slot="header">
-                    <p class="text-lg font-semibold text-slate-900 dark:text-white">Favoritos</p>
-                    <p class="text-sm text-slate-500 dark:text-slate-400">Acesso rápido a recursos internos</p>
-                </div>
-                <div class="space-y-3">
-                    {% set shortcuts = [
-                        { icon: 'file-earmark-text', label: 'Modelos de proposta' },
-                        { icon: 'layout-text-window-reverse', label: 'Biblioteca de componentes' },
-                        { icon: 'people-fill', label: 'Time de parceiros' },
-                        { icon: 'chat-dots', label: 'Central de feedback' }
-                    ] %}
-                    {% for shortcut in shortcuts %}
-                        <button class="flex w-full items-center justify-between rounded-xl border border-transparent px-4 py-3 text-left text-sm font-medium text-slate-700 transition hover:border-slate-200 hover:bg-slate-50 dark:text-slate-200 dark:hover:border-white/10 dark:hover:bg-white/5">
-                            <span><sl-icon name="{{ shortcut.icon }}" class="mr-2 text-base text-slate-400"></sl-icon>{{ shortcut.label }}</span>
-                            <sl-icon name="chevron-right"></sl-icon>
-                        </button>
-                    {% endfor %}
-                </div>
-            </sl-card>
-        </section>
-
-        <sl-card class="border-none bg-white/80 shadow-lg shadow-slate-900/5 ring-1 ring-white/70 backdrop-blur dark:bg-slate-900/70 dark:ring-white/10">
-            <div slot="header" class="flex flex-wrap items-center justify-between gap-4">
-                <div>
-                    <p class="text-lg font-semibold text-slate-900 dark:text-white">Projetos em andamento</p>
-                    <p class="text-sm text-slate-500 dark:text-slate-400">Resumo dos squads ativos</p>
-                </div>
-                <sl-button size="small" variant="primary" pill>
-                    <sl-icon slot="prefix" name="plus-lg"></sl-icon>
-                    Novo squad
+            <!-- Action Buttons -->
+            <div class="flex flex-wrap items-center gap-3">
+                <sl-button variant="primary" size="medium" id="btn-sync-dash" onclick="executarSyncDashboard()">
+                    <sl-icon slot="prefix" name="cloud-arrow-down" id="icon-sync-dash"></sl-icon>
+                    Sincronizar Agora
                 </sl-button>
+                <a href="{{ path('app_admin_testes_index') }}">
+                    <sl-button variant="default" size="medium">
+                        <sl-icon slot="prefix" name="check2-circle"></sl-icon>
+                        Diagnóstico & Testes
+                    </sl-button>
+                </a>
+                <a href="/painel/espera" target="_blank">
+                    <sl-button variant="default" size="medium" outline>
+                        <sl-icon slot="prefix" name="box-arrow-up-right"></sl-icon>
+                        Abrir Painel TV
+                    </sl-button>
+                </a>
             </div>
-            <div class="overflow-x-auto">
-                <table class="min-w-full text-left text-sm">
-                    <thead>
-                    <tr class="border-b border-slate-100 text-xs uppercase tracking-[0.3em] text-slate-500 dark:border-white/5 dark:text-slate-400">
-                        <th class="py-3 pr-4">Projeto</th>
-                        <th class="py-3 pr-4">Owner</th>
-                        <th class="py-3 pr-4">Status</th>
-                        <th class="py-3 pr-4">Ações</th>
-                    </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-100 dark:divide-white/5">
-                    {% set projects = [
-                        { name: 'Fluxo OmniPay', owner: 'Marina Duarte', status: 'Em testes', badge: 'warning' },
-                        { name: 'Revamp onboarding', owner: 'Hugo Ramos', status: 'Produção', badge: 'success' },
-                        { name: 'AI Recommendations', owner: 'André Queiroz', status: 'Discovery', badge: 'neutral' }
-                    ] %}
-                    {% for project in projects %}
-                        <tr class="hover:bg-slate-50/70 dark:hover:bg-white/5">
-                            <td class="py-3 pr-4 font-medium text-slate-900 dark:text-white">{{ project.name }}</td>
-                            <td class="py-3 pr-4 text-slate-500 dark:text-slate-400">{{ project.owner }}</td>
-                            <td class="py-3 pr-4">
-                                <sl-badge variant="{{ project.badge }}" pill>{{ project.status }}</sl-badge>
-                            </td>
-                            <td class="py-3 pr-4">
-                                <div class="flex gap-2">
-                                    <sl-button size="small" variant="default" outline>Edit</sl-button>
-                                    <sl-button size="small" variant="primary">Ver</sl-button>
-                                </div>
-                            </td>
-                        </tr>
-                    {% endfor %}
-                    </tbody>
-                </table>
+        </div>
+
+        <!-- Live Sync Status Banner Inside Hero -->
+        <div class="mt-8 pt-6 border-t border-slate-800/80 flex flex-col md:flex-row md:items-center justify-between gap-4 text-xs">
+            <div class="flex items-center gap-3">
+                <span class="p-2 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400">
+                    <sl-icon name="arrow-repeat" class="text-base"></sl-icon>
+                </span>
+                <div>
+                    <span class="text-slate-400 block font-medium">Última recepção de dados da API Medware:</span>
+                    <span id="dash-sync-timestamp" class="text-white font-extrabold text-sm">{{ infoSync.dataHoraFormatada }}</span>
+                    <span id="dash-sync-relativo" class="text-cyan-400 font-bold ml-1.5">({{ infoSync.tempoRelativo }})</span>
+                </div>
             </div>
-        </sl-card>
+
+            <div class="flex items-center gap-4 text-slate-300">
+                <div>
+                    <span class="text-slate-500">API Host:</span>
+                    <code class="text-cyan-300 font-mono ml-1">{{ infoSync.apiBaseUrl }}</code>
+                </div>
+                <div class="h-4 w-px bg-slate-800"></div>
+                <div>
+                    <span class="text-slate-500">Usuário:</span>
+                    <strong class="text-slate-200 ml-1">{{ infoSync.apiUsuario }}</strong>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 4 KPI Cards: Qualidade dos Dados & Velocidade da Internet -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        
+        <!-- Card 1: Velocidade da Internet / Latência da API -->
+        <div class="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Velocidade / Latência</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-{{ qualidade.corQualidade }}-500/10 text-{{ qualidade.corQualidade }}-500 border border-{{ qualidade.corQualidade }}-500/20">
+                    {{ qualidade.qualidadeConexao }}
+                </span>
+            </div>
+            <div class="flex items-baseline gap-2">
+                <span class="text-3xl font-black text-slate-900 dark:text-white" id="dash-latencia-media">{{ qualidade.mediaLatencia }}</span>
+                <span class="text-sm font-bold text-slate-400">ms (média)</span>
+            </div>
+            <div class="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
+                <div class="bg-gradient-to-r from-emerald-400 to-cyan-500 h-full rounded-full" style="width: {{ min(100, max(10, 100 - (qualidade.mediaLatencia / 10))) }}%"></div>
+            </div>
+            <p class="text-[11px] text-slate-400">Pico máximo registrado: <strong class="text-slate-600 dark:text-slate-300">{{ qualidade.maiorLatencia }}ms</strong></p>
+        </div>
+
+        <!-- Card 2: Taxa de Sucesso das Comunicações -->
+        <div class="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Taxa de Sucesso</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                    Estável
+                </span>
+            </div>
+            <div class="flex items-baseline gap-2">
+                <span class="text-3xl font-black text-emerald-500">{{ qualidade.taxaSucesso }}%</span>
+                <span class="text-sm font-bold text-slate-400">respostas 200 OK</span>
+            </div>
+            <div class="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
+                <div class="bg-emerald-500 h-full rounded-full" style="width: {{ qualidade.taxaSucesso }}%"></div>
+            </div>
+            <p class="text-[11px] text-slate-400">Baseado nas últimas <strong class="text-slate-600 dark:text-slate-300">{{ qualidade.totalAmostras }} chamadas</strong> à API.</p>
+        </div>
+
+        <!-- Card 3: Volume de Dados Recebidos Hoje -->
+        <div class="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Volume Recebido Hoje</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-indigo-500/10 text-indigo-500 border border-indigo-500/20">
+                    Procordis Real
+                </span>
+            </div>
+            <div class="flex items-baseline gap-2">
+                <span class="text-3xl font-black text-indigo-500" id="dash-volume-hoje">{{ stats.agendamentosHoje }}</span>
+                <span class="text-sm font-bold text-slate-400">agendamentos</span>
+            </div>
+            <div class="flex items-center gap-3 text-[11px] text-slate-400 pt-1">
+                <span>Pacientes: <strong class="text-slate-600 dark:text-slate-200">{{ stats.totalPacientes }}</strong></span>
+                <span>&bull;</span>
+                <span>Médicos: <strong class="text-slate-600 dark:text-slate-200">{{ stats.totalMedicos }}</strong></span>
+            </div>
+            <p class="text-[11px] text-slate-400">Último pacote recebido: <strong class="text-cyan-600 dark:text-cyan-400" id="dash-ultimo-lote">{{ infoSync.totalRegistrosRecebidos }} registros</strong></p>
+        </div>
+
+        <!-- Card 4: Status da Conexão & Modo -->
+        <div class="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Modo de Operação</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider {{ infoSync.statusConexao == 'conectado' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-500 border border-rose-500/20' }}">
+                    {{ infoSync.statusConexao|capitalize }}
+                </span>
+            </div>
+            <div class="flex items-baseline gap-2">
+                <span class="text-2xl font-black text-cyan-500">Produção Real</span>
+            </div>
+            <div class="text-[11px] text-slate-400 space-y-1">
+                <p>Fonte: <strong class="text-slate-600 dark:text-slate-300">Medware Clínica Procordis</strong></p>
+                <p>Auto-sync: <strong class="text-emerald-500 font-bold">Ativo a cada 10s</strong></p>
+            </div>
+            <p class="text-[10px] text-slate-500">Dados protegidos com mascaramento LGPD.</p>
+        </div>
     </div>
 
+    <!-- Seção Explicativa: Como Funcionam as Variáveis e Tempos de Sincronismo -->
+    <div class="p-6 lg:p-8 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="p-3 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-500 text-2xl">
+                    <sl-icon name="sliders"></sl-icon>
+                </div>
+                <div>
+                    <h3 class="text-xl font-extrabold text-slate-900 dark:text-white">Variáveis e Intervalos de Sincronismo</h3>
+                    <p class="text-xs text-slate-400">Entenda como a esteira de atualização de dados opera entre o Medware, o servidor Symfony e os painéis visuais.</p>
+                </div>
+            </div>
+            <span class="px-3 py-1 rounded-full text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                Arquitetura Dual-Layer
+            </span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {% for v in variaveisSincronismo %}
+            <div class="p-5 rounded-2xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800/80 space-y-3 hover:shadow-md transition">
+                <div class="flex items-start justify-between gap-2">
+                    <div>
+                        <h4 class="font-bold text-sm text-slate-900 dark:text-white">{{ v.nome }}</h4>
+                        <code class="text-[10px] font-mono text-cyan-600 dark:text-cyan-400 block mt-0.5">{{ v.chave }}</code>
+                    </div>
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-{{ v.corBadge }}-500/10 text-{{ v.corBadge }}-500 border border-{{ v.corBadge }}-500/20 flex-shrink-0">
+                        {{ v.badge }}
+                    </span>
+                </div>
+
+                <div class="flex items-center justify-between p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/60">
+                    <span class="text-xs text-slate-400 font-medium">Intervalo de Refresh:</span>
+                    <span class="text-sm font-black font-mono text-cyan-600 dark:text-cyan-400">{{ v.intervalo }}</span>
+                </div>
+
+                <p class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">{{ v.descricao }}</p>
+
+                <div class="pt-2 border-t border-slate-200/60 dark:border-slate-800/60 text-[11px] text-slate-400">
+                    <strong class="text-slate-500 dark:text-slate-400">Impacto:</strong> {{ v.impacto }}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Resumo dos Atendimentos de Hoje na Clínica -->
+    <div class="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <sl-icon name="calendar-check" class="text-2xl text-emerald-500"></sl-icon>
+                <div>
+                    <h3 class="font-bold text-lg text-slate-900 dark:text-white">Status dos Agendamentos de Hoje</h3>
+                    <p class="text-xs text-slate-400">Distribuição dos pacientes da Procordis pelas etapas de atendimento.</p>
+                </div>
+            </div>
+            <span class="text-xs font-bold text-cyan-500">Data: {{ "now"|date("d/m/Y") }}</span>
+        </div>
+
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5">
+            <div class="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 text-center">
+                <span class="text-[10px] uppercase font-bold text-slate-400">Agendados</span>
+                <p class="text-2xl font-black text-slate-700 dark:text-slate-200 mt-1">{{ metricasHoje.agendado }}</p>
+            </div>
+            <div class="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 text-center">
+                <span class="text-[10px] uppercase font-bold text-amber-500">Aguardando Triagem</span>
+                <p class="text-2xl font-black text-amber-500 mt-1">{{ metricasHoje.aguardando_triagem }}</p>
+            </div>
+            <div class="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 text-center">
+                <span class="text-[10px] uppercase font-bold text-cyan-500">Aguardando Médico</span>
+                <p class="text-2xl font-black text-cyan-500 mt-1">{{ metricasHoje.aguardando_medico }}</p>
+            </div>
+            <div class="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 text-center">
+                <span class="text-[10px] uppercase font-bold text-indigo-500">Em Atendimento</span>
+                <p class="text-2xl font-black text-indigo-500 mt-1">{{ metricasHoje.em_consulta + metricasHoje.em_exame + metricasHoje.em_triagem }}</p>
+            </div>
+            <div class="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 text-center">
+                <span class="text-[10px] uppercase font-bold text-emerald-500">Finalizados</span>
+                <p class="text-2xl font-black text-emerald-500 mt-1">{{ metricasHoje.finalizado }}</p>
+            </div>
+            <div class="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 text-center">
+                <span class="text-[10px] uppercase font-bold text-rose-500">Cancelados</span>
+                <p class="text-2xl font-black text-rose-500 mt-1">{{ metricasHoje.cancelado }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabela de Histórico Recente de Comunicações da API -->
+    <div class="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <sl-icon name="journal-text" class="text-2xl text-cyan-500"></sl-icon>
+                <div>
+                    <h3 class="font-bold text-lg text-slate-900 dark:text-white">Últimas Requisições e Transações com a API Medware</h3>
+                    <p class="text-xs text-slate-400">Auditoria das últimas chamadas efetuadas pelo backend para monitoramento de latência e integridade.</p>
+                </div>
+            </div>
+            <a href="{{ path('app_admin_testes_index') }}" class="text-xs font-bold text-cyan-600 dark:text-cyan-400 hover:underline">
+                Ver Diagnóstico Detalhado &rarr;
+            </a>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="min-w-full text-left text-xs">
+                <thead>
+                    <tr class="border-b border-slate-200 dark:border-slate-800 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                        <th class="py-3 px-3">Data / Hora</th>
+                        <th class="py-3 px-3">Endpoint Medware</th>
+                        <th class="py-3 px-3">Método</th>
+                        <th class="py-3 px-3">Status HTTP</th>
+                        <th class="py-3 px-3">Tempo de Resposta</th>
+                        <th class="py-3 px-3">Registros Recebidos</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 dark:divide-slate-800/60 font-mono">
+                    {% for log in ultimosLogs %}
+                    <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition">
+                        <td class="py-2.5 px-3 text-slate-600 dark:text-slate-300">{{ log.dataHora ? log.dataHora|date('d/m/Y H:i:s') : '---' }}</td>
+                        <td class="py-2.5 px-3 font-semibold text-slate-800 dark:text-slate-200">{{ log.endpoint }}</td>
+                        <td class="py-2.5 px-3">
+                            <span class="px-1.5 py-0.5 rounded text-[9px] font-bold {{ log.metodo == 'POST' ? 'bg-indigo-500/10 text-indigo-500' : 'bg-cyan-500/10 text-cyan-500' }}">
+                                {{ log.metodo }}
+                            </span>
+                        </td>
+                        <td class="py-2.5 px-3">
+                            {% if log.httpStatus == 200 %}
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">200 OK</span>
+                            {% else %}
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/10 text-rose-500 border border-rose-500/20">{{ log.httpStatus ?? 'ERR' }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-2.5 px-3 text-slate-700 dark:text-slate-300">{{ log.tempoRespostaMs }} ms</td>
+                        <td class="py-2.5 px-3 font-bold text-cyan-600 dark:text-cyan-400">{{ log.registrosProcessados }} itens</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="py-6 text-center text-slate-400">Nenhum log registrado até o momento.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+async function executarSyncDashboard() {
+    const btn = document.getElementById('btn-sync-dash');
+    const icon = document.getElementById('icon-sync-dash');
+    btn.loading = true;
+
+    try {
+        const resp = await fetch('{{ path("app_admin_testes_sincronizar") }}', { method: 'POST' });
+        const res = await resp.json();
+        if (res.sucesso) {
+            window.location.reload();
+        } else {
+            alert('Erro na sincronização: ' + (res.resultado.erro || 'Falha na resposta.'));
+        }
+    } catch (e) {
+        alert('Erro ao conectar: ' + e.message);
+    } finally {
+        btn.loading = false;
+    }
+}
+</script>
 {% endblock %}

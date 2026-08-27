@@ -77,6 +77,7 @@ class SystemHealthCheckService
             'timestamp' => (new \DateTime())->format('Y-m-d H:i:s'),
             'tempoTotalMs' => $tempoTotalMs,
             'saudeGeral' => $saudeGeral,
+            'ultimoSyncInfo' => $this->obterInfoUltimoSync(),
             'resumo' => [
                 'total' => $totalTestes,
                 'sucesso' => $totalSucesso,
@@ -578,5 +579,55 @@ class SystemHealthCheckService
         } catch (\Throwable $e) {
             return [];
         }
+    }
+
+    /**
+     * Obtém informações detalhadas sobre o último sincronismo com a API Medware.
+     */
+    public function obterInfoUltimoSync(): array
+    {
+        $config = $this->configRepo->getObterOuCriarConfiguracao();
+        $ultimoLog = $this->em->getRepository(LogSyncApi::class)->findOneBy(
+            ['endpoint' => '/Medware/Agendamento/Listar'],
+            ['id' => 'DESC']
+        );
+
+        $ultimoSyncEm = $config->getUltimoSyncEm() ?? ($ultimoLog ? $ultimoLog->getDataHora() : null);
+        $segundosAtras = null;
+        $tempoRelativo = 'Nunca sincronizado';
+        $isRecente = false;
+
+        if ($ultimoSyncEm) {
+            $agora = new \DateTime();
+            $segundosAtras = max(0, $agora->getTimestamp() - $ultimoSyncEm->getTimestamp());
+            $isRecente = $segundosAtras <= 60;
+
+            if ($segundosAtras < 10) {
+                $tempoRelativo = 'Agora mesmo (há ' . $segundosAtras . 's)';
+            } elseif ($segundosAtras < 60) {
+                $tempoRelativo = 'há ' . $segundosAtras . ' segundos';
+            } elseif ($segundosAtras < 3600) {
+                $min = (int) round($segundosAtras / 60);
+                $tempoRelativo = 'há ' . $min . ' minuto' . ($min > 1 ? 's' : '');
+            } else {
+                $horas = (int) round($segundosAtras / 3600);
+                $tempoRelativo = 'há ' . $horas . ' hora' . ($horas > 1 ? 's' : '');
+            }
+        }
+
+        return [
+            'dataHoraFormatada' => $ultimoSyncEm ? $ultimoSyncEm->format('d/m/Y H:i:s') : 'Nunca',
+            'dataHoraIso' => $ultimoSyncEm ? $ultimoSyncEm->format(\DateTimeInterface::ATOM) : null,
+            'tempoRelativo' => $tempoRelativo,
+            'segundosAtras' => $segundosAtras,
+            'isRecente' => $isRecente,
+            'totalRegistrosRecebidos' => $ultimoLog ? $ultimoLog->getRegistrosProcessados() : 0,
+            'tempoRespostaMs' => $ultimoLog ? $ultimoLog->getTempoRespostaMs() : 0,
+            'statusHttp' => $ultimoLog ? $ultimoLog->getHttpStatus() : null,
+            'modoSimulacao' => $config->isModoSimulacao(),
+            'statusConexao' => $config->getStatusConexao(),
+            'apiBaseUrl' => $config->getApiBaseUrl(),
+            'apiUsuario' => $config->getApiUsuario(),
+        ];
     }
 }

@@ -1,0 +1,454 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}Diagnóstico & Testes do Sistema{% endblock %}
+
+{% block body %}
+<div class="max-w-7xl mx-auto space-y-8" id="diagnostico-app">
+    
+    <!-- Top Hero Banner & System Health Summary -->
+    <div class="relative overflow-hidden p-6 lg:p-8 rounded-3xl bg-gradient-to-br from-slate-900 via-slate-900/90 to-slate-950 border border-slate-800 shadow-2xl text-white">
+        <!-- Glow accents -->
+        <div class="absolute -top-24 -right-24 w-96 h-96 bg-cyan-500/15 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="absolute -bottom-24 -left-24 w-96 h-96 bg-emerald-500/15 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div class="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+            <div class="flex items-start gap-4">
+                <div class="p-3 rounded-2xl bg-white shadow-sm border border-slate-200 shrink-0 hidden sm:flex items-center justify-center">
+                    <img src="/images/logo-A3qBa0m.svg" alt="Procordis Medicina Diagnóstica" class="h-10 w-auto max-w-[170px]">
+                </div>
+                <div class="space-y-2">
+                    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider bg-slate-800/80 border border-slate-700 text-cyan-400">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                        Painel de Saúde e Diagnóstico Operacional
+                    </div>
+                    <h1 class="text-3xl lg:text-4xl font-extrabold tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
+                        Status e Testes em Tempo Real
+                    </h1>
+                    <p class="text-sm text-slate-400 max-w-2xl">
+                        Monitoramento contínuo de conectividade do Banco de Dados, autenticação e resposta da API Medware (<code class="text-cyan-300">api.procordis.org.br</code>), rotas públicas dos painéis e ambiente de execução.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex flex-wrap items-center gap-3">
+                <sl-button variant="primary" size="medium" id="btn-retestar" onclick="executarTestesDinamicos()">
+                    <sl-icon slot="prefix" name="arrow-repeat" id="icon-retestar"></sl-icon>
+                    Executar Todos os Testes
+                </sl-button>
+                <sl-button variant="default" size="medium" onclick="forcarSincronizacao()">
+                    <sl-icon slot="prefix" name="cloud-arrow-down"></sl-icon>
+                    Forçar Sync Medware
+                </sl-button>
+                <div class="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-800/80 border border-slate-700 text-xs">
+                    <sl-switch id="switch-autorefresh" onchange="toggleAutoRefresh(this.checked)">Auto-Refresh (15s)</sl-switch>
+                </div>
+            </div>
+        </div>
+
+        <!-- Metrics Strip -->
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mt-8 pt-6 border-t border-slate-800/80">
+            <div class="p-4 rounded-2xl bg-slate-800/40 border border-slate-800">
+                <div class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Saúde Geral</div>
+                <div class="flex items-center gap-2 mt-1">
+                    <div id="badge-saude-icon" class="w-3 h-3 rounded-full {{ diagnostico.saudeGeral == 'excelente' ? 'bg-emerald-400' : (diagnostico.saudeGeral == 'alerta' ? 'bg-amber-400' : 'bg-rose-500') }}"></div>
+                    <span id="badge-saude-text" class="text-lg font-bold capitalize">{{ diagnostico.saudeGeral }}</span>
+                </div>
+            </div>
+
+            <div class="p-4 rounded-2xl bg-slate-800/40 border border-slate-800">
+                <div class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Taxa de Sucesso</div>
+                <div class="text-xl font-extrabold text-emerald-400 mt-1">
+                    <span id="stat-taxa">{{ diagnostico.resumo.porcentagemSaude }}%</span>
+                </div>
+            </div>
+
+            <div class="p-4 rounded-2xl bg-slate-800/40 border border-slate-800">
+                <div class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Testes com Sucesso</div>
+                <div class="text-xl font-extrabold text-white mt-1">
+                    <span id="stat-sucesso" class="text-emerald-400">{{ diagnostico.resumo.sucesso }}</span>
+                    <span class="text-slate-500 text-xs font-normal">/ <span id="stat-total">{{ diagnostico.resumo.total }}</span></span>
+                </div>
+            </div>
+
+            <div class="p-4 rounded-2xl bg-slate-800/40 border border-slate-800">
+                <div class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Avisos / Erros</div>
+                <div class="text-xl font-extrabold mt-1">
+                    <span id="stat-avisos" class="text-amber-400">{{ diagnostico.resumo.avisos }}</span>
+                    <span class="text-slate-600 text-xs">/</span>
+                    <span id="stat-erros" class="text-rose-400">{{ diagnostico.resumo.erros }}</span>
+                </div>
+            </div>
+
+            <div class="p-4 rounded-2xl bg-slate-800/40 border border-slate-800">
+                <div class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Tempo de Resposta Total</div>
+                <div class="text-xl font-extrabold text-cyan-400 mt-1">
+                    <span id="stat-tempo">{{ diagnostico.tempoTotalMs }}</span> <span class="text-xs text-slate-400 font-normal">ms</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Live Status Alert Toast / Progress Bar -->
+    <div id="live-indicator" class="hidden p-4 rounded-2xl bg-cyan-950/60 border border-cyan-500/30 flex items-center justify-between gap-4 text-cyan-200 text-sm">
+        <div class="flex items-center gap-3">
+            <sl-spinner class="text-cyan-400"></sl-spinner>
+            <span id="live-indicator-text">Executando bateria de testes em tempo real...</span>
+        </div>
+        <span class="text-xs font-mono text-cyan-400" id="live-timestamp">Agora</span>
+    </div>
+
+    <!-- Card Destacado: Último Sincronismo da API Medware -->
+    <div class="p-6 rounded-3xl bg-gradient-to-r from-cyan-950/40 via-slate-900 to-sky-950/40 border border-cyan-500/30 shadow-lg space-y-4">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 text-2xl flex-shrink-0">
+                    <sl-icon name="arrow-repeat" class="animate-spin-slow"></sl-icon>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs uppercase font-bold text-cyan-400 tracking-wider">Monitor de Sincronização em Tempo Real</span>
+                        <span id="sync-pill-recente" class="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase {{ diagnostico.ultimoSyncInfo.isRecente ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-slate-700 text-slate-300' }}">
+                            {{ diagnostico.ultimoSyncInfo.isRecente ? '● Sincronizado Recentemente' : '● Aguardando Próximo Ciclo' }}
+                        </span>
+                    </div>
+                    <h3 class="text-xl font-extrabold dark:text-white mt-0.5">
+                        Última Recepção de Dados: <span id="sync-data-hora" class="text-cyan-400">{{ diagnostico.ultimoSyncInfo.dataHoraFormatada }}</span>
+                    </h3>
+                    <p class="text-xs text-slate-400">
+                        Tempo decorrido: <strong id="sync-tempo-relativo" class="text-slate-200">{{ diagnostico.ultimoSyncInfo.tempoRelativo }}</strong>
+                        &bull; Registros recebidos no último lote: <strong id="sync-registros" class="text-emerald-400">{{ diagnostico.ultimoSyncInfo.totalRegistrosRecebidos }} agendamentos</strong>
+                        &bull; Latência da API: <strong id="sync-latencia" class="text-cyan-300">{{ diagnostico.ultimoSyncInfo.tempoRespostaMs }}ms</strong>
+                    </p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <sl-button variant="primary" size="small" onclick="forcarSincronizacao()">
+                    <sl-icon slot="prefix" name="cloud-arrow-down"></sl-icon>
+                    Sincronizar Agora
+                </sl-button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Category Filters -->
+    <div class="flex flex-wrap items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-3">
+        <button onclick="filtrarCategoria('todas')" class="tab-btn active px-4 py-2 rounded-xl text-xs font-bold transition-all bg-cyan-500 text-white shadow" data-cat="todas">
+            Todos os Testes (<span id="count-todas">{{ diagnostico.resumo.total }}</span>)
+        </button>
+        <button onclick="filtrarCategoria('database')" class="tab-btn px-4 py-2 rounded-xl text-xs font-bold transition-all bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200" data-cat="database">
+            <sl-icon name="database" class="mr-1"></sl-icon> Banco de Dados (<span id="count-db">{{ diagnostico.grupos.database|length }}</span>)
+        </button>
+        <button onclick="filtrarCategoria('medware_api')" class="tab-btn px-4 py-2 rounded-xl text-xs font-bold transition-all bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200" data-cat="medware_api">
+            <sl-icon name="cloud-check" class="mr-1"></sl-icon> API Medware Procordis (<span id="count-api">{{ diagnostico.grupos.medware_api|length }}</span>)
+        </button>
+        <button onclick="filtrarCategoria('painel_endpoints')" class="tab-btn px-4 py-2 rounded-xl text-xs font-bold transition-all bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200" data-cat="painel_endpoints">
+            <sl-icon name="display" class="mr-1"></sl-icon> Rotas dos Painéis (<span id="count-endpoints">{{ diagnostico.grupos.painel_endpoints|length }}</span>)
+        </button>
+        <button onclick="filtrarCategoria('environment')" class="tab-btn px-4 py-2 rounded-xl text-xs font-bold transition-all bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200" data-cat="environment">
+            <sl-icon name="cpu" class="mr-1"></sl-icon> Servidor & Ambiente (<span id="count-env">{{ diagnostico.grupos.environment|length }}</span>)
+        </button>
+    </div>
+
+    <!-- Test Cards Grid Container -->
+    <div id="test-cards-container" class="space-y-6">
+
+        <!-- Grupo 1: Banco de Dados -->
+        <div class="test-group space-y-4" data-group="database">
+            <div class="flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                <sl-icon name="database" class="text-cyan-500"></sl-icon>
+                <span>Banco de Dados MySQL & Doctrine ORM</span>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="cards-database">
+                {% for t in diagnostico.grupos.database %}
+                    {{ _self.render_test_card(t) }}
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Grupo 2: API Medware Procordis -->
+        <div class="test-group space-y-4" data-group="medware_api">
+            <div class="flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                <sl-icon name="cloud-check" class="text-cyan-500"></sl-icon>
+                <span>API Medware Clínica Procordis (api.procordis.org.br)</span>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="cards-medware_api">
+                {% for t in diagnostico.grupos.medware_api %}
+                    {{ _self.render_test_card(t) }}
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Grupo 3: Endpoints dos Painéis -->
+        <div class="test-group space-y-4" data-group="painel_endpoints">
+            <div class="flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                <sl-icon name="display" class="text-cyan-500"></sl-icon>
+                <span>Endpoints de Dados dos Painéis (Rotas da Aplicação)</span>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" id="cards-painel_endpoints">
+                {% for t in diagnostico.grupos.painel_endpoints %}
+                    {{ _self.render_test_card(t) }}
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Grupo 4: Servidor & Ambiente -->
+        <div class="test-group space-y-4" data-group="environment">
+            <div class="flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                <sl-icon name="cpu" class="text-cyan-500"></sl-icon>
+                <span>Ambiente de Execução, Permissões & PHP</span>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="cards-environment">
+                {% for t in diagnostico.grupos.environment %}
+                    {{ _self.render_test_card(t) }}
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Estatísticas & Volume de Dados em Operação -->
+    {% if diagnostico.grupos.data_stats is defined and diagnostico.grupos.data_stats %}
+    <div class="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <sl-icon name="bar-chart" class="text-2xl text-cyan-500"></sl-icon>
+                <div>
+                    <h3 class="font-bold text-lg dark:text-white">Volume de Dados em Operação Local</h3>
+                    <p class="text-xs text-slate-400">Contadores de registros ativos consultados da API e persistidos no banco local.</p>
+                </div>
+            </div>
+            <span class="text-xs text-slate-400">Último Sync: <strong class="dark:text-slate-200">{{ diagnostico.grupos.data_stats.ultimoSyncEm }}</strong></span>
+        </div>
+
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+            <div class="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800">
+                <span class="text-[10px] uppercase font-bold text-slate-400">Agendamentos Totais</span>
+                <p class="text-xl font-extrabold text-cyan-500 mt-0.5">{{ diagnostico.grupos.data_stats.totalAgendamentos }}</p>
+            </div>
+            <div class="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800">
+                <span class="text-[10px] uppercase font-bold text-slate-400">Agendados Hoje</span>
+                <p class="text-xl font-extrabold text-emerald-500 mt-0.5">{{ diagnostico.grupos.data_stats.agendamentosHoje }}</p>
+            </div>
+            <div class="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800">
+                <span class="text-[10px] uppercase font-bold text-slate-400">Pacientes Cadastrados</span>
+                <p class="text-xl font-extrabold text-indigo-500 mt-0.5">{{ diagnostico.grupos.data_stats.totalPacientes }}</p>
+            </div>
+            <div class="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800">
+                <span class="text-[10px] uppercase font-bold text-slate-400">Médicos na Escala</span>
+                <p class="text-xl font-extrabold text-sky-500 mt-0.5">{{ diagnostico.grupos.data_stats.totalMedicos }}</p>
+            </div>
+            <div class="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800">
+                <span class="text-[10px] uppercase font-bold text-slate-400">Chamadas no Telão</span>
+                <p class="text-xl font-extrabold text-amber-500 mt-0.5">{{ diagnostico.grupos.data_stats.totalChamadas }}</p>
+            </div>
+            <div class="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800">
+                <span class="text-[10px] uppercase font-bold text-slate-400">Logs de Sync API</span>
+                <p class="text-xl font-extrabold text-slate-400 mt-0.5">{{ diagnostico.grupos.data_stats.totalLogsApi }}</p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+{# Macro para renderizar cada card de teste #}
+{% macro render_test_card(t) %}
+<div class="test-card p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-all space-y-3" id="card-{{ t.id }}">
+    <div class="flex items-start justify-between gap-2">
+        <div>
+            <h4 class="font-bold text-sm dark:text-white">{{ t.nome }}</h4>
+            <p class="text-xs text-slate-400 mt-0.5">{{ t.descricao }}</p>
+        </div>
+        <div class="flex items-center gap-1.5 flex-shrink-0">
+            {% if t.status == 'success' %}
+                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">Sucesso</span>
+            {% elseif t.status == 'warning' %}
+                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-amber-500/10 text-amber-500 border border-amber-500/20">Aviso</span>
+            {% else %}
+                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-rose-500/10 text-rose-500 border border-rose-500/20">Erro</span>
+            {% endif %}
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-mono bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                {{ t.tempoMs }}ms
+            </span>
+        </div>
+    </div>
+
+    <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200/70 dark:border-slate-800/80 text-xs font-mono text-slate-700 dark:text-slate-300 break-words">
+        {{ t.detalhes }}
+    </div>
+
+    {% if t.dados %}
+    <details class="text-xs">
+        <summary class="cursor-pointer font-bold text-cyan-600 dark:text-cyan-400 hover:underline text-[11px]">
+            Inspecionar Payload / Resposta
+        </summary>
+        <pre class="mt-2 p-3 rounded-xl bg-slate-950 text-cyan-300 text-[11px] font-mono overflow-x-auto max-h-48 scrollbar-thin">{{ t.dados|json_encode(constant('JSON_PRETTY_PRINT') b-or constant('JSON_UNESCAPED_UNICODE') b-or constant('JSON_UNESCAPED_SLASHES')) }}</pre>
+    </details>
+    {% endif %}
+</div>
+{% endmacro %}
+
+<script>
+let autoRefreshTimer = null;
+
+function toggleAutoRefresh(enabled) {
+    if (autoRefreshTimer) {
+        clearInterval(autoRefreshTimer);
+        autoRefreshTimer = null;
+    }
+    if (enabled) {
+        autoRefreshTimer = setInterval(executarTestesDinamicos, 15000);
+    }
+}
+
+function filtrarCategoria(cat) {
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        if (btn.dataset.cat === cat) {
+            btn.className = 'tab-btn active px-4 py-2 rounded-xl text-xs font-bold transition-all bg-cyan-500 text-white shadow';
+        } else {
+            btn.className = 'tab-btn px-4 py-2 rounded-xl text-xs font-bold transition-all bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200';
+        }
+    });
+
+    document.querySelectorAll('.test-group').forEach(group => {
+        if (cat === 'todas' || group.dataset.group === cat) {
+            group.style.display = 'block';
+        } else {
+            group.style.display = 'none';
+        }
+    });
+}
+
+async function executarTestesDinamicos() {
+    const btn = document.getElementById('btn-retestar');
+    const icon = document.getElementById('icon-retestar');
+    const indicator = document.getElementById('live-indicator');
+    const indicatorText = document.getElementById('live-indicator-text');
+    const timestampEl = document.getElementById('live-timestamp');
+
+    btn.loading = true;
+    if (icon) icon.name = 'arrow-repeat';
+    indicator.classList.remove('hidden');
+    indicatorText.textContent = 'Executando testes no banco de dados, API Medware e rotas...';
+
+    try {
+        const resp = await fetch('{{ path("app_admin_testes_executar") }}');
+        const res = await resp.json();
+
+        if (res.sucesso && res.data) {
+            const d = res.data;
+            document.getElementById('stat-taxa').textContent = d.resumo.porcentagemSaude + '%';
+            document.getElementById('stat-sucesso').textContent = d.resumo.sucesso;
+            document.getElementById('stat-total').textContent = d.resumo.total;
+            document.getElementById('stat-avisos').textContent = d.resumo.avisos;
+            document.getElementById('stat-erros').textContent = d.resumo.erros;
+            document.getElementById('stat-tempo').textContent = d.tempoTotalMs;
+            document.getElementById('badge-saude-text').textContent = d.saudeGeral;
+
+            const iconSaude = document.getElementById('badge-saude-icon');
+            iconSaude.className = 'w-3 h-3 rounded-full ' + (d.saudeGeral === 'excelente' ? 'bg-emerald-400' : (d.saudeGeral === 'alerta' ? 'bg-amber-400' : 'bg-rose-500'));
+
+            // Atualizar Monitor de Último Sincronismo
+            if (d.ultimoSyncInfo) {
+                const s = d.ultimoSyncInfo;
+                const dataHoraEl = document.getElementById('sync-data-hora');
+                const tempoRelEl = document.getElementById('sync-tempo-relativo');
+                const regEl = document.getElementById('sync-registros');
+                const latEl = document.getElementById('sync-latencia');
+                const pillEl = document.getElementById('sync-pill-recente');
+
+                if (dataHoraEl) dataHoraEl.textContent = s.dataHoraFormatada;
+                if (tempoRelEl) tempoRelEl.textContent = s.tempoRelativo;
+                if (regEl) regEl.textContent = s.totalRegistrosRecebidos + ' agendamentos';
+                if (latEl) latEl.textContent = s.tempoRespostaMs + 'ms';
+                if (pillEl) {
+                    pillEl.className = 'px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase ' + (s.isRecente ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-slate-700 text-slate-300');
+                    pillEl.textContent = s.isRecente ? '● Sincronizado Recentemente' : '● Aguardando Próximo Ciclo';
+                }
+            }
+
+            // Renderizar dinamicamente os cards por grupo
+            renderizarGrupoCards('cards-database', d.grupos.database);
+            renderizarGrupoCards('cards-medware_api', d.grupos.medware_api);
+            renderizarGrupoCards('cards-painel_endpoints', d.grupos.painel_endpoints);
+            renderizarGrupoCards('cards-environment', d.grupos.environment);
+
+            timestampEl.textContent = d.timestamp;
+            indicatorText.textContent = `Bateria de ${d.resumo.total} testes concluída com sucesso em ${d.tempoTotalMs}ms (${d.resumo.sucesso} OK).`;
+
+            setTimeout(() => {
+                indicator.classList.add('hidden');
+            }, 4000);
+        }
+    } catch (e) {
+        indicatorText.textContent = 'Erro ao executar testes: ' + e.message;
+    } finally {
+        btn.loading = false;
+    }
+}
+
+function renderizarGrupoCards(containerId, testes) {
+    const el = document.getElementById(containerId);
+    if (!el || !testes) return;
+
+    el.innerHTML = testes.map(t => `
+        <div class="test-card p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-all space-y-3" id="card-${t.id}">
+            <div class="flex items-start justify-between gap-2">
+                <div>
+                    <h4 class="font-bold text-sm dark:text-white">${t.nome}</h4>
+                    <p class="text-xs text-slate-400 mt-0.5">${t.descricao}</p>
+                </div>
+                <div class="flex items-center gap-1.5 flex-shrink-0">
+                    <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                        t.status === 'success' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' :
+                        (t.status === 'warning' ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20' : 'bg-rose-500/10 text-rose-500 border border-rose-500/20')
+                    }">
+                        ${t.status === 'success' ? 'Sucesso' : (t.status === 'warning' ? 'Aviso' : 'Erro')}
+                    </span>
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-mono bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                        ${t.tempoMs}ms
+                    </span>
+                </div>
+            </div>
+
+            <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200/70 dark:border-slate-800/80 text-xs font-mono text-slate-700 dark:text-slate-300 break-words">
+                ${t.detalhes}
+            </div>
+
+            ${t.dados ? `
+                <details class="text-xs">
+                    <summary class="cursor-pointer font-bold text-cyan-600 dark:text-cyan-400 hover:underline text-[11px]">
+                        Inspecionar Payload / Resposta
+                    </summary>
+                    <pre class="mt-2 p-3 rounded-xl bg-slate-950 text-cyan-300 text-[11px] font-mono overflow-x-auto max-h-48 scrollbar-thin">${escapeHtml(JSON.stringify(t.dados, null, 2))}</pre>
+                </details>
+            ` : ''}
+        </div>
+    `).join('');
+}
+
+function escapeHtml(str) {
+    return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+async function forcarSincronizacao() {
+    const indicator = document.getElementById('live-indicator');
+    const indicatorText = document.getElementById('live-indicator-text');
+    indicator.classList.remove('hidden');
+    indicatorText.textContent = 'Sincronizando com a API Medware da Procordis...';
+
+    try {
+        const resp = await fetch('{{ path("app_admin_testes_sincronizar") }}', { method: 'POST' });
+        const res = await resp.json();
+        if (res.sucesso) {
+            indicatorText.textContent = `Sincronização concluída com sucesso! ${res.resultado.total} registros processados.`;
+            setTimeout(() => executarTestesDinamicos(), 1000);
+        } else {
+            indicatorText.textContent = 'Erro ao sincronizar: ' + (res.resultado.erro || 'Falha na resposta.');
+        }
+    } catch (e) {
+        indicatorText.textContent = 'Erro na requisição: ' + e.message;
+    }
+}
+</script>
+{% endblock %}
