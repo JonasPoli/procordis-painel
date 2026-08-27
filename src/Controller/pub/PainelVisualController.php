@@ -22,8 +22,17 @@ class PainelVisualController extends AbstractController
     #[Route('/espera', name: 'espera')]
     public function espera(): Response
     {
+        $allMedicos = $this->medicoRepo->findAll();
+        $medicosUnicos = [];
+        foreach ($allMedicos as $m) {
+            $chave = mb_strtolower(trim($m->getNome()));
+            if (!isset($medicosUnicos[$chave])) {
+                $medicosUnicos[$chave] = $m;
+            }
+        }
+
         return $this->render('pub/painel/espera.html.twig', [
-            'medicos' => $this->medicoRepo->findAll(),
+            'medicos' => array_values($medicosUnicos),
             'especialidades' => $this->especialidadeRepo->findAll(),
         ]);
     }

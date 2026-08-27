@@ -157,7 +157,16 @@ class PainelApiController extends AbstractController
     public function painelMedicos(): JsonResponse
     {
         $this->verificarAutoSync();
-        $medicos = $this->medicoRepo->findAll();
+        $allMedicos = $this->medicoRepo->findAll();
+        
+        $medicosUnicos = [];
+        foreach ($allMedicos as $m) {
+            $chave = mb_strtolower(trim($m->getNome())) . '|' . mb_strtolower(trim($m->getCrm() ?? ''));
+            if (!isset($medicosUnicos[$chave])) {
+                $medicosUnicos[$chave] = $m;
+            }
+        }
+        $medicos = array_values($medicosUnicos);
         $dados = [];
 
         $hojeInicio = new \DateTime('today midnight');

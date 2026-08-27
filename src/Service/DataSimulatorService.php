@@ -92,8 +92,13 @@ class DataSimulatorService
             ['Dr. André Luiz Fontes', 'CRM-SP 102345', $especialidadesObj[4]],
         ];
 
+        $this->deduplicarMedicosBanco();
+
         foreach ($medicosData as $idx => [$nome, $crm, $esp]) {
             $med = $this->medicoRepo->findOneBy(['nome' => $nome]);
+            if (!$med && !empty($crm)) {
+                $med = $this->medicoRepo->findOneBy(['crm' => $crm]);
+            }
             if (!$med) {
                 $med = new Medico();
                 $med->setNome($nome);
@@ -487,6 +492,41 @@ class DataSimulatorService
         $this->em->flush();
 
         return $logs;
+    }
+
+    /**
+     * Remove médicos duplicados no banco reatribuindo agendamentos e chamadas ao médico original.
+     */
+    public function deduplicarMedicosBanco(): int
+    {
+        $medicos = $this->medicoRepo->findAll();
+        $vistos = [];
+        $removidos = 0;
+
+        foreach ($medicos as $m) {
+            $chave = mb_strtolower(trim($m->getNome())) . '|' . mb_strtolower(trim($m->getCrm() ?? ''));
+            if (isset($vistos[$chave])) {
+                $original = $vistos[$chave];
+                $agendamentos = $this->agendamentoRepo->findBy(['medico' => $m]);
+                foreach ($agendamentos as $ag) {
+                    $ag->setMedico($original);
+                }
+                $chamadas = $this->chamadaRepo->findBy(['medico' => $m]);
+                foreach ($chamadas as $ch) {
+                    $ch->setMedico($original);
+                }
+                $this->em->remove($m);
+                $removidos++;
+            } else {
+                $vistos[$chave] = $m;
+            }
+        }
+
+        if ($removidos > 0) {
+            $this->em->flush();
+        }
+
+        return $removidos;
     }
 
     /**
