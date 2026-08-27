@@ -86,4 +86,21 @@ class PainelApiControllerTest extends WebTestCase
         $this->assertTrue($data['sucesso']);
         $this->assertArrayHasKey('regrasSla', $data);
     }
+
+    public function testAnonimizacaoPacienteDeslogado(): void
+    {
+        $client = static::createClient();
+        $client->request('GET', '/api/v1/painel/espera');
+
+        $this->assertResponseIsSuccessful();
+        $data = json_decode($client->getResponse()->getContent(), true);
+        $this->assertTrue($data['sucesso']);
+
+        if (!empty($data['pacientes'])) {
+            foreach ($data['pacientes'] as $p) {
+                // Quando deslogado, o nome do paciente deve ser mascarado como Senha N... ou P...
+                $this->assertStringStartsWith('Senha', $p['pacienteNome']);
+            }
+        }
+    }
 }

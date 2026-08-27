@@ -77,6 +77,40 @@ class PainelApiController extends AbstractController
         }
     }
 
+    /**
+     * Retorna o nome do paciente apenas se o usuário estiver autenticado;
+     * Se deslogado, mascara completamente o nome pessoal por conformidade de privacidade/LGPD.
+     */
+    private function anonimizarNomePaciente(?\App\Entity\Paciente $paciente, ?\App\Entity\Agendamento $agendamento = null, ?\App\Entity\ChamadaTelao $chamada = null): string
+    {
+        $isAutenticado = $this->getUser() !== null;
+
+        if ($isAutenticado) {
+            if ($paciente) {
+                return $paciente->getNomeCompleto() ?? $paciente->getNomeExibicao() ?? 'Paciente';
+            }
+            return 'Paciente';
+        }
+
+        // Se deslogado, NÃO mostrar o nome pessoal. Identificar apenas por Senha / Ticket.
+        if ($agendamento) {
+            $prefixo = $agendamento->isPrioridade() ? 'P' : 'N';
+            return 'Senha ' . $prefixo . str_pad((string) ($agendamento->getId() % 99 + 1), 3, '0', STR_PAD_LEFT);
+        }
+
+        if ($chamada) {
+            if ($chamada->getSenha()) {
+                return 'Senha ' . $chamada->getSenha()->getNumeroFormatado();
+            }
+            if ($chamada->getAgendamento()) {
+                $prefixo = $chamada->getAgendamento()->isPrioridade() ? 'P' : 'N';
+                return 'Senha ' . $prefixo . str_pad((string) ($chamada->getAgendamento()->getId() % 99 + 1), 3, '0', STR_PAD_LEFT);
+            }
+        }
+
+        return 'Paciente';
+    }
+
     #[Route('/painel/espera', name: 'painel_espera', methods: ['GET'])]
     public function painelEspera(Request $request): JsonResponse
     {
@@ -91,7 +125,7 @@ class PainelApiController extends AbstractController
             return [
                 'id' => $a->getId(),
                 'codigoAgendamento' => $a->getCodigoAgendamento(),
-                'pacienteNome' => $a->getPaciente() ? $a->getPaciente()->getNomeExibicao() : 'Paciente',
+                'pacienteNome' => $this->anonimizarNomePaciente($a->getPaciente(), $a),
                 'horarioChegada' => $a->getHorarioChegada() ? $a->getHorarioChegada()->format('H:i') : '--:--',
                 'tempoEsperaMinutos' => $a->getTempoEsperaMinutos() ?? 0,
                 'status' => $a->getStatus(),
@@ -108,7 +142,7 @@ class PainelApiController extends AbstractController
         if ($maiorEspera) {
             $topWaiting = [
                 'id' => $maiorEspera->getId(),
-                'pacienteNome' => $maiorEspera->getPaciente() ? $maiorEspera->getPaciente()->getNomeExibicao() : 'Paciente',
+                'pacienteNome' => $this->anonimizarNomePaciente($maiorEspera->getPaciente(), $maiorEspera),
                 'horarioChegada' => $maiorEspera->getHorarioChegada() ? $maiorEspera->getHorarioChegada()->format('H:i') : '--:--',
                 'tempoEsperaMinutos' => $maiorEspera->getTempoEsperaMinutos() ?? 0,
                 'medicoNome' => $maiorEspera->getMedico() ? $maiorEspera->getMedico()->getNome() : 'Qualquer Médico',
@@ -135,8 +169,8 @@ class PainelApiController extends AbstractController
         $dados = array_map(function ($c) {
             return [
                 'id' => $c->getId(),
-                'senha' => $c->getSenha() ? $c->getSenha()->getNumeroFormatado() : 'SENHA',
-                'pacienteNomeMascarado' => $c->getPacienteNomeMascarado(),
+                'senha' => $c->getSenha() ? $c->getSenha()->getNumeroFormatado() : ($c->getAgendamento() ? ($c->getAgendamento()->isPrioridade() ? 'P' : 'N') . str_pad((string) ($c->getAgendamento()->getId() % 99 + 1), 3, '0', STR_PAD_LEFT) : 'SENHA'),
+                'pacienteNomeMascarado' => $this->anonimizarNomePaciente($c->getAgendamento()?->getPaciente(), $c->getAgendamento(), $c),
                 'medicoNome' => $c->getMedico() ? $c->getMedico()->getNome() : null,
                 'guicheOuConsultorio' => $c->getGuicheOuConsultorio() ?? 'Consultório',
                 'dataHoraChamada' => $c->getDataHoraChamada() ? $c->getDataHoraChamada()->format('H:i:s') : '',
@@ -201,7 +235,7 @@ class PainelApiController extends AbstractController
             if ($emConsulta) {
                 $pacienteAtual = [
                     'id' => $emConsulta->getId(),
-                    'nome' => $emConsulta->getPaciente() ? $emConsulta->getPaciente()->getNomeExibicao() : 'Paciente',
+                    'nome' => $this->anonimizarNomePaciente($emConsulta->getPaciente(), $emConsulta),
                     'inicioConsulta' => $emConsulta->getHorarioInicioConsulta() ? $emConsulta->getHorarioInicioConsulta()->format('H:i') : '',
                     'tempoDecorridoMinutos' => $emConsulta->getTempoConsultaMinutos() ?? 0,
                     'sala' => $emConsulta->getSetorSala() ? $emConsulta->getSetorSala()->getNomeSala() : 'Consultório',
@@ -256,7 +290,7 @@ class PainelApiController extends AbstractController
         $format = function (Agendamento $a) {
             return [
                 'id' => $a->getId(),
-                'pacienteNome' => $a->getPaciente() ? $a->getPaciente()->getNomeExibicao() : 'Paciente',
+                'pacienteNome' => $this->anonimizarNomePaciente($a->getPaciente(), $a),
                 'horarioChegada' => $a->getHorarioChegada() ? $a->getHorarioChegada()->format('H:i') : '--:--',
                 'tempoEsperaMinutos' => $a->getTempoEsperaMinutos() ?? 0,
                 'prioridade' => $a->isPrioridade(),
@@ -340,7 +374,7 @@ class PainelApiController extends AbstractController
             'sucesso' => true,
             'paciente' => [
                 'id' => $agendamento->getPaciente() ? $agendamento->getPaciente()->getId() : null,
-                'nome' => $agendamento->getPaciente() ? $agendamento->getPaciente()->getNomeExibicao() : 'Paciente',
+                'nome' => $this->anonimizarNomePaciente($agendamento->getPaciente(), $agendamento),
                 'codigoAgendamento' => $agendamento->getCodigoAgendamento(),
                 'statusAtual' => $agendamento->getStatus(),
                 'medico' => $agendamento->getMedico() ? $agendamento->getMedico()->getNome() : 'A definir',
