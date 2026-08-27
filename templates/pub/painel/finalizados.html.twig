@@ -5,71 +5,71 @@
 {% block body %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
-<div class="h-full w-full flex flex-col justify-between overflow-hidden gap-[1vh]">
-    <!-- Top KPIs Bar (6 Indicadores de Resumo - 10vh) -->
-    <div class="h-[10vh] w-full grid grid-cols-6 gap-[0.6vw] shrink-0">
-        <div class="bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-[0.6vw] rounded-xl shadow-sm flex flex-col justify-between">
-            <p class="text-[0.55vw] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Exames Concluídos</p>
-            <h3 id="kpi-fin-senhas" class="text-[1.5vw] font-black text-emerald-600 dark:text-emerald-400 font-mono leading-none">0</h3>
-            <p class="text-[0.55vw] text-slate-400">Total finalizado hoje</p>
+<div class="w-full flex flex-col justify-between gap-4 lg:gap-5">
+    <!-- Top KPIs Bar (6 Indicadores de Resumo - Responsivo) -->
+    <div class="w-full grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 shrink-0">
+        <div class="bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-3.5 rounded-2xl shadow-sm flex flex-col justify-between">
+            <p class="text-[10px] sm:text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Exames Concluídos</p>
+            <h3 id="kpi-fin-senhas" class="text-xl sm:text-2xl font-black text-emerald-600 dark:text-emerald-400 font-mono leading-none my-1">0</h3>
+            <p class="text-[10px] text-slate-400">Total finalizado hoje</p>
         </div>
 
-        <div class="bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-[0.6vw] rounded-xl shadow-sm flex flex-col justify-between">
-            <p class="text-[0.55vw] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Média P/ Recepção</p>
-            <h3 id="kpi-fin-p-recepcao" class="text-[1.5vw] font-black text-indigo-600 dark:text-indigo-400 font-mono leading-none">00:00</h3>
-            <p class="text-[0.55vw] text-slate-400">Da senha ao guichê</p>
+        <div class="bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-3.5 rounded-2xl shadow-sm flex flex-col justify-between">
+            <p class="text-[10px] sm:text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Média P/ Recepção</p>
+            <h3 id="kpi-fin-p-recepcao" class="text-xl sm:text-2xl font-black text-indigo-600 dark:text-indigo-400 font-mono leading-none my-1">00:00</h3>
+            <p class="text-[10px] text-slate-400">Da senha ao guichê</p>
         </div>
 
-        <div class="bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-[0.6vw] rounded-xl shadow-sm flex flex-col justify-between">
-            <p class="text-[0.55vw] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Média de Recepção</p>
-            <h3 id="kpi-fin-de-recepcao" class="text-[1.5vw] font-black text-sky-600 dark:text-sky-400 font-mono leading-none">00:00</h3>
-            <p class="text-[0.55vw] text-slate-400">Duração no guichê</p>
+        <div class="bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-3.5 rounded-2xl shadow-sm flex flex-col justify-between">
+            <p class="text-[10px] sm:text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Média de Recepção</p>
+            <h3 id="kpi-fin-de-recepcao" class="text-xl sm:text-2xl font-black text-sky-600 dark:text-sky-400 font-mono leading-none my-1">00:00</h3>
+            <p class="text-[10px] text-slate-400">Duração no guichê</p>
         </div>
 
-        <div class="bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-[0.6vw] rounded-xl shadow-sm flex flex-col justify-between">
-            <p class="text-[0.55vw] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Média Espera Exame</p>
-            <h3 id="kpi-fin-espera-exame" class="text-[1.5vw] font-black text-cyan-600 dark:text-cyan-400 font-mono leading-none">00:00</h3>
-            <p class="text-[0.55vw] text-slate-400">Da recepção ao exame</p>
+        <div class="bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-3.5 rounded-2xl shadow-sm flex flex-col justify-between">
+            <p class="text-[10px] sm:text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Média Espera Exame</p>
+            <h3 id="kpi-fin-espera-exame" class="text-xl sm:text-2xl font-black text-cyan-600 dark:text-cyan-400 font-mono leading-none my-1">00:00</h3>
+            <p class="text-[10px] text-slate-400">Da recepção ao exame</p>
         </div>
 
-        <div class="bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-[0.6vw] rounded-xl shadow-sm flex flex-col justify-between">
-            <p class="text-[0.55vw] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Média Total Atend.</p>
-            <h3 id="kpi-fin-total" class="text-[1.5vw] font-black text-emerald-600 dark:text-emerald-400 font-mono leading-none">00:00</h3>
-            <p class="text-[0.55vw] text-slate-400">Permanência geral</p>
+        <div class="bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-3.5 rounded-2xl shadow-sm flex flex-col justify-between">
+            <p class="text-[10px] sm:text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Média Total Atend.</p>
+            <h3 id="kpi-fin-total" class="text-xl sm:text-2xl font-black text-emerald-600 dark:text-emerald-400 font-mono leading-none my-1">00:00</h3>
+            <p class="text-[10px] text-slate-400">Permanência geral</p>
         </div>
 
-        <div class="bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-[0.6vw] rounded-xl shadow-sm flex flex-col justify-between">
-            <p class="text-[0.55vw] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Maior Tempo Atend.</p>
-            <h3 id="kpi-fin-maior-tempo" class="text-[1.5vw] font-black text-amber-600 dark:text-amber-400 font-mono leading-none">00:00</h3>
-            <p class="text-[0.55vw] text-slate-400">Maior jornada do dia</p>
+        <div class="bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-3.5 rounded-2xl shadow-sm flex flex-col justify-between">
+            <p class="text-[10px] sm:text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Maior Tempo Atend.</p>
+            <h3 id="kpi-fin-maior-tempo" class="text-xl sm:text-2xl font-black text-amber-600 dark:text-amber-400 font-mono leading-none my-1">00:00</h3>
+            <p class="text-[10px] text-slate-400">Maior jornada do dia</p>
         </div>
     </div>
 
-    <!-- Metade Intermediária: Tabela de Histórico de Finalizados (40vh de Altura) -->
-    <div class="h-[40vh] w-full bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-md flex flex-col shrink-0">
-        <div class="w-full overflow-y-auto flex-1">
-            <table class="w-full text-left text-[0.7vw] text-slate-700 dark:text-slate-300">
-                <thead class="bg-slate-100 dark:bg-slate-950/90 text-[0.6vw] uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-10 backdrop-blur">
+    <!-- Metade Intermediária: Tabela de Histórico de Finalizados -->
+    <div class="min-h-[300px] w-full bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden shadow-md flex flex-col shrink-0">
+        <div class="w-full overflow-x-auto overflow-y-auto flex-1">
+            <table class="w-full text-left text-xs sm:text-sm text-slate-700 dark:text-slate-300 min-w-[950px]">
+                <thead class="bg-slate-100 dark:bg-slate-950/90 text-[10px] sm:text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-10 backdrop-blur">
                     <tr>
-                        <th scope="col" class="py-[0.6vh] px-[0.6vw]">Senha</th>
-                        <th scope="col" class="py-[0.6vh] px-[0.6vw]">Tipo Senha</th>
-                        <th scope="col" class="py-[0.6vh] px-[0.6vw]">Etapa</th>
-                        <th scope="col" class="py-[0.6vh] px-[0.6vw] text-center">Qtd</th>
-                        <th scope="col" class="py-[0.6vh] px-[0.6vw]">Atendimento</th>
-                        <th scope="col" class="py-[0.6vh] px-[0.6vw]">AN (Access No.)</th>
-                        <th scope="col" class="py-[0.6vh] px-[0.6vw]">Data</th>
-                        <th scope="col" class="py-[0.6vh] px-[0.6vw]">Hora Senha</th>
-                        <th scope="col" class="py-[0.6vh] px-[0.6vw]">Início Rec.</th>
-                        <th scope="col" class="py-[0.6vh] px-[0.6vw]">Fim Rec.</th>
-                        <th scope="col" class="py-[0.6vh] px-[0.6vw]">Hr 1ª Imagem</th>
-                        <th scope="col" class="py-[0.6vh] px-[0.6vw] text-center">Tempo & SLA</th>
-                        <th scope="col" class="py-[0.6vh] px-[0.6vw]">Guichê</th>
-                        <th scope="col" class="py-[0.6vh] px-[0.6vw]">Procedimento</th>
+                        <th scope="col" class="py-3 px-3">Senha</th>
+                        <th scope="col" class="py-3 px-3">Tipo Senha</th>
+                        <th scope="col" class="py-3 px-3">Etapa</th>
+                        <th scope="col" class="py-3 px-3 text-center">Qtd</th>
+                        <th scope="col" class="py-3 px-3">Atendimento</th>
+                        <th scope="col" class="py-3 px-3">AN (Access No.)</th>
+                        <th scope="col" class="py-3 px-3">Data</th>
+                        <th scope="col" class="py-3 px-3">Hora Senha</th>
+                        <th scope="col" class="py-3 px-3">Início Rec.</th>
+                        <th scope="col" class="py-3 px-3">Fim Rec.</th>
+                        <th scope="col" class="py-3 px-3">Hr 1ª Imagem</th>
+                        <th scope="col" class="py-3 px-3 text-center">Tempo & SLA</th>
+                        <th scope="col" class="py-3 px-3">Guichê</th>
+                        <th scope="col" class="py-3 px-3">Procedimento</th>
                     </tr>
                 </thead>
-                <tbody id="tabela-finalizados-corpo" class="divide-y divide-slate-200/80 dark:divide-slate-800/60">
+                <tbody id="tabela-finalizados-corpo" class="divide-y divide-slate-200/80 dark:divide-slate-800/60 font-mono text-xs">
                     <tr>
-                        <td colspan="14" class="py-[4vh] text-center text-slate-400">
+                        <td colspan="14" class="py-8 text-center text-slate-400">
                             Carregando exames finalizados...
                         </td>
                     </tr>
@@ -78,37 +78,37 @@
         </div>
     </div>
 
-    <!-- Metade Inferior: 4 Painéis Gráficos Analíticos (40vh de Altura) -->
-    <div class="h-[40vh] w-full grid grid-cols-4 gap-[0.8vw] shrink-0">
+    <!-- Metade Inferior: 4 Painéis Gráficos Analíticos (Responsivo) -->
+    <div class="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 shrink-0">
         <!-- 1. Procedimentos por Hora -->
-        <div class="bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-xl p-[0.6vw] shadow-sm flex flex-col justify-between">
-            <h4 class="text-[0.7vw] font-bold text-slate-900 dark:text-white shrink-0">Exames por Hora</h4>
-            <div class="flex-1 w-full relative min-h-0">
+        <div class="bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm flex flex-col justify-between min-h-[260px]">
+            <h4 class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white shrink-0">Exames por Hora</h4>
+            <div class="flex-1 w-full relative min-h-[200px] mt-2">
                 <canvas id="chart-fin-hora"></canvas>
             </div>
         </div>
 
         <!-- 2. Produtividade e Média por Procedimento -->
-        <div class="bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-xl p-[0.6vw] shadow-sm flex flex-col justify-between">
-            <h4 class="text-[0.7vw] font-bold text-slate-900 dark:text-white shrink-0">Produtividade por Exame</h4>
-            <div class="flex-1 w-full relative min-h-0">
+        <div class="bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm flex flex-col justify-between min-h-[260px]">
+            <h4 class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white shrink-0">Produtividade por Exame</h4>
+            <div class="flex-1 w-full relative min-h-[200px] mt-2">
                 <canvas id="chart-fin-procedimento"></canvas>
             </div>
         </div>
 
         <!-- 3. Atendimentos por Guichê -->
-        <div class="bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-xl p-[0.6vw] shadow-sm flex flex-col justify-between">
-            <h4 class="text-[0.7vw] font-bold text-slate-900 dark:text-white shrink-0">Atendimentos por Guichê</h4>
-            <div class="flex-1 w-full relative min-h-0">
+        <div class="bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm flex flex-col justify-between min-h-[260px]">
+            <h4 class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white shrink-0">Volume por Guichê</h4>
+            <div class="flex-1 w-full relative min-h-[200px] mt-2">
                 <canvas id="chart-fin-guiche"></canvas>
             </div>
         </div>
 
-        <!-- 4. SLA Meta Pizza -->
-        <div class="bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-xl p-[0.6vw] shadow-sm flex flex-col justify-between">
-            <h4 class="text-[0.7vw] font-bold text-slate-900 dark:text-white shrink-0">Sinalização SLA Meta</h4>
-            <div class="flex-1 w-full relative flex items-center justify-center min-h-0">
-                <canvas id="chart-fin-sla-pizza"></canvas>
+        <!-- 4. Distribuição por Plano / Convênio -->
+        <div class="bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm flex flex-col justify-between min-h-[260px]">
+            <h4 class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white shrink-0">Distribuição por Convênio</h4>
+            <div class="flex-1 w-full relative min-h-[200px] mt-2">
+                <canvas id="chart-fin-convenio"></canvas>
             </div>
         </div>
     </div>

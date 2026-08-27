@@ -158,20 +158,33 @@ class PainelApiController extends AbstractController
         $medicos = $this->medicoRepo->findAll();
         $dados = [];
 
+        $hojeInicio = new \DateTime('today midnight');
+        $hojeFim = new \DateTime('today 23:59:59');
+
         foreach ($medicos as $m) {
             $aguardando = $this->agendamentoRepo->createQueryBuilder('a')
                 ->select('COUNT(a.id)')
                 ->where('a.medico = :m')
                 ->andWhere('a.status IN (:st)')
+                ->andWhere('(a.dataHoraAgendada BETWEEN :inicio AND :fim OR a.horarioChegada BETWEEN :inicio AND :fim)')
                 ->setParameter('m', $m)
                 ->setParameter('st', ['aguardando_medico', 'em_triagem'])
+                ->setParameter('inicio', $hojeInicio)
+                ->setParameter('fim', $hojeFim)
                 ->getQuery()
                 ->getSingleScalarResult();
 
-            $emConsulta = $this->agendamentoRepo->findOneBy([
-                'medico' => $m,
-                'status' => 'em_consulta'
-            ]);
+            $emConsulta = $this->agendamentoRepo->createQueryBuilder('a')
+                ->where('a.medico = :m')
+                ->andWhere('a.status = :st')
+                ->andWhere('(a.dataHoraAgendada BETWEEN :inicio AND :fim OR a.horarioChegada BETWEEN :inicio AND :fim)')
+                ->setParameter('m', $m)
+                ->setParameter('st', 'em_consulta')
+                ->setParameter('inicio', $hojeInicio)
+                ->setParameter('fim', $hojeFim)
+                ->setMaxResults(1)
+                ->getQuery()
+                ->getOneOrNullResult();
 
             $pacienteAtual = null;
             if ($emConsulta) {
@@ -206,8 +219,28 @@ class PainelApiController extends AbstractController
     public function painelTriagem(): JsonResponse
     {
         $this->verificarAutoSync();
-        $aguardandoTriagem = $this->agendamentoRepo->findBy(['status' => 'aguardando_triagem'], ['horarioChegada' => 'ASC']);
-        $emTriagem = $this->agendamentoRepo->findBy(['status' => 'em_triagem'], ['horarioInicioTriagem' => 'ASC']);
+        $hojeInicio = new \DateTime('today midnight');
+        $hojeFim = new \DateTime('today 23:59:59');
+
+        $aguardandoTriagem = $this->agendamentoRepo->createQueryBuilder('a')
+            ->where('a.status = :st')
+            ->andWhere('(a.dataHoraAgendada BETWEEN :inicio AND :fim OR a.horarioChegada BETWEEN :inicio AND :fim)')
+            ->setParameter('st', 'aguardando_triagem')
+            ->setParameter('inicio', $hojeInicio)
+            ->setParameter('fim', $hojeFim)
+            ->orderBy('a.horarioChegada', 'ASC')
+            ->getQuery()
+            ->getResult();
+
+        $emTriagem = $this->agendamentoRepo->createQueryBuilder('a')
+            ->where('a.status = :st')
+            ->andWhere('(a.dataHoraAgendada BETWEEN :inicio AND :fim OR a.horarioChegada BETWEEN :inicio AND :fim)')
+            ->setParameter('st', 'em_triagem')
+            ->setParameter('inicio', $hojeInicio)
+            ->setParameter('fim', $hojeFim)
+            ->orderBy('a.horarioInicioTriagem', 'ASC')
+            ->getQuery()
+            ->getResult();
 
         $format = function (Agendamento $a) {
             return [
@@ -234,7 +267,7 @@ class PainelApiController extends AbstractController
     {
         $this->verificarAutoSync();
         $resumo = $this->agendamentoRepo->getResumoMetricasHoje();
-        $todosHoje = $this->agendamentoRepo->findAll();
+        $todosHoje = $this->agendamentoRepo->findDoDia(new \DateTime());
 
         $temposEspera = [];
         $temposConsulta = [];
@@ -324,11 +357,7 @@ class PainelApiController extends AbstractController
     public function painelAguardando(): JsonResponse
     {
         $this->verificarAutoSync();
-        $aguardando = $this->agendamentoRepo->createQueryBuilder('a')
-            ->where('a.status IN (:st)')
-            ->setParameter('st', ['aguardando_triagem', 'em_triagem', 'aguardando_medico'])
-            ->orderBy('a.horarioChegada', 'ASC')
-            ->getQuery()->getResult();
+        $aguardando = $this->agendamentoRepo->findAguardandoPreAtendimentoDoDia(new \DateTime());
 
         $slas = $this->slaRepo->findAll();
         $slaRulesMap = [];
@@ -415,7 +444,7 @@ class PainelApiController extends AbstractController
     public function painelFinalizados(): JsonResponse
     {
         $this->verificarAutoSync();
-        $finalizados = $this->agendamentoRepo->findBy(['status' => 'finalizado'], ['horarioSaida' => 'DESC']);
+        $finalizados = $this->agendamentoRepo->findFinalizadosDoDia(new \DateTime());
 
         $slas = $this->slaRepo->findAll();
         $slaRulesMap = [];

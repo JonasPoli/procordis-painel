@@ -3,18 +3,18 @@
 {% block title %}Painel de Espera | Procordis{% endblock %}
 
 {% block body %}
-<div class="h-full w-full flex flex-col justify-between overflow-hidden gap-[1vh]">
-    <!-- Top Sub-Bar: Filtros, Ação de Simulação e Contadores -->
-    <div class="h-[6vh] w-full flex items-center justify-between gap-[1vw] bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-xl px-[1vw] py-[0.5vh] shadow-sm shrink-0">
-        <div class="flex items-center gap-[0.75vw] text-[0.8vw]">
-            <span class="font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-[0.7vw]">Filtrar:</span>
-            <select id="filtro-medico" onchange="carregarDadosEspera()" class="bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 text-slate-800 dark:text-slate-200 text-[0.75vw] rounded-lg px-[0.6vw] py-[0.3vh] outline-none focus:border-cyan-500">
+<div class="w-full flex flex-col justify-between gap-4 lg:gap-5">
+    <!-- Top Sub-Bar: Filtros, Ação de Simulação e Contadores (Responsivo) -->
+    <div class="w-full flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-2xl p-3 sm:p-4 shadow-sm shrink-0">
+        <div class="flex flex-wrap items-center gap-2 sm:gap-3 text-xs sm:text-sm">
+            <span class="font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-[10px] sm:text-xs">Filtrar:</span>
+            <select id="filtro-medico" onchange="carregarDadosEspera()" class="bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 text-slate-800 dark:text-slate-200 text-xs rounded-xl px-3 py-1.5 outline-none focus:border-cyan-500">
                 <option value="">Todos os Médicos</option>
                 {% for m in medicos %}
                     <option value="{{ m.id }}">{{ m.nome }} ({{ m.especialidade ? m.especialidade.nome : 'Clínica' }})</option>
                 {% endfor %}
             </select>
-            <select id="filtro-especialidade" onchange="carregarDadosEspera()" class="bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 text-slate-800 dark:text-slate-200 text-[0.75vw] rounded-lg px-[0.6vw] py-[0.3vh] outline-none focus:border-cyan-500">
+            <select id="filtro-especialidade" onchange="carregarDadosEspera()" class="bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 text-slate-800 dark:text-slate-200 text-xs rounded-xl px-3 py-1.5 outline-none focus:border-cyan-500">
                 <option value="">Todas as Especialidades</option>
                 {% for e in especialidades %}
                     <option value="{{ e.id }}">{{ e.nome }}</option>
@@ -22,65 +22,65 @@
             </select>
         </div>
 
-        <div class="flex items-center gap-[1.2vw]">
-            <div class="flex items-center gap-[1vw] text-[0.8vw] font-medium text-slate-600 dark:text-slate-300">
-                <div>Aguardando: <span id="stat-total-aguardando" class="font-bold text-cyan-600 dark:text-cyan-400 text-[0.9vw]">0</span></div>
-                <div class="h-[2vh] w-px bg-slate-300 dark:bg-slate-800"></div>
-                <div>Em Consulta: <span id="stat-total-consulta" class="font-bold text-emerald-600 dark:text-emerald-400 text-[0.9vw]">0</span></div>
+        <div class="flex items-center justify-between sm:justify-end gap-3 sm:gap-4">
+            <div class="flex items-center gap-3 text-xs font-medium text-slate-600 dark:text-slate-300">
+                <div>Aguardando: <span id="stat-total-aguardando" class="font-bold text-cyan-600 dark:text-cyan-400 text-sm">0</span></div>
+                <div class="h-4 w-px bg-slate-300 dark:bg-slate-800"></div>
+                <div>Em Consulta: <span id="stat-total-consulta" class="font-bold text-emerald-600 dark:text-emerald-400 text-sm">0</span></div>
             </div>
 
-            <button onclick="simularPasso()" class="flex items-center gap-[0.3vw] bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-[0.75vw] px-[0.8vw] py-[0.4vh] rounded-lg transition active:scale-95 shadow">
-                <svg class="w-[0.9vw] h-[0.9vw]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                +1 Minuto Simulação
+            <button onclick="simularPasso()" class="flex items-center gap-1.5 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs px-3 py-1.5 rounded-xl transition active:scale-95 shadow cursor-pointer">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                <span>+1 Minuto</span>
             </button>
         </div>
     </div>
 
     <!-- Card Destaque: Paciente com Maior Tempo de Espera -->
-    <div id="card-maior-espera" class="h-[12vh] w-full hidden shrink-0">
-        <div class="h-full w-full rounded-xl bg-amber-500/10 dark:bg-gradient-to-r dark:from-amber-500/15 dark:via-orange-500/10 dark:to-rose-500/15 border border-amber-500/40 p-[1vh] px-[1.5vw] flex items-center justify-between shadow-sm">
-            <div class="flex items-center gap-[1vw]">
-                <div class="h-[6vh] w-[6vh] rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0">
-                    <svg class="w-[3vh] h-[3vh] animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+    <div id="card-maior-espera" class="w-full hidden shrink-0">
+        <div class="w-full rounded-2xl bg-amber-500/10 dark:bg-gradient-to-r dark:from-amber-500/15 dark:via-orange-500/10 dark:to-rose-500/15 border border-amber-500/40 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
+            <div class="flex items-center gap-3">
+                <div class="h-12 w-12 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0">
+                    <svg class="w-6 h-6 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 </div>
                 <div>
-                    <span class="text-[0.65vw] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-950/80 px-[0.5vw] py-[0.1vh] rounded border border-amber-300 dark:border-amber-700/50">Maior Tempo de Espera</span>
-                    <h3 id="top-paciente-nome" class="text-[1.2vw] font-bold text-slate-900 dark:text-white leading-tight">---</h3>
-                    <p class="text-[0.75vw] text-slate-600 dark:text-slate-300">Médico Previsto: <span id="top-paciente-medico" class="font-semibold text-amber-700 dark:text-amber-300">---</span></p>
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-950/80 px-2 py-0.5 rounded border border-amber-300 dark:border-amber-700/50">Maior Tempo de Espera</span>
+                    <h3 id="top-paciente-nome" class="text-base sm:text-lg font-bold text-slate-900 dark:text-white leading-tight mt-0.5">---</h3>
+                    <p class="text-xs text-slate-600 dark:text-slate-300">Médico Previsto: <span id="top-paciente-medico" class="font-semibold text-amber-700 dark:text-amber-300">---</span></p>
                 </div>
             </div>
-            <div class="flex items-center gap-[1.5vw] bg-white/80 dark:bg-slate-950/60 border border-amber-500/30 px-[1vw] py-[0.5vh] rounded-xl">
+            <div class="flex items-center gap-4 bg-white/80 dark:bg-slate-950/60 border border-amber-500/30 px-3 py-1.5 rounded-xl self-end sm:self-auto">
                 <div>
-                    <p class="text-[0.6vw] text-slate-500 dark:text-slate-400 uppercase tracking-wider">Chegada</p>
-                    <p id="top-paciente-chegada" class="text-[1.1vw] font-mono font-bold text-slate-800 dark:text-slate-200">--:--</p>
+                    <p class="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider">Chegada</p>
+                    <p id="top-paciente-chegada" class="text-sm font-mono font-bold text-slate-800 dark:text-slate-200">--:--</p>
                 </div>
-                <div class="h-[4vh] w-px bg-slate-300 dark:bg-slate-800"></div>
+                <div class="h-6 w-px bg-slate-300 dark:bg-slate-800"></div>
                 <div>
-                    <p class="text-[0.6vw] text-amber-700 dark:text-amber-400 font-semibold uppercase tracking-wider">Tempo Espera</p>
-                    <p id="top-paciente-tempo" class="text-[1.4vw] font-mono font-black text-amber-600 dark:text-amber-400">0 min</p>
+                    <p class="text-[10px] text-amber-700 dark:text-amber-400 font-semibold uppercase tracking-wider">Tempo Espera</p>
+                    <p id="top-paciente-tempo" class="text-base font-mono font-black text-amber-600 dark:text-amber-400">0 min</p>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Tabela Principal do Fluxo -->
-    <div class="flex-1 w-full bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-lg flex flex-col min-h-0">
-        <div class="w-full overflow-y-auto flex-1">
-            <table class="w-full text-left text-[0.85vw] text-slate-700 dark:text-slate-300">
-                <thead class="bg-slate-100 dark:bg-slate-950/80 text-[0.75vw] uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-10 backdrop-blur">
+    <div class="flex-1 w-full bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden shadow-lg flex flex-col min-h-0">
+        <div class="w-full overflow-x-auto overflow-y-auto flex-1">
+            <table class="w-full text-left text-xs sm:text-sm text-slate-700 dark:text-slate-300 min-w-[700px]">
+                <thead class="bg-slate-100 dark:bg-slate-950/80 text-[10px] sm:text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-10 backdrop-blur">
                     <tr>
-                        <th scope="col" class="py-[1vh] px-[1.2vw]">Paciente</th>
-                        <th scope="col" class="py-[1vh] px-[1.2vw]">Chegada</th>
-                        <th scope="col" class="py-[1vh] px-[1.2vw]">Tempo Espera</th>
-                        <th scope="col" class="py-[1vh] px-[1.2vw]">Etapa Atual</th>
-                        <th scope="col" class="py-[1vh] px-[1.2vw]">Médico / Especialidade</th>
-                        <th scope="col" class="py-[1vh] px-[1.2vw]">Setor / Sala</th>
-                        <th scope="col" class="py-[1vh] px-[1.2vw] text-right">Linha do Tempo</th>
+                        <th scope="col" class="py-3 px-3.5">Paciente</th>
+                        <th scope="col" class="py-3 px-3.5">Chegada</th>
+                        <th scope="col" class="py-3 px-3.5">Tempo Espera</th>
+                        <th scope="col" class="py-3 px-3.5">Etapa Atual</th>
+                        <th scope="col" class="py-3 px-3.5">Médico / Especialidade</th>
+                        <th scope="col" class="py-3 px-3.5">Setor / Sala</th>
+                        <th scope="col" class="py-3 px-3.5 text-right">Linha do Tempo</th>
                     </tr>
                 </thead>
-                <tbody id="tabela-pacientes-corpo" class="divide-y divide-slate-200/80 dark:divide-slate-800/60">
+                <tbody id="tabela-pacientes-corpo" class="divide-y divide-slate-200/80 dark:divide-slate-800/60 font-mono text-xs">
                     <tr>
-                        <td colspan="7" class="py-[5vh] text-center text-slate-400">
+                        <td colspan="7" class="py-12 text-center text-slate-400">
                             Carregando fluxo em tempo real...
                         </td>
                     </tr>

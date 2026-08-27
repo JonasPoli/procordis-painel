@@ -17,17 +17,45 @@ class AgendamentoRepository extends ServiceEntityRepository
     }
 
     /**
+     * Retorna todos os agendamentos de uma data específica.
+     */
+    public function findDoDia(\DateTimeInterface $data): array
+    {
+        $inicio = (clone $data)->setTime(0, 0, 0);
+        $fim = (clone $data)->setTime(23, 59, 59);
+
+        return $this->createQueryBuilder('a')
+            ->leftJoin('a.paciente', 'p')->addSelect('p')
+            ->leftJoin('a.medico', 'm')->addSelect('m')
+            ->leftJoin('a.especialidade', 'e')->addSelect('e')
+            ->leftJoin('a.setorSala', 's')->addSelect('s')
+            ->where('a.dataHoraAgendada BETWEEN :inicio AND :fim')
+            ->setParameter('inicio', $inicio)
+            ->setParameter('fim', $fim)
+            ->orderBy('a.dataHoraAgendada', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
      * Retorna os pacientes aguardando atendimento ordenados pelo tempo de espera (horário de chegada).
      */
-    public function findAguardandoAtendimento(?int $medicoId = null, ?int $especialidadeId = null): array
+    public function findAguardandoAtendimento(?int $medicoId = null, ?int $especialidadeId = null, ?\DateTimeInterface $data = null): array
     {
+        $data = $data ?? new \DateTime();
+        $inicio = (clone $data)->setTime(0, 0, 0);
+        $fim = (clone $data)->setTime(23, 59, 59);
+
         $qb = $this->createQueryBuilder('a')
             ->leftJoin('a.paciente', 'p')->addSelect('p')
             ->leftJoin('a.medico', 'm')->addSelect('m')
             ->leftJoin('a.especialidade', 'e')->addSelect('e')
             ->leftJoin('a.setorSala', 's')->addSelect('s')
             ->where('a.status IN (:statuses)')
+            ->andWhere('(a.dataHoraAgendada BETWEEN :inicio AND :fim OR a.horarioChegada BETWEEN :inicio AND :fim)')
             ->setParameter('statuses', ['aguardando_triagem', 'em_triagem', 'aguardando_medico', 'em_exame'])
+            ->setParameter('inicio', $inicio)
+            ->setParameter('fim', $fim)
             ->orderBy('a.prioridade', 'DESC')
             ->addOrderBy('a.horarioChegada', 'ASC');
 
@@ -43,17 +71,24 @@ class AgendamentoRepository extends ServiceEntityRepository
     }
 
     /**
-     * Retorna o agendamento do paciente que está aguardando há mais tempo.
+     * Retorna o agendamento do paciente que está aguardando há mais tempo no dia.
      */
-    public function findPacienteMaiorTempoEspera(): ?Agendamento
+    public function findPacienteMaiorTempoEspera(?\DateTimeInterface $data = null): ?Agendamento
     {
+        $data = $data ?? new \DateTime();
+        $inicio = (clone $data)->setTime(0, 0, 0);
+        $fim = (clone $data)->setTime(23, 59, 59);
+
         return $this->createQueryBuilder('a')
             ->leftJoin('a.paciente', 'p')->addSelect('p')
             ->leftJoin('a.medico', 'm')->addSelect('m')
             ->leftJoin('a.especialidade', 'e')->addSelect('e')
             ->where('a.status IN (:statuses)')
-            ->setParameter('statuses', ['aguardando_triagem', 'aguardando_medico'])
             ->andWhere('a.horarioChegada IS NOT NULL')
+            ->andWhere('(a.dataHoraAgendada BETWEEN :inicio AND :fim OR a.horarioChegada BETWEEN :inicio AND :fim)')
+            ->setParameter('statuses', ['aguardando_triagem', 'aguardando_medico'])
+            ->setParameter('inicio', $inicio)
+            ->setParameter('fim', $fim)
             ->orderBy('a.horarioChegada', 'ASC')
             ->setMaxResults(1)
             ->getQuery()
@@ -61,12 +96,59 @@ class AgendamentoRepository extends ServiceEntityRepository
     }
 
     /**
+     * Retorna os pacientes em pré-atendimento do dia.
+     */
+    public function findAguardandoPreAtendimentoDoDia(?\DateTimeInterface $data = null): array
+    {
+        $data = $data ?? new \DateTime();
+        $inicio = (clone $data)->setTime(0, 0, 0);
+        $fim = (clone $data)->setTime(23, 59, 59);
+
+        return $this->createQueryBuilder('a')
+            ->leftJoin('a.paciente', 'p')->addSelect('p')
+            ->leftJoin('a.medico', 'm')->addSelect('m')
+            ->leftJoin('a.especialidade', 'e')->addSelect('e')
+            ->where('a.status IN (:st)')
+            ->andWhere('(a.dataHoraAgendada BETWEEN :inicio AND :fim OR a.horarioChegada BETWEEN :inicio AND :fim)')
+            ->setParameter('st', ['aguardando_triagem', 'em_triagem', 'aguardando_medico'])
+            ->setParameter('inicio', $inicio)
+            ->setParameter('fim', $fim)
+            ->orderBy('a.horarioChegada', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * Retorna os atendimentos finalizados do dia.
+     */
+    public function findFinalizadosDoDia(?\DateTimeInterface $data = null): array
+    {
+        $data = $data ?? new \DateTime();
+        $inicio = (clone $data)->setTime(0, 0, 0);
+        $fim = (clone $data)->setTime(23, 59, 59);
+
+        return $this->createQueryBuilder('a')
+            ->leftJoin('a.paciente', 'p')->addSelect('p')
+            ->leftJoin('a.medico', 'm')->addSelect('m')
+            ->leftJoin('a.especialidade', 'e')->addSelect('e')
+            ->where('a.status = :st')
+            ->andWhere('(a.dataHoraAgendada BETWEEN :inicio AND :fim OR a.horarioSaida BETWEEN :inicio AND :fim)')
+            ->setParameter('st', 'finalizado')
+            ->setParameter('inicio', $inicio)
+            ->setParameter('fim', $fim)
+            ->orderBy('a.horarioSaida', 'DESC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
      * Retorna contagens resumidas por status do dia.
      */
-    public function getResumoMetricasHoje(): array
+    public function getResumoMetricasHoje(?\DateTimeInterface $data = null): array
     {
-        $hojeInicio = new \DateTime('today midnight');
-        $hojeFim = new \DateTime('today 23:59:59');
+        $data = $data ?? new \DateTime();
+        $hojeInicio = (clone $data)->setTime(0, 0, 0);
+        $hojeFim = (clone $data)->setTime(23, 59, 59);
 
         $rows = $this->createQueryBuilder('a')
             ->select('a.status, COUNT(a.id) as total')

@@ -45,9 +45,9 @@
                         <div class="flex-auto">
                             <div class="px-4 mb-4">
                                 <a href="{{ path('admin_dash') }}" class="block p-2 rounded-2xl bg-white shadow-sm border border-slate-200/80 hover:shadow transition">
-                                    <img src="/images/logo-A3qBa0m.svg" alt="Procordis Medicina Diagnóstica" class="h-8 w-auto mx-auto max-w-full">
+                                    <img src="/images/logo-A3qBa0m.svg" alt="Procordis" class="h-8 w-auto mx-auto max-w-full">
                                 </a>
-                                <div class="px-1 mt-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">Procordis Gestão</div>
+                                <div class="px-1 mt-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">Painel de Gestão</div>
                             </div>
 
                             {% set isDash = app.current_route == 'admin_dash' %}
@@ -132,8 +132,11 @@
                             <sl-icon-button class="text-slate-900 text-xl hover:text-slate-900 inline-block dark:hidden" onclick="darkMode()" name="moon" label="modo escuro"></sl-icon-button>
                         </div>
                     </nav>
-                    <main class="lg:py-10 px-8 relative bg-transparent">
-                        <div class="lg:hidden icon-button-no-color-change my-4 w-full"><sl-icon-button class="dark:text-white text-xl" onclick="toggleNav()" name="list" label="abrir menu"></sl-icon-button></div>
+                    <main class="py-4 lg:py-10 px-4 sm:px-8 relative bg-transparent overflow-x-hidden">
+                        <div class="lg:hidden icon-button-no-color-change mb-4 w-full flex items-center justify-between">
+                            <sl-icon-button class="dark:text-white text-xl" onclick="toggleNav()" name="list" label="abrir menu"></sl-icon-button>
+                            <img src="/images/logo-A3qBa0m.svg" alt="Procordis" class="h-6 w-auto">
+                        </div>
                         {% block body %}{% endblock %}
                     </main>
                 </div>

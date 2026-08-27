@@ -3,34 +3,34 @@
 {% block title %}Painel de Triagem | Procordis{% endblock %}
 
 {% block body %}
-<div class="h-full w-full grid grid-cols-1 lg:grid-cols-2 gap-[1vw] overflow-hidden">
+<div class="w-full grid grid-cols-1 lg:grid-cols-2 gap-4">
     <!-- Fila de Espera para Triagem -->
-    <div class="h-full bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-xl p-[1.2vw] shadow-md flex flex-col justify-between overflow-hidden">
-        <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-[1vh] mb-[1vh] shrink-0">
+    <div class="bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-sm flex flex-col justify-between">
+        <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 mb-3 shrink-0">
             <div>
-                <h2 class="text-[1.1vw] font-bold text-slate-900 dark:text-white">Aguardando Triagem</h2>
-                <p class="text-[0.7vw] text-slate-500 dark:text-slate-400">Pacientes que emitiram senha na recepção</p>
+                <h2 class="text-base sm:text-lg font-bold text-slate-900 dark:text-white">Aguardando Triagem</h2>
+                <p class="text-xs text-slate-500 dark:text-slate-400">Pacientes que emitiram senha na recepção</p>
             </div>
-            <span id="total-aguardando" class="text-[1.2vw] font-mono font-bold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-800 px-[0.6vw] py-[0.2vh] rounded-lg">0</span>
+            <span id="total-aguardando" class="text-base sm:text-lg font-mono font-bold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-800 px-2.5 py-1 rounded-xl">0</span>
         </div>
 
-        <div id="lista-aguardando-triagem" class="space-y-[0.8vh] overflow-y-auto flex-1 pr-[0.3vw]">
-            <p class="text-center py-[5vh] text-slate-400 text-[0.8vw]">Carregando...</p>
+        <div id="lista-aguardando-triagem" class="space-y-2 overflow-y-auto max-h-[600px] flex-1">
+            <p class="text-center py-8 text-slate-400 text-xs sm:text-sm">Carregando...</p>
         </div>
     </div>
 
     <!-- Em Triagem Ativa -->
-    <div class="h-full bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-xl p-[1.2vw] shadow-md flex flex-col justify-between overflow-hidden">
-        <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-[1vh] mb-[1vh] shrink-0">
+    <div class="bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-sm flex flex-col justify-between">
+        <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 mb-3 shrink-0">
             <div>
-                <h2 class="text-[1.1vw] font-bold text-slate-900 dark:text-white">Em Triagem / Anamnese</h2>
-                <p class="text-[0.7vw] text-slate-500 dark:text-slate-400">Pacientes em pré-atendimento com a enfermagem</p>
+                <h2 class="text-base sm:text-lg font-bold text-slate-900 dark:text-white">Em Triagem / Anamnese</h2>
+                <p class="text-xs text-slate-500 dark:text-slate-400">Pacientes em pré-atendimento com a enfermagem</p>
             </div>
-            <span id="total-em-triagem" class="text-[1.2vw] font-mono font-bold text-sky-700 dark:text-sky-400 bg-sky-50 dark:bg-sky-950/60 border border-sky-300 dark:border-sky-800 px-[0.6vw] py-[0.2vh] rounded-lg">0</span>
+            <span id="total-em-triagem" class="text-base sm:text-lg font-mono font-bold text-sky-700 dark:text-sky-400 bg-sky-50 dark:bg-sky-950/60 border border-sky-300 dark:border-sky-800 px-2.5 py-1 rounded-xl">0</span>
         </div>
 
-        <div id="lista-em-triagem" class="space-y-[0.8vh] overflow-y-auto flex-1 pr-[0.3vw]">
-            <p class="text-center py-[5vh] text-slate-400 text-[0.8vw]">Carregando...</p>
+        <div id="lista-em-triagem" class="space-y-2 overflow-y-auto max-h-[600px] flex-1">
+            <p class="text-center py-8 text-slate-400 text-xs sm:text-sm">Carregando...</p>
         </div>
     </div>
 </div>
@@ -56,7 +56,7 @@
     function renderizarLista(containerId, lista, cor) {
         const container = document.getElementById(containerId);
         if (!lista || lista.length === 0) {
-            container.innerHTML = `<p class="text-center py-[5vh] text-slate-400 text-[0.8vw] font-medium">Nenhum paciente nesta fila no momento</p>`;
+            container.innerHTML = `<p class="text-center py-8 text-slate-400 text-xs sm:text-sm font-medium">Nenhum paciente nesta fila no momento</p>`;
             return;
         }
 

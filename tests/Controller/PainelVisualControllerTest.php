@@ -11,7 +11,7 @@ class PainelVisualControllerTest extends WebTestCase
         $client = static::createClient();
         $client->request('GET', '/painel/espera');
         $this->assertResponseIsSuccessful();
-        $this->assertSelectorTextContains('header', 'Procordis Painel');
+        $this->assertSelectorExists('header img');
     }
 
     public function testPainelChamadaRoute(): void
@@ -19,7 +19,7 @@ class PainelVisualControllerTest extends WebTestCase
         $client = static::createClient();
         $client->request('GET', '/painel/chamada');
         $this->assertResponseIsSuccessful();
-        $this->assertSelectorTextContains('header', 'Procordis Painel');
+        $this->assertSelectorExists('header img');
     }
 
     public function testPainelMedicosRoute(): void

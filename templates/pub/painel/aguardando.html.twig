@@ -3,64 +3,64 @@
 {% block title %}Tela 1: Pacientes Aguardando (Pré-Atendimento) | Procordis{% endblock %}
 
 {% block body %}
-<div class="h-full w-full flex flex-col justify-between overflow-hidden gap-[1vh]">
-    <!-- Top KPIs Bar (5 Indicadores de Resumo - 12vh) -->
-    <div class="h-[12vh] w-full grid grid-cols-5 gap-[0.8vw] shrink-0">
-        <div class="bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-[0.8vw] rounded-xl shadow-sm flex flex-col justify-between">
-            <p class="text-[0.6vw] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Senhas na Fila</p>
-            <h3 id="kpi-senhas" class="text-[1.8vw] font-black text-cyan-600 dark:text-cyan-400 font-mono leading-none">0</h3>
-            <p class="text-[0.6vw] text-slate-400">Aguardando atendimento</p>
+<div class="w-full flex flex-col justify-between gap-4 lg:gap-5">
+    <!-- Top KPIs Bar (5 Indicadores de Resumo - Responsivo) -->
+    <div class="w-full grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 shrink-0">
+        <div class="bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl shadow-sm flex flex-col justify-between">
+            <p class="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Senhas na Fila</p>
+            <h3 id="kpi-senhas" class="text-2xl sm:text-3xl font-black text-cyan-600 dark:text-cyan-400 font-mono leading-none my-1.5">0</h3>
+            <p class="text-[11px] text-slate-400">Aguardando atendimento</p>
         </div>
 
-        <div class="bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-[0.8vw] rounded-xl shadow-sm flex flex-col justify-between">
-            <p class="text-[0.6vw] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Média P/ Recepção</p>
-            <h3 id="kpi-media-p-recepcao" class="text-[1.8vw] font-black text-indigo-600 dark:text-indigo-400 font-mono leading-none">00:00</h3>
-            <p class="text-[0.6vw] text-slate-400">Da senha ao guichê</p>
+        <div class="bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl shadow-sm flex flex-col justify-between">
+            <p class="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Média P/ Recepção</p>
+            <h3 id="kpi-media-p-recepcao" class="text-2xl sm:text-3xl font-black text-indigo-600 dark:text-indigo-400 font-mono leading-none my-1.5">00:00</h3>
+            <p class="text-[11px] text-slate-400">Da senha ao guichê</p>
         </div>
 
-        <div class="bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-[0.8vw] rounded-xl shadow-sm flex flex-col justify-between">
-            <p class="text-[0.6vw] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Média de Recepção</p>
-            <h3 id="kpi-media-de-recepcao" class="text-[1.8vw] font-black text-sky-600 dark:text-sky-400 font-mono leading-none">00:00</h3>
-            <p class="text-[0.6vw] text-slate-400">Duração no guichê</p>
+        <div class="bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl shadow-sm flex flex-col justify-between">
+            <p class="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Média de Recepção</p>
+            <h3 id="kpi-media-de-recepcao" class="text-2xl sm:text-3xl font-black text-sky-600 dark:text-sky-400 font-mono leading-none my-1.5">00:00</h3>
+            <p class="text-[11px] text-slate-400">Duração no guichê</p>
         </div>
 
-        <div class="bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-[0.8vw] rounded-xl shadow-sm flex flex-col justify-between">
-            <p class="text-[0.6vw] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Média Tempo Total</p>
-            <h3 id="kpi-media-total" class="text-[1.8vw] font-black text-emerald-600 dark:text-emerald-400 font-mono leading-none">00:00</h3>
-            <p class="text-[0.6vw] text-slate-400">Permanência na clínica</p>
+        <div class="bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl shadow-sm flex flex-col justify-between">
+            <p class="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Média Tempo Total</p>
+            <h3 id="kpi-media-total" class="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400 font-mono leading-none my-1.5">00:00</h3>
+            <p class="text-[11px] text-slate-400">Permanência na clínica</p>
         </div>
 
-        <div class="bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-[0.8vw] rounded-xl shadow-sm flex flex-col justify-between bg-amber-500/5 border-amber-500/30">
-            <p class="text-[0.6vw] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-widest">Maior Tempo Atend.</p>
-            <h3 id="kpi-maior-tempo" class="text-[1.8vw] font-black text-amber-600 dark:text-amber-400 font-mono leading-none">00:00</h3>
-            <p class="text-[0.6vw] text-amber-700/80 dark:text-amber-400/80 font-medium">Alerta de maior espera</p>
+        <div class="col-span-2 sm:col-span-1 bg-amber-500/10 dark:bg-amber-500/10 border border-amber-500/30 p-4 rounded-2xl shadow-sm flex flex-col justify-between">
+            <p class="text-[11px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider">Maior Tempo Atend.</p>
+            <h3 id="kpi-maior-tempo" class="text-2xl sm:text-3xl font-black text-amber-600 dark:text-amber-400 font-mono leading-none my-1.5">00:00</h3>
+            <p class="text-[11px] text-amber-700/80 dark:text-amber-400/80 font-medium">Alerta de maior espera</p>
         </div>
     </div>
 
-    <!-- Tabela Principal de Pacientes em Pré-Atendimento (78vh de Altura) -->
-    <div class="flex-1 w-full bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-lg flex flex-col min-h-0">
-        <div class="w-full overflow-y-auto flex-1">
-            <table class="w-full text-left text-[0.75vw] text-slate-700 dark:text-slate-300">
-                <thead class="bg-slate-100 dark:bg-slate-950/90 text-[0.65vw] uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-10 backdrop-blur">
+    <!-- Tabela Principal de Pacientes em Pré-Atendimento -->
+    <div class="flex-1 w-full bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden shadow-lg flex flex-col min-h-0">
+        <div class="w-full overflow-x-auto overflow-y-auto flex-1">
+            <table class="w-full text-left text-xs sm:text-sm text-slate-700 dark:text-slate-300 min-w-[900px]">
+                <thead class="bg-slate-100 dark:bg-slate-950/90 text-[10px] sm:text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-10 backdrop-blur">
                     <tr>
-                        <th scope="col" class="py-[0.8vh] px-[0.8vw]">Senha</th>
-                        <th scope="col" class="py-[0.8vh] px-[0.8vw]">Tipo Senha</th>
-                        <th scope="col" class="py-[0.8vh] px-[0.8vw]">Etapa Atual</th>
-                        <th scope="col" class="py-[0.8vh] px-[0.8vw] text-center">Qtd</th>
-                        <th scope="col" class="py-[0.8vh] px-[0.8vw]">Atendimento</th>
-                        <th scope="col" class="py-[0.8vh] px-[0.8vw]">AN (Access No.)</th>
-                        <th scope="col" class="py-[0.8vh] px-[0.8vw]">Data</th>
-                        <th scope="col" class="py-[0.8vh] px-[0.8vw]">Hora Senha</th>
-                        <th scope="col" class="py-[0.8vh] px-[0.8vw]">Início Rec.</th>
-                        <th scope="col" class="py-[0.8vh] px-[0.8vw]">Fim Rec.</th>
-                        <th scope="col" class="py-[0.8vh] px-[0.8vw] text-center">Tempo & SLA</th>
-                        <th scope="col" class="py-[0.8vh] px-[0.8vw]">Guichê</th>
-                        <th scope="col" class="py-[0.8vh] px-[0.8vw]">Procedimento</th>
+                        <th scope="col" class="py-3 px-3">Senha</th>
+                        <th scope="col" class="py-3 px-3">Tipo Senha</th>
+                        <th scope="col" class="py-3 px-3">Etapa Atual</th>
+                        <th scope="col" class="py-3 px-3 text-center">Qtd</th>
+                        <th scope="col" class="py-3 px-3">Atendimento</th>
+                        <th scope="col" class="py-3 px-3">AN (Access No.)</th>
+                        <th scope="col" class="py-3 px-3">Data</th>
+                        <th scope="col" class="py-3 px-3">Hora Senha</th>
+                        <th scope="col" class="py-3 px-3">Início Rec.</th>
+                        <th scope="col" class="py-3 px-3">Fim Rec.</th>
+                        <th scope="col" class="py-3 px-3 text-center">Tempo & SLA</th>
+                        <th scope="col" class="py-3 px-3">Guichê</th>
+                        <th scope="col" class="py-3 px-3">Procedimento</th>
                     </tr>
                 </thead>
-                <tbody id="tabela-aguardando-corpo" class="divide-y divide-slate-200/80 dark:divide-slate-800/60">
+                <tbody id="tabela-aguardando-corpo" class="divide-y divide-slate-200/80 dark:divide-slate-800/60 font-mono text-xs">
                     <tr>
-                        <td colspan="13" class="py-[8vh] text-center text-slate-400">
+                        <td colspan="13" class="py-12 text-center text-slate-400">
                             Carregando pré-atendimento em tempo real...
                         </td>
                     </tr>

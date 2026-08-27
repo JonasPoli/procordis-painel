@@ -5,46 +5,46 @@
 {% block body %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
-<div class="h-full w-full flex flex-col justify-between overflow-hidden gap-[1vh]">
-    <!-- Top KPI Cards (16vh de Altura) -->
-    <div class="h-[16vh] w-full grid grid-cols-4 gap-[1vw] shrink-0">
-        <div class="bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-[1vw] rounded-xl shadow-sm flex flex-col justify-between">
-            <p class="text-[0.65vw] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Total Atendidos Hoje</p>
-            <h3 id="kpi-atendidos" class="text-[2.2vw] font-black text-emerald-600 dark:text-emerald-400 font-mono leading-none">0</h3>
-            <p class="text-[0.65vw] text-slate-400 dark:text-slate-500">Atendimentos concluídos</p>
+<div class="w-full flex flex-col justify-between gap-4 lg:gap-5">
+    <!-- Top KPI Cards (Responsivo) -->
+    <div class="w-full grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 shrink-0">
+        <div class="bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl shadow-sm flex flex-col justify-between">
+            <p class="text-[10px] sm:text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Atendidos Hoje</p>
+            <h3 id="kpi-atendidos" class="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400 font-mono leading-none my-1.5">0</h3>
+            <p class="text-[10px] sm:text-xs text-slate-400 dark:text-slate-500">Atendimentos concluídos</p>
         </div>
 
-        <div class="bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-[1vw] rounded-xl shadow-sm flex flex-col justify-between">
-            <p class="text-[0.65vw] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Aguardando Agora</p>
-            <h3 id="kpi-aguardando" class="text-[2.2vw] font-black text-amber-600 dark:text-amber-400 font-mono leading-none">0</h3>
-            <p class="text-[0.65vw] text-slate-400 dark:text-slate-500">Em triagem ou consulta</p>
+        <div class="bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl shadow-sm flex flex-col justify-between">
+            <p class="text-[10px] sm:text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Aguardando Agora</p>
+            <h3 id="kpi-aguardando" class="text-2xl sm:text-3xl font-black text-amber-600 dark:text-amber-400 font-mono leading-none my-1.5">0</h3>
+            <p class="text-[10px] sm:text-xs text-slate-400 dark:text-slate-500">Em triagem ou consulta</p>
         </div>
 
-        <div class="bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-[1vw] rounded-xl shadow-sm flex flex-col justify-between">
-            <p class="text-[0.65vw] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Tempo Médio Espera</p>
-            <h3 id="kpi-media-espera" class="text-[2.2vw] font-black text-cyan-600 dark:text-cyan-400 font-mono leading-none">0 <span class="text-[1vw]">min</span></h3>
-            <p class="text-[0.65vw] text-slate-400 dark:text-slate-500">Da chegada ao atendimento</p>
+        <div class="bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl shadow-sm flex flex-col justify-between">
+            <p class="text-[10px] sm:text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Tempo Médio Espera</p>
+            <h3 id="kpi-media-espera" class="text-2xl sm:text-3xl font-black text-cyan-600 dark:text-cyan-400 font-mono leading-none my-1.5">0 <span class="text-xs font-normal">min</span></h3>
+            <p class="text-[10px] sm:text-xs text-slate-400 dark:text-slate-500">Da chegada ao atendimento</p>
         </div>
 
-        <div class="bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-[1vw] rounded-xl shadow-sm flex flex-col justify-between">
-            <p class="text-[0.65vw] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Tempo Médio Consulta</p>
-            <h3 id="kpi-media-consulta" class="text-[2.2vw] font-black text-indigo-600 dark:text-indigo-400 font-mono leading-none">0 <span class="text-[1vw]">min</span></h3>
-            <p class="text-[0.65vw] text-slate-400 dark:text-slate-500">Duração média médica</p>
+        <div class="bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl shadow-sm flex flex-col justify-between">
+            <p class="text-[10px] sm:text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Tempo Médio Consulta</p>
+            <h3 id="kpi-media-consulta" class="text-2xl sm:text-3xl font-black text-indigo-600 dark:text-indigo-400 font-mono leading-none my-1.5">0 <span class="text-xs font-normal">min</span></h3>
+            <p class="text-[10px] sm:text-xs text-slate-400 dark:text-slate-500">Duração média médica</p>
         </div>
     </div>
 
-    <!-- Charts Section (74vh de Altura) -->
-    <div class="flex-1 w-full grid grid-cols-3 gap-[1vw] overflow-hidden">
-        <div class="col-span-2 bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-xl p-[1vw] shadow-sm flex flex-col justify-between">
-            <h3 class="text-[0.9vw] font-bold text-slate-900 dark:text-white shrink-0">Volume de Pacientes por Horário</h3>
-            <div class="flex-1 w-full relative min-h-0">
+    <!-- Charts Section (Responsivo) -->
+    <div class="w-full grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div class="lg:col-span-2 bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-sm flex flex-col justify-between min-h-[320px]">
+            <h3 class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white shrink-0">Volume de Pacientes por Horário</h3>
+            <div class="flex-1 w-full relative min-h-[240px] mt-2">
                 <canvas id="chart-fluxo-hora"></canvas>
             </div>
         </div>
 
-        <div class="bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-xl p-[1vw] shadow-sm flex flex-col justify-between">
-            <h3 class="text-[0.9vw] font-bold text-slate-900 dark:text-white shrink-0">Distribuição do Fluxo</h3>
-            <div class="flex-1 w-full relative flex items-center justify-center min-h-0">
+        <div class="bg-white/90 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-sm flex flex-col justify-between min-h-[320px]">
+            <h3 class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white shrink-0">Distribuição do Fluxo</h3>
+            <div class="flex-1 w-full relative flex items-center justify-center min-h-[240px] mt-2">
                 <canvas id="chart-status-donut"></canvas>
             </div>
         </div>

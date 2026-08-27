@@ -27,7 +27,8 @@ class SyncMedwareCommand extends Command
         $this
             ->addOption('loop', 'l', InputOption::VALUE_NONE, 'Executa a sincronização em loop contínuo')
             ->addOption('delay', 'd', InputOption::VALUE_OPTIONAL, 'Intervalo em segundos entre sincronizações no modo loop', 5)
-            ->addOption('date', null, InputOption::VALUE_OPTIONAL, 'Data específica para sincronização (formato Y-m-d ou d/m/Y)');
+            ->addOption('date', null, InputOption::VALUE_OPTIONAL, 'Data específica para sincronização (formato Y-m-d ou d/m/Y)')
+            ->addOption('days', 'D', InputOption::VALUE_OPTIONAL, 'Quantidade de dias anteriores para sincronizar em lote histórico', 1);
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -36,6 +37,7 @@ class SyncMedwareCommand extends Command
         $isLoop = $input->getOption('loop');
         $delay = (int) $input->getOption('delay');
         $dateStr = $input->getOption('date');
+        $days = (int) $input->getOption('days');
 
         $data = null;
         if ($dateStr) {
@@ -44,6 +46,32 @@ class SyncMedwareCommand extends Command
                 $io->error('Formato de data inválido. Use Y-m-d ou d/m/Y.');
                 return Command::FAILURE;
             }
+        }
+
+        if ($days > 1) {
+            $io->title("Sincronizando histórico dos últimos {$days} dias com a API Medware...");
+            $totalGeral = 0;
+            $novosGeral = 0;
+            $atualizadosGeral = 0;
+
+            for ($i = $days - 1; $i >= 0; $i--) {
+                $dt = (new \DateTime())->modify("-{$i} days");
+                $diaFormatado = $dt->format('d/m/Y');
+                $io->write("Sincronizando {$diaFormatado}... ");
+                $res = $this->medwareClient->sincronizarAgendamentosHoje($dt);
+
+                if (isset($res['erro'])) {
+                    $io->writeln("<comment>{$res['erro']}</comment>");
+                } else {
+                    $totalGeral += $res['total'];
+                    $novosGeral += $res['novos'];
+                    $atualizadosGeral += $res['atualizados'];
+                    $io->writeln("<info>OK ({$res['total']} registros)</info>");
+                }
+            }
+
+            $io->success("Carga histórica concluída! Total processado: {$totalGeral} (Novos: {$novosGeral}, Atualizados: {$atualizadosGeral})");
+            return Command::SUCCESS;
         }
 
         if ($isLoop) {
