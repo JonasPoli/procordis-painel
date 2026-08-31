@@ -28,32 +28,56 @@ class RelatorioService
      * @param int|null $ano Ex: 2026
      * @param int|null $mes Ex: 8
      */
-    public function obterRelatorioProcedimentos(string $tipoPeriodo = 'ultimos_6_meses', ?int $ano = null, ?int $mes = null): array
+    public function obterRelatorioProcedimentos(string $tipoPeriodo = 'ultimos_6_meses', ?int $ano = null, ?int $mes = null, ?string $dataInicioCustom = null, ?string $dataFimCustom = null): array
     {
         $hoje = new \DateTime();
         $ano = $ano ?? (int) $hoje->format('Y');
         $mes = $mes ?? (int) $hoje->format('m');
 
-        if ($tipoPeriodo === 'mes_especifico') {
+        $qb = $this->agendamentoRepo->createQueryBuilder('a')
+            ->leftJoin('a.paciente', 'p')->addSelect('p')
+            ->leftJoin('a.medico', 'm')->addSelect('m')
+            ->leftJoin('a.especialidade', 'e')->addSelect('e')
+            ->orderBy('a.dataHoraAgendada', 'ASC');
+
+        if ($tipoPeriodo === 'sem_filtro') {
+            $rotuloPeriodo = 'Todo o Histórico (Sem filtro de data)';
+            $dataInicio = null;
+            $dataFim = null;
+        } elseif ($tipoPeriodo === 'ano_especifico') {
+            $dataInicio = new \DateTime("{$ano}-01-01 00:00:00");
+            $dataFim = new \DateTime("{$ano}-12-31 23:59:59");
+            $rotuloPeriodo = "Ano {$ano}";
+            $qb->where('a.dataHoraAgendada BETWEEN :inicio AND :fim')
+               ->setParameter('inicio', $dataInicio)
+               ->setParameter('fim', $dataFim);
+        } elseif ($tipoPeriodo === 'personalizado' && !empty($dataInicioCustom) && !empty($dataFimCustom)) {
+            $dataInicio = \DateTime::createFromFormat('Y-m-d', $dataInicioCustom);
+            $dataFim = \DateTime::createFromFormat('Y-m-d', $dataFimCustom);
+            if ($dataInicio && $dataFim) {
+                $dataInicio->setTime(0, 0, 0);
+                $dataFim->setTime(23, 59, 59);
+                $rotuloPeriodo = 'Período Personalizado (' . $dataInicio->format('d/m/Y') . ' a ' . $dataFim->format('d/m/Y') . ')';
+                $qb->where('a.dataHoraAgendada BETWEEN :inicio AND :fim')
+                   ->setParameter('inicio', $dataInicio)
+                   ->setParameter('fim', $dataFim);
+            }
+        } elseif ($tipoPeriodo === 'mes_especifico') {
             $dataInicio = new \DateTime("{$ano}-{$mes}-01 00:00:00");
             $dataFim = (clone $dataInicio)->modify('last day of this month')->setTime(23, 59, 59);
             $rotuloPeriodo = $dataInicio->format('m/Y');
+            $qb->where('a.dataHoraAgendada BETWEEN :inicio AND :fim')
+               ->setParameter('inicio', $dataInicio)
+               ->setParameter('fim', $dataFim);
         } else {
             // últimos 6 meses
             $dataFim = (clone $hoje)->setTime(23, 59, 59);
             $dataInicio = (clone $hoje)->modify('-5 months')->modify('first day of this month')->setTime(0, 0, 0);
             $rotuloPeriodo = 'Últimos 6 meses (' . $dataInicio->format('m/Y') . ' a ' . $dataFim->format('m/Y') . ')';
+            $qb->where('a.dataHoraAgendada BETWEEN :inicio AND :fim')
+               ->setParameter('inicio', $dataInicio)
+               ->setParameter('fim', $dataFim);
         }
-
-        // Buscar agendamentos no período
-        $qb = $this->agendamentoRepo->createQueryBuilder('a')
-            ->leftJoin('a.paciente', 'p')->addSelect('p')
-            ->leftJoin('a.medico', 'm')->addSelect('m')
-            ->leftJoin('a.especialidade', 'e')->addSelect('e')
-            ->where('a.dataHoraAgendada BETWEEN :inicio AND :fim')
-            ->setParameter('inicio', $dataInicio)
-            ->setParameter('fim', $dataFim)
-            ->orderBy('a.dataHoraAgendada', 'ASC');
 
         /** @var Agendamento[] $agendamentos */
         $agendamentos = $qb->getQuery()->getResult();

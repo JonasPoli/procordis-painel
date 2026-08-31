@@ -23,11 +23,15 @@ class RelatorioAdminController extends AbstractController
         $tipoPeriodo = $request->query->get('tipoPeriodo', 'ultimos_6_meses');
         $ano = $request->query->get('ano') ? (int) $request->query->get('ano') : (int) date('Y');
         $mes = $request->query->get('mes') ? (int) $request->query->get('mes') : (int) date('m');
+        $dataInicioCustom = $request->query->get('dataInicio');
+        $dataFimCustom = $request->query->get('dataFim');
 
         $page = max(1, (int) $request->query->get('page', 1));
         $limit = 100;
 
-        $dados = $this->relatorioService->obterRelatorioProcedimentos($tipoPeriodo, $ano, $mes);
+        $dados = $this->relatorioService->obterRelatorioProcedimentos($tipoPeriodo, $ano, $mes, $dataInicioCustom, $dataFimCustom);
+        $dados['dataInicioCustom'] = $dataInicioCustom;
+        $dados['dataFimCustom'] = $dataFimCustom;
 
         $todosAgendamentos = $dados['agendamentos'];
         $totalItems = count($todosAgendamentos);
@@ -52,8 +56,10 @@ class RelatorioAdminController extends AbstractController
         $tipoPeriodo = $request->query->get('tipoPeriodo', 'ultimos_6_meses');
         $ano = $request->query->get('ano') ? (int) $request->query->get('ano') : (int) date('Y');
         $mes = $request->query->get('mes') ? (int) $request->query->get('mes') : (int) date('m');
+        $dataInicioCustom = $request->query->get('dataInicio');
+        $dataFimCustom = $request->query->get('dataFim');
 
-        $dados = $this->relatorioService->obterRelatorioProcedimentos($tipoPeriodo, $ano, $mes);
+        $dados = $this->relatorioService->obterRelatorioProcedimentos($tipoPeriodo, $ano, $mes, $dataInicioCustom, $dataFimCustom);
 
         $response = new StreamedResponse(function () use ($dados) {
             $handle = fopen('php://output', 'w+');

@@ -52,12 +52,36 @@
                 <thead>
                     <tr class="border-b border-slate-200 dark:border-slate-800 text-xs font-bold uppercase text-slate-500">
                         <th class="py-3 px-4">Código</th>
-                        <th class="py-3 px-4">Data/Hora</th>
-                        <th class="py-3 px-4">Paciente</th>
-                        <th class="py-3 px-4">Procedimento / Exame</th>
-                        <th class="py-3 px-4">Médico</th>
-                        <th class="py-3 px-4">Financiamento</th>
-                        <th class="py-3 px-4">Status</th>
+                        <th class="py-3 px-4">
+                            <a href="{{ path('app_admin_agendamento_index', app.request.query.all|merge({'sort': 'data', 'dir': (sort == 'data' and dir == 'asc') ? 'desc' : 'asc'})) }}" class="flex items-center gap-1 hover:text-cyan-500 transition">
+                                Data/Hora {% if sort == 'data' %}{{ dir == 'asc' ? '▲' : '▼' }}{% endif %}
+                            </a>
+                        </th>
+                        <th class="py-3 px-4">
+                            <a href="{{ path('app_admin_agendamento_index', app.request.query.all|merge({'sort': 'paciente', 'dir': (sort == 'paciente' and dir == 'asc') ? 'desc' : 'asc'})) }}" class="flex items-center gap-1 hover:text-cyan-500 transition">
+                                Paciente {% if sort == 'paciente' %}{{ dir == 'asc' ? '▲' : '▼' }}{% endif %}
+                            </a>
+                        </th>
+                        <th class="py-3 px-4">
+                            <a href="{{ path('app_admin_agendamento_index', app.request.query.all|merge({'sort': 'procedimento', 'dir': (sort == 'procedimento' and dir == 'asc') ? 'desc' : 'asc'})) }}" class="flex items-center gap-1 hover:text-cyan-500 transition">
+                                Procedimento / Exame {% if sort == 'procedimento' %}{{ dir == 'asc' ? '▲' : '▼' }}{% endif %}
+                            </a>
+                        </th>
+                        <th class="py-3 px-4">
+                            <a href="{{ path('app_admin_agendamento_index', app.request.query.all|merge({'sort': 'medico', 'dir': (sort == 'medico' and dir == 'asc') ? 'desc' : 'asc'})) }}" class="flex items-center gap-1 hover:text-cyan-500 transition">
+                                Médico {% if sort == 'medico' %}{{ dir == 'asc' ? '▲' : '▼' }}{% endif %}
+                            </a>
+                        </th>
+                        <th class="py-3 px-4">
+                            <a href="{{ path('app_admin_agendamento_index', app.request.query.all|merge({'sort': 'convenio', 'dir': (sort == 'convenio' and dir == 'asc') ? 'desc' : 'asc'})) }}" class="flex items-center gap-1 hover:text-cyan-500 transition">
+                                Financiamento {% if sort == 'convenio' %}{{ dir == 'asc' ? '▲' : '▼' }}{% endif %}
+                            </a>
+                        </th>
+                        <th class="py-3 px-4">
+                            <a href="{{ path('app_admin_agendamento_index', app.request.query.all|merge({'sort': 'status', 'dir': (sort == 'status' and dir == 'asc') ? 'desc' : 'asc'})) }}" class="flex items-center gap-1 hover:text-cyan-500 transition">
+                                Status {% if sort == 'status' %}{{ dir == 'asc' ? '▲' : '▼' }}{% endif %}
+                            </a>
+                        </th>
                         <th class="py-3 px-4 text-right">Prontuário & Histórico</th>
                     </tr>
                 </thead>
@@ -115,14 +139,17 @@
                 </span>
 
                 <div class="flex items-center gap-1">
-                    <!-- Botão Anterior -->
+                    <!-- Primeira Página -->
                     {% if page > 1 %}
+                        <a href="{{ path('app_admin_agendamento_index', app.request.query.all|merge({'page': 1})) }}" class="px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-lg transition" title="Primeira Página">
+                            &laquo;&laquo; Primeira
+                        </a>
                         <a href="{{ path('app_admin_agendamento_index', app.request.query.all|merge({'page': page - 1})) }}" class="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-lg transition">
-                            &laquo; Anterior
+                            &laquo; Anter.
                         </a>
                     {% endif %}
 
-                    <!-- Páginas -->
+                    <!-- Páginas intermediárias -->
                     {% set startPage = max(1, page - 2) %}
                     {% set endPage = min(totalPages, page + 2) %}
 
@@ -132,10 +159,13 @@
                         </a>
                     {% endfor %}
 
-                    <!-- Botão Próximo -->
+                    <!-- Próxima e Última Página -->
                     {% if page < totalPages %}
                         <a href="{{ path('app_admin_agendamento_index', app.request.query.all|merge({'page': page + 1})) }}" class="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-lg transition">
-                            Próximo &raquo;
+                            Próx. &raquo;
+                        </a>
+                        <a href="{{ path('app_admin_agendamento_index', app.request.query.all|merge({'page': totalPages})) }}" class="px-2.5 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-lg transition" title="Última Página">
+                            Última ({{ totalPages }}) &raquo;&raquo;
                         </a>
                     {% endif %}
                 </div>

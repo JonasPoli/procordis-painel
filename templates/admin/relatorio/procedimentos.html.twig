@@ -15,23 +15,27 @@
         </div>
 
         <div class="flex flex-wrap items-center gap-3">
-            <a href="{{ path('app_admin_relatorio_procedimentos_csv', {tipoPeriodo: dados.tipoPeriodo, ano: dados.ano, mes: dados.mes}) }}" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center gap-2 shadow-sm transition">
-                <sl-icon name="download"></sl-icon> Exportar CSV
+            <a href="{{ path('app_admin_relatorio_procedimentos_csv', app.request.query.all) }}" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center gap-2 shadow-sm transition">
+                <sl-icon name="download"></sl-icon> Exportar CSV Completo
             </a>
         </div>
     </div>
 
-    <!-- Filtro de Período -->
+    <!-- Filtro de Período Ampliado -->
     <div class="bg-white/80 dark:bg-slate-900/80 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
         <form method="GET" action="{{ path('app_admin_relatorio_procedimentos') }}" class="flex flex-wrap items-center gap-4">
             <div class="flex items-center gap-2">
                 <label class="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Período:</label>
-                <select name="tipoPeriodo" id="tipoPeriodoSelect" class="bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-1.5 text-xs text-slate-800 dark:text-slate-200 font-medium focus:ring-2 focus:ring-cyan-500 focus:outline-none" onchange="toggleFiltroMes()">
+                <select name="tipoPeriodo" id="tipoPeriodoSelect" class="bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-1.5 text-xs text-slate-800 dark:text-slate-200 font-medium focus:ring-2 focus:ring-cyan-500 focus:outline-none" onchange="toggleFiltroPeriodo()">
                     <option value="ultimos_6_meses" {% if dados.tipoPeriodo == 'ultimos_6_meses' %}selected{% endif %}>Últimos 6 Meses</option>
                     <option value="mes_especifico" {% if dados.tipoPeriodo == 'mes_especifico' %}selected{% endif %}>Mês Específico</option>
+                    <option value="ano_especifico" {% if dados.tipoPeriodo == 'ano_especifico' %}selected{% endif %}>Por Ano Inteiro</option>
+                    <option value="personalizado" {% if dados.tipoPeriodo == 'personalizado' %}selected{% endif %}>Período Personalizado (De / Até)</option>
+                    <option value="sem_filtro" {% if dados.tipoPeriodo == 'sem_filtro' %}selected{% endif %}>Tudo (Sem filtro de data)</option>
                 </select>
             </div>
 
+            <!-- Seleção de Mês + Ano -->
             <div id="containerMesEspecifico" class="flex items-center gap-2 {% if dados.tipoPeriodo != 'mes_especifico' %}hidden{% endif %}">
                 <select name="mes" class="bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-1.5 text-xs text-slate-800 dark:text-slate-200 font-medium focus:ring-2 focus:ring-cyan-500 focus:outline-none">
                     {% for m in 1..12 %}
@@ -40,16 +44,26 @@
                         </option>
                     {% endfor %}
                 </select>
+            </div>
 
+            <!-- Seleção de Ano Inteiro -->
+            <div id="containerAnoEspecifico" class="flex items-center gap-2 {% if dados.tipoPeriodo != 'mes_especifico' and dados.tipoPeriodo != 'ano_especifico' %}hidden{% endif %}">
                 <select name="ano" class="bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-1.5 text-xs text-slate-800 dark:text-slate-200 font-medium focus:ring-2 focus:ring-cyan-500 focus:outline-none">
                     {% for a in "now"|date("Y")..2005 %}
-                        <option value="{{ a }}" {% if dados.ano == a %}selected{% endif %}>{{ a }}</option>
+                        <option value="{{ a }}" {% if dados.ano == a %}selected{% endif %}>Ano {{ a }}</option>
                     {% endfor %}
                 </select>
             </div>
 
-            <button type="submit" class="px-4 py-1.5 bg-cyan-600 hover:bg-cyan-700 text-white font-bold text-xs rounded-xl transition shadow-sm">
-                Filtrar Relatório
+            <!-- Período Personalizado (Data Início / Data Fim) -->
+            <div id="containerPersonalizado" class="flex items-center gap-2 {% if dados.tipoPeriodo != 'personalizado' %}hidden{% endif %}">
+                <input type="date" name="dataInicio" value="{{ dados.dataInicioCustom }}" class="bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-1.5 text-xs text-slate-800 dark:text-slate-200 font-medium">
+                <span class="text-xs text-slate-400">até</span>
+                <input type="date" name="dataFim" value="{{ dados.dataFimCustom }}" class="bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-1.5 text-xs text-slate-800 dark:text-slate-200 font-medium">
+            </div>
+
+            <button type="submit" class="px-4 py-1.5 bg-cyan-600 hover:bg-cyan-700 text-white font-bold text-xs rounded-xl transition shadow-sm flex items-center gap-1">
+                <sl-icon name="funnel-fill"></sl-icon> Filtrar Relatório
             </button>
         </form>
     </div>
@@ -411,13 +425,29 @@
 </div>
 
 <script>
-    function toggleFiltroMes() {
+    function toggleFiltroPeriodo() {
         const select = document.getElementById('tipoPeriodoSelect');
-        const container = document.getElementById('containerMesEspecifico');
-        if (select.value === 'mes_especifico') {
-            container.classList.remove('hidden');
+        const containerMes = document.getElementById('containerMesEspecifico');
+        const containerAno = document.getElementById('containerAnoEspecifico');
+        const containerPersonalizado = document.getElementById('containerPersonalizado');
+
+        const val = select.value;
+        if (val === 'mes_especifico') {
+            containerMes.classList.remove('hidden');
+            containerAno.classList.remove('hidden');
+            containerPersonalizado.classList.add('hidden');
+        } else if (val === 'ano_especifico') {
+            containerMes.classList.add('hidden');
+            containerAno.classList.remove('hidden');
+            containerPersonalizado.classList.add('hidden');
+        } else if (val === 'personalizado') {
+            containerMes.classList.add('hidden');
+            containerAno.classList.add('hidden');
+            containerPersonalizado.classList.remove('hidden');
         } else {
-            container.classList.add('hidden');
+            containerMes.classList.add('hidden');
+            containerAno.classList.add('hidden');
+            containerPersonalizado.classList.add('hidden');
         }
     }
 

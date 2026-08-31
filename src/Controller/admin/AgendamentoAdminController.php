@@ -25,11 +25,35 @@ class AgendamentoAdminController extends AbstractController
         $statusStr = $request->query->get('status');
         $busca = trim((string) $request->query->get('busca', ''));
 
+        $sort = $request->query->get('sort', 'data');
+        $dir = strtolower($request->query->get('dir', 'desc')) === 'asc' ? 'ASC' : 'DESC';
+
         $qb = $this->agendamentoRepo->createQueryBuilder('a')
             ->leftJoin('a.paciente', 'p')->addSelect('p')
             ->leftJoin('a.medico', 'm')->addSelect('m')
-            ->leftJoin('a.especialidade', 'e')->addSelect('e')
-            ->orderBy('a.dataHoraAgendada', 'DESC');
+            ->leftJoin('a.especialidade', 'e')->addSelect('e');
+
+        switch ($sort) {
+            case 'paciente':
+                $qb->orderBy('p.nomeCompleto', $dir);
+                break;
+            case 'procedimento':
+                $qb->orderBy('a.procedimentoNome', $dir);
+                break;
+            case 'medico':
+                $qb->orderBy('m.nome', $dir);
+                break;
+            case 'convenio':
+                $qb->orderBy('a.convenioNome', $dir);
+                break;
+            case 'status':
+                $qb->orderBy('a.status', $dir);
+                break;
+            case 'data':
+            default:
+                $qb->orderBy('a.dataHoraAgendada', $dir);
+                break;
+        }
 
         if (!empty($dtInicioStr)) {
             $dtInicio = \DateTime::createFromFormat('Y-m-d', $dtInicioStr);
@@ -77,6 +101,8 @@ class AgendamentoAdminController extends AbstractController
             'dataFim' => $dtFimStr,
             'status' => $statusStr,
             'busca' => $busca,
+            'sort' => $sort,
+            'dir' => strtolower($dir),
             'page' => $page,
             'totalPages' => $totalPages,
             'totalItems' => $totalItems,
