@@ -441,7 +441,7 @@
         const ctxLinha = document.getElementById('graficoEvolucaoTemporal');
         if (ctxLinha) {
             const diasLabels = {{ dados.porDia|keys|json_encode|raw }};
-            const diasData = {{ dados.porDia|values|json_encode|raw }};
+            const diasData = {{ dados.porDia|array_values|json_encode|raw }};
 
             new Chart(ctxLinha, {
                 type: 'line',
