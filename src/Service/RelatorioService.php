@@ -79,10 +79,14 @@ class RelatorioService
                ->setParameter('fim', $dataFim);
         }
 
-        /** @var Agendamento[] $agendamentos */
-        $agendamentos = $qb->getQuery()->getResult();
+        // 1. Contar total de procedimentos no período
+        $countQb = clone $qb;
+        $totalProcedimentos = (int) $countQb->select('COUNT(a.id)')->getQuery()->getSingleScalarResult();
 
-        $totalProcedimentos = count($agendamentos);
+        // 2. Trazer apenas os campos estritamente necessários em formato Array escalar
+        $items = $qb->select('a.id, a.dataHoraAgendada, a.createdAt, a.tipoAtendimento, a.convenioNome, a.procedimentoNome, a.status, p.nomeCompleto as pacienteNome, m.nome as medicoNome, e.nome as especialidadeNome')
+            ->getQuery()
+            ->getArrayResult();
 
         // Contadores de Financiamento / Convênio
         $countSus = 0;
@@ -100,8 +104,8 @@ class RelatorioService
         $porEspecialidade = [];
         $porMedico = [];
 
-        foreach ($agendamentos as $ag) {
-            $tipoAt = strtolower($ag->getTipoAtendimento() ?? 'sus');
+        foreach ($items as $item) {
+            $tipoAt = strtolower($item['tipoAtendimento'] ?? 'sus');
             if (str_contains($tipoAt, 'sus')) {
                 $countSus++;
             } elseif (str_contains($tipoAt, 'filantrop')) {
@@ -112,7 +116,11 @@ class RelatorioService
                 $countConvenio++;
             }
 
-            $dt = $ag->getDataHoraAgendada() ?? $ag->getCreatedAt();
+            $dt = $item['dataHoraAgendada'] ?? $item['createdAt'];
+            if (!$dt instanceof \DateTimeInterface) {
+                $dt = new \DateTime($dt ?? 'now');
+            }
+
             $chaveDia = $dt->format('Y-m-d');
             $chaveSemana = 'Semana ' . $dt->format('W/Y');
             $chaveMes = $dt->format('m/Y');
@@ -128,13 +136,13 @@ class RelatorioService
             $porSemestre[$chaveSemestre] = ($porSemestre[$chaveSemestre] ?? 0) + 1;
             $porAno[$chaveAno] = ($porAno[$chaveAno] ?? 0) + 1;
 
-            $nomeProc = $ag->getProcedimentoNome() ?? 'Consulta / Procedimento Geral';
+            $nomeProc = $item['procedimentoNome'] ?? 'Consulta / Procedimento Geral';
             $porProcedimento[$nomeProc] = ($porProcedimento[$nomeProc] ?? 0) + 1;
 
-            $espNome = $ag->getEspecialidade() ? $ag->getEspecialidade()->getNome() : 'Sem Especialidade';
+            $espNome = $item['especialidadeNome'] ?? 'Sem Especialidade';
             $porEspecialidade[$espNome] = ($porEspecialidade[$espNome] ?? 0) + 1;
 
-            $medicoNome = $ag->getMedico() ? $ag->getMedico()->getNome() : 'Não Atribuído';
+            $medicoNome = $item['medicoNome'] ?? 'Não Atribuído';
             $porMedico[$medicoNome] = ($porMedico[$medicoNome] ?? 0) + 1;
         }
 
@@ -180,7 +188,7 @@ class RelatorioService
             'porProcedimento' => $porProcedimento,
             'porEspecialidade' => $porEspecialidade,
             'porMedico' => $porMedico,
-            'agendamentos' => $agendamentos,
+            'agendamentos' => $items,
         ];
     }
 
