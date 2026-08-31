@@ -39,14 +39,16 @@ class BackupRestoreService
         $hoje = new \DateTime();
         $conn = $this->em->getConnection();
 
+        $tempDir = $this->obterDiretorioTemp();
+
         if (!$caminhoSaida) {
-            $caminhoSaida = sys_get_temp_dir() . '/procordis_backup_' . $hoje->format('Ymd_His') . '.procordis.bak';
+            $caminhoSaida = $tempDir . '/procordis_backup_' . $hoje->format('Ymd_His') . '.procordis.bak';
         }
 
-        $jsonTempPath = sys_get_temp_dir() . '/procordis_raw_' . uniqid() . '.json';
+        $jsonTempPath = $tempDir . '/procordis_raw_' . uniqid() . '.json';
         $fp = fopen($jsonTempPath, 'wb');
         if (!$fp) {
-            throw new \RuntimeException("Não foi possível criar o arquivo temporário de backup.");
+            throw new \RuntimeException("Não foi possível criar o arquivo temporário de backup em: {$jsonTempPath}");
         }
 
         $metadata = [
@@ -276,5 +278,18 @@ class BackupRestoreService
         }
 
         $conn->executeStatement('SET FOREIGN_KEY_CHECKS=1;');
+    }
+
+    private function obterDiretorioTemp(): string
+    {
+        $projectDir = dirname(__DIR__, 2);
+        $backupDir = $projectDir . '/var/backup';
+        if (!is_dir($backupDir)) {
+            @mkdir($backupDir, 0777, true);
+        }
+        if (is_dir($backupDir) && is_writable($backupDir)) {
+            return $backupDir;
+        }
+        return sys_get_temp_dir();
     }
 }
