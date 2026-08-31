@@ -51,7 +51,7 @@ class PacienteAdminController extends AbstractController
         $agendamentos = $this->agendamentoRepo->createQueryBuilder('a')
             ->leftJoin('a.medico', 'm')->addSelect('m')
             ->leftJoin('a.especialidade', 'e')->addSelect('e')
-            ->leftJoin('a.etapasHistorico', 'h')->addSelect('h')
+            ->leftJoin('a.historicoEtapas', 'h')->addSelect('h')
             ->where('a.paciente = :paciente')
             ->setParameter('paciente', $paciente)
             ->orderBy('a.dataHoraAgendada', 'DESC')

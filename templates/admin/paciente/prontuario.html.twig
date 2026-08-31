@@ -86,7 +86,7 @@
 
                 <!-- Anamneses e Sinais Vitais do Atendimento -->
                 {% set etapasComAnamnese = [] %}
-                {% for et in a.etapasHistorico %}
+                {% for et in a.historicoEtapas %}
                     {% if et.pressaoArterial or et.queixaPrincipal or et.classificacaoRisco %}
                         {% set etapasComAnamnese = etapasComAnamnese|merge([et]) %}
                     {% endif %}
