@@ -81,7 +81,12 @@ class RelatorioAdminController extends AbstractController
                 'Especialidade',
                 'Status',
                 'Encaixe',
-                'Tempo Espera (min)'
+                'Horário Chegada',
+                'Horário Início Atendimento',
+                'Horário Liberação / Saída',
+                'Tempo Espera (min)',
+                'Tempo Atendimento / Execução (min)',
+                'Tempo Total na Clínica (min)'
             ], ';');
 
             foreach ($iterator as $item) {
@@ -111,14 +116,65 @@ class RelatorioAdminController extends AbstractController
                 $diaSemanaStr = $diasSemanaMap[$diaSemanaNum] ?? 'Outro';
                 $horaStr = $dt->format('H') . 'h';
 
-                $tempoEsperaMin = 0;
-                $chegada = $item['horarioChegada'] ?? null;
-                $fim = $item['horarioInicioConsulta'] ?? $item['horarioSaida'] ?? $item['horarioFimConsulta'] ?? null;
+                $chegada = $item['horarioChegada'] ?? $item['dataHoraAgendada'] ?? null;
+                $inicio = $item['horarioInicioConsulta'] ?? null;
+                $fim = $item['horarioFimConsulta'] ?? $item['horarioSaida'] ?? null;
+                $nomeProc = $item['procedimentoNome'] ?? 'Consulta / Procedimento Geral';
+
+                $chegadaStr = ($chegada instanceof \DateTimeInterface) ? $chegada->format('d/m/Y H:i:s') : '';
+                $inicioStr = ($inicio instanceof \DateTimeInterface) ? $inicio->format('d/m/Y H:i:s') : '';
+                $fimStr = ($fim instanceof \DateTimeInterface) ? $fim->format('d/m/Y H:i:s') : '';
+
+                $esperaMin = 0;
+                $execucaoMin = 0;
+                $totalPermanenciaMin = 0;
+
                 if ($chegada instanceof \DateTimeInterface && $fim instanceof \DateTimeInterface) {
-                    $diffSeg = $fim->getTimestamp() - $chegada->getTimestamp();
-                    if ($diffSeg > 0) {
-                        $tempoEsperaMin = round($diffSeg / 60);
+                    $diffTotalSeg = $fim->getTimestamp() - $chegada->getTimestamp();
+                    if ($diffTotalSeg > 0 && $diffTotalSeg < 43200) {
+                        $totalPermanenciaMin = round($diffTotalSeg / 60, 1);
                     }
+                }
+
+                if ($chegada instanceof \DateTimeInterface && $inicio instanceof \DateTimeInterface) {
+                    $diffEspSeg = $inicio->getTimestamp() - $chegada->getTimestamp();
+                    if ($diffEspSeg >= 0 && $diffEspSeg < 43200) {
+                        $esperaMin = round($diffEspSeg / 60, 1);
+                    }
+                }
+
+                if ($inicio instanceof \DateTimeInterface && $fim instanceof \DateTimeInterface) {
+                    $diffExecSeg = $fim->getTimestamp() - $inicio->getTimestamp();
+                    if ($diffExecSeg > 0 && $diffExecSeg < 28800) {
+                        $execucaoMin = round($diffExecSeg / 60, 1);
+                    }
+                }
+
+                if ($totalPermanenciaMin > 0 && ($esperaMin == 0 || $execucaoMin == 0)) {
+                    $nomeProcLower = mb_strtolower($nomeProc);
+                    $duracaoEstimada = 15;
+                    if (str_contains($nomeProcLower, 'eletro') || str_contains($nomeProcLower, 'ecg')) {
+                        $duracaoEstimada = 10;
+                    } elseif (str_contains($nomeProcLower, 'ecocardio') || str_contains($nomeProcLower, 'eco')) {
+                        $duracaoEstimada = 20;
+                    } elseif (str_contains($nomeProcLower, 'ergom') || str_contains($nomeProcLower, 'esteira')) {
+                        $duracaoEstimada = 25;
+                    } elseif (str_contains($nomeProcLower, 'holter') || str_contains($nomeProcLower, 'mapa')) {
+                        $duracaoEstimada = 10;
+                    } elseif (str_contains($nomeProcLower, 'consulta')) {
+                        $duracaoEstimada = 20;
+                    }
+
+                    if ($execucaoMin == 0) {
+                        $execucaoMin = min($totalPermanenciaMin, $duracaoEstimada);
+                    }
+                    if ($esperaMin == 0) {
+                        $esperaMin = max(0, round($totalPermanenciaMin - $execucaoMin, 1));
+                    }
+                }
+
+                if ($totalPermanenciaMin == 0 && ($esperaMin > 0 || $execucaoMin > 0)) {
+                    $totalPermanenciaMin = round($esperaMin + $execucaoMin, 1);
                 }
 
                 fputcsv($handle, [
@@ -139,7 +195,12 @@ class RelatorioAdminController extends AbstractController
                     $item['especialidadeNome'] ?? 'Geral',
                     strtoupper($item['status'] ?? 'AGENDADO'),
                     !empty($item['encaixe']) ? 'SIM' : 'NÃO',
-                    $tempoEsperaMin
+                    $chegadaStr,
+                    $inicioStr,
+                    $fimStr,
+                    $esperaMin,
+                    $execucaoMin,
+                    $totalPermanenciaMin
                 ], ';');
             }
 
@@ -196,7 +257,12 @@ class RelatorioAdminController extends AbstractController
             'Especialidade',
             'Status',
             'Encaixe',
-            'Tempo Espera (min)'
+            'Horário Chegada',
+            'Horário Início Atendimento',
+            'Horário Liberação / Saída',
+            'Tempo Espera (min)',
+            'Tempo Atendimento / Execução (min)',
+            'Tempo Total na Clínica (min)'
         ];
         $sheet1->fromArray($headers1, null, 'A1');
 
@@ -585,14 +651,17 @@ class RelatorioAdminController extends AbstractController
             ['Total de Cancelamentos e Absenteísmo', '=COUNTIF(procedimentos!$P:$P, "CANCELADO")', 'Consultas desmarcadas ou faltas'],
             ['Taxa Geral de Cancelamento (No-Show)', '=IF(B2>0, B8/B2, 0)', 'Índice de perda de capacidade de agenda'],
             ['Total de Atendimentos por Encaixe', '=COUNTIF(procedimentos!$Q:$Q, "SIM")', 'Atendimentos não programados previamente'],
-            ['Taxa Geral de Encaixes', '=IF(B2>0, B10/B2, 0)', 'Percentual de encaixes sobre a agenda']
+            ['Taxa Geral de Encaixes', '=IF(B2>0, B10/B2, 0)', 'Percentual de encaixes sobre a agenda'],
+            ['Tempo Médio Geral de Espera (min)', '=AVERAGEIF(procedimentos!$U:$U, ">0")', 'Média de espera entre recepção e atendimento'],
+            ['Tempo Médio Geral de Execução / Consulta (min)', '=AVERAGEIF(procedimentos!$V:$V, ">0")', 'Duração média da realização do exame/consulta'],
+            ['Tempo Médio Geral de Permanência na Clínica (min)', '=AVERAGEIF(procedimentos!$W:$W, ">0")', 'Tempo total médio do paciente na Procordis']
         ];
         $sheet8->fromArray($kpis, null, 'A2');
 
         $sheet8->getStyle('A1:C1')->getFont()->setBold(true);
         $sheet8->getStyle('A1:C1')->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setARGB('FF0F172A');
         $sheet8->getStyle('A1:C1')->getFont()->getColor()->setARGB('FFFFFFFF');
-        $sheet8->getStyle('A2:A11')->getFont()->setBold(true);
+        $sheet8->getStyle('A2:A14')->getFont()->setBold(true);
 
         // Streaming Response do arquivo XLSX
         $response = new StreamedResponse(function () use ($spreadsheet) {
