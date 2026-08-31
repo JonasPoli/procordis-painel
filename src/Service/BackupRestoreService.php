@@ -33,8 +33,13 @@ class BackupRestoreService
      */
     public function gerarBackup(?string $caminhoSaida = null): string
     {
-        @ini_set('memory_limit', '512M');
-        @set_time_limit(300);
+        if (function_exists('ini_set')) {
+            @ini_set('memory_limit', '512M');
+            @ini_set('max_execution_time', '300');
+        }
+        if (function_exists('set_time_limit')) {
+            @set_time_limit(300);
+        }
 
         $hoje = new \DateTime();
         $conn = $this->em->getConnection();
@@ -133,8 +138,13 @@ class BackupRestoreService
      */
     public function restaurarBackup(string $caminhoArquivo, bool $modoLimpo = true): array
     {
-        @ini_set('memory_limit', '512M');
-        @set_time_limit(300);
+        if (function_exists('ini_set')) {
+            @ini_set('memory_limit', '512M');
+            @ini_set('max_execution_time', '300');
+        }
+        if (function_exists('set_time_limit')) {
+            @set_time_limit(300);
+        }
 
         if (!file_exists($caminhoArquivo)) {
             throw new \InvalidArgumentException("Arquivo de backup não encontrado.");
