@@ -34,6 +34,21 @@ class AtendimentoEtapaHistorico
     #[ORM\Column(length: 150, nullable: true)]
     private ?string $responsavel = null;
 
+    #[ORM\Column(length: 20, nullable: true)]
+    private ?string $pressaoArterial = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?int $frequenciaCardiaca = null;
+
+    #[ORM\Column(type: Types::FLOAT, nullable: true)]
+    private ?float $peso = null;
+
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    private ?string $queixaPrincipal = null;
+
+    #[ORM\Column(length: 30, nullable: true)]
+    private ?string $classificacaoRisco = null; // verde, amarelo, vermelho, azul
+
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: true)]
     private ?SetorSala $setorSala = null;
@@ -114,6 +129,61 @@ class AtendimentoEtapaHistorico
     public function setResponsavel(?string $responsavel): static
     {
         $this->responsavel = $responsavel;
+        return $this;
+    }
+
+    public function getPressaoArterial(): ?string
+    {
+        return $this->pressaoArterial;
+    }
+
+    public function setPressaoArterial(?string $pressaoArterial): static
+    {
+        $this->pressaoArterial = $pressaoArterial;
+        return $this;
+    }
+
+    public function getFrequenciaCardiaca(): ?int
+    {
+        return $this->frequenciaCardiaca;
+    }
+
+    public function setFrequenciaCardiaca(?int $frequenciaCardiaca): static
+    {
+        $this->frequenciaCardiaca = $frequenciaCardiaca;
+        return $this;
+    }
+
+    public function getPeso(): ?float
+    {
+        return $this->peso;
+    }
+
+    public function setPeso(?float $peso): static
+    {
+        $this->peso = $peso;
+        return $this;
+    }
+
+    public function getQueixaPrincipal(): ?string
+    {
+        return $this->queixaPrincipal;
+    }
+
+    public function setQueixaPrincipal(?string $queixaPrincipal): static
+    {
+        $this->queixaPrincipal = $queixaPrincipal;
+        return $this;
+    }
+
+    public function getClassificacaoRisco(): ?string
+    {
+        return $this->classificacaoRisco;
+    }
+
+    public function setClassificacaoRisco(?string $classificacaoRisco): static
+    {
+        $this->classificacaoRisco = $classificacaoRisco;
         return $this;
     }
 

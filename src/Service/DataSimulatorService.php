@@ -222,6 +222,10 @@ class DataSimulatorService
                     $dtChegada = (clone $agora)->modify("-{$minutosAtras} minutes");
                     $dtAgendada = (clone $dtChegada)->modify('-15 minutes');
 
+                    $tipos = ['sus', 'sus', 'sus', 'filantropico', 'convenio'];
+                    $convenios = ['SUS - Sistema Único de Saúde', 'SUS - Sistema Único de Saúde', 'Filantropia Procordis', 'Unimed Araraquara', 'Bradesco Saúde'];
+                    $randIdx = array_rand($tipos);
+
                     $ag = new Agendamento();
                     $ag->setPaciente($paciente);
                     $ag->setMedico($medico);
@@ -232,6 +236,8 @@ class DataSimulatorService
                     $ag->setProcedimentoNome($procedimento);
                     $ag->setGuicheAtendimento($guiche);
                     $ag->setQtdExames($qtd);
+                    $ag->setTipoAtendimento($tipos[$randIdx]);
+                    $ag->setConvenioNome($convenios[$randIdx]);
                     $ag->setDataHoraAgendada($dtAgendada);
                     $ag->setHorarioChegada($dtChegada);
                     $ag->setHorarioConfirmacao($dtChegada);
@@ -256,13 +262,29 @@ class DataSimulatorService
                     $senha->setStatus('gerada');
                     $this->em->persist($senha);
 
-                    // Etapa
+                    // Etapa Chegada
                     $etapa = new AtendimentoEtapaHistorico();
                     $etapa->setAgendamento($ag);
                     $etapa->setEtapa('chegada');
                     $etapa->setResponsavel('Recepção Central');
                     $etapa->setDataHoraInicio($dtChegada);
                     $this->em->persist($etapa);
+
+                    // Etapa Triagem / Anamnese
+                    $etapaTriagem = new AtendimentoEtapaHistorico();
+                    $etapaTriagem->setAgendamento($ag);
+                    $etapaTriagem->setEtapa('triagem');
+                    $etapaTriagem->setResponsavel('Enf. Amanda Costa');
+                    $etapaTriagem->setDataHoraInicio((clone $dtChegada)->modify('+3 minutes'));
+                    $etapaTriagem->setDataHoraFim((clone $dtChegada)->modify('+8 minutes'));
+                    $etapaTriagem->setPressaoArterial(rand(110, 140) . 'x' . rand(70, 90));
+                    $etapaTriagem->setFrequenciaCardiaca(rand(60, 95));
+                    $etapaTriagem->setPeso(rand(55, 95) + (rand(0, 9) / 10));
+                    $queixas = ['Precordialgia leve ao esforço', 'Palpitação ocasional', 'Check-up de rotina cardiológica', 'Acompanhamento de hipertensão arterial', 'Falta de ar moderada ao caminhar'];
+                    $etapaTriagem->setQueixaPrincipal($queixas[array_rand($queixas)]);
+                    $riscos = ['verde', 'verde', 'amarelo', 'azul'];
+                    $etapaTriagem->setClassificacaoRisco($riscos[array_rand($riscos)]);
+                    $this->em->persist($etapaTriagem);
                 }
             }
 

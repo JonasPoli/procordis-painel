@@ -98,6 +98,18 @@
                                 Integracão Medware
                             </a>
 
+                            {% set isRelatoriosProc = app.current_route == 'app_admin_relatorio_procedimentos' %}
+                            <a class='py-2 px-4 mx-4 mb-2 block rounded hover:shadow hover:from-white hover:to-white/60 hover:bg-gradient-to-r dark:hover:from-white/5 dark:hover:via-white/10 dark:hover:to-white/5 {% if isRelatoriosProc %}shadow bg-gradient-to-r from-cyan-500/20 to-sky-500/20 font-bold text-cyan-400 border border-cyan-500/30{% endif %}' href="{{ path('app_admin_relatorio_procedimentos') }}">
+                                <sl-icon name="bar-chart" class="mr-2 align-text-top text-cyan-400"></sl-icon>
+                                Relatório Procedimentos
+                            </a>
+
+                            {% set isRelatoriosAnam = app.current_route == 'app_admin_relatorio_anamneses' %}
+                            <a class='py-2 px-4 mx-4 mb-2 block rounded hover:shadow hover:from-white hover:to-white/60 hover:bg-gradient-to-r dark:hover:from-white/5 dark:hover:via-white/10 dark:hover:to-white/5 {% if isRelatoriosAnam %}shadow bg-gradient-to-r from-cyan-500/20 to-sky-500/20 font-bold text-cyan-400 border border-cyan-500/30{% endif %}' href="{{ path('app_admin_relatorio_anamneses') }}">
+                                <sl-icon name="heart-pulse" class="mr-2 align-text-top text-rose-400"></sl-icon>
+                                Relatório Anamneses
+                            </a>
+
                             {% set isTestes = app.current_route starts with 'app_admin_testes_' %}
                             <a class='py-2 px-4 mx-4 mb-2 block rounded hover:shadow hover:from-white hover:to-white/60 hover:bg-gradient-to-r dark:hover:from-white/5 dark:hover:via-white/10 dark:hover:to-white/5 {% if isTestes %}shadow bg-gradient-to-r from-cyan-500/20 to-sky-500/20 font-bold text-cyan-400 border border-cyan-500/30{% endif %}' href="{{ path('app_admin_testes_index') }}">
                                 <sl-icon name="check2-circle" class="mr-2 align-text-top text-emerald-400"></sl-icon>

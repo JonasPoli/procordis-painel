@@ -92,6 +92,12 @@ class Agendamento
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $procedimentoNome = null;
 
+    #[ORM\Column(length: 50, options: ['default' => 'sus'])]
+    private string $tipoAtendimento = 'sus'; // sus, filantropico, convenio, particular
+
+    #[ORM\Column(length: 150, nullable: true)]
+    private ?string $convenioNome = null;
+
     #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
     private ?\DateTimeInterface $horarioPrimeiraImagem = null;
 
@@ -403,6 +409,28 @@ class Agendamento
     public function setProcedimentoNome(?string $procedimentoNome): static
     {
         $this->procedimentoNome = $procedimentoNome;
+        return $this;
+    }
+
+    public function getTipoAtendimento(): string
+    {
+        return $this->tipoAtendimento;
+    }
+
+    public function setTipoAtendimento(string $tipoAtendimento): static
+    {
+        $this->tipoAtendimento = $tipoAtendimento;
+        return $this;
+    }
+
+    public function getConvenioNome(): ?string
+    {
+        return $this->convenioNome;
+    }
+
+    public function setConvenioNome(?string $convenioNome): static
+    {
+        $this->convenioNome = $convenioNome;
         return $this;
     }
 
