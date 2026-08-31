@@ -36,12 +36,15 @@ class BackupAdminController extends AbstractController
                 throw new \RuntimeException("Arquivo de backup não encontrado no disco.");
             }
 
-            $response = new BinaryFileResponse($caminhoArquivo);
-            $response->setContentDisposition(
-                ResponseHeaderBag::DISPOSITION_ATTACHMENT,
-                $nomeDownload
-            );
-            $response->deleteFileAfterSend(true);
+            $conteudo = file_get_contents($caminhoArquivo);
+            @unlink($caminhoArquivo);
+
+            $response = new Response($conteudo);
+            $response->headers->set('Content-Type', 'application/octet-stream');
+            $response->headers->set('Content-Disposition', 'attachment; filename="' . $nomeDownload . '"');
+            $response->headers->set('Content-Length', (string) strlen($conteudo));
+            $response->headers->set('Cache-Control', 'no-cache, private');
+            $response->headers->set('Pragma', 'no-cache');
 
             return $response;
         } catch (\Throwable $e) {
