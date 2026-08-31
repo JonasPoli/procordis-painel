@@ -382,4 +382,109 @@ class RelatorioService
             'triagens' => $triagens,
         ];
     }
+
+    /**
+     * Retorna a lista de nomes de procedimentos únicos cadastrados nos agendamentos.
+     */
+    public function obterProcedimentosUnicos(): array
+    {
+        $res = $this->agendamentoRepo->createQueryBuilder('a')
+            ->select('DISTINCT a.procedimentoNome')
+            ->where('a.procedimentoNome IS NOT NULL')
+            ->andWhere('a.procedimentoNome != \'\'')
+            ->orderBy('a.procedimentoNome', 'ASC')
+            ->getQuery()
+            ->getSingleColumnResult();
+
+        return array_values(array_filter($res));
+    }
+
+    /**
+     * Retorna a lista de médicos cadastrados e suas especialidades.
+     */
+    public function obterMedicosComEspecialidade(): array
+    {
+        return $this->medicoRepo->createQueryBuilder('m')
+            ->leftJoin('m.especialidade', 'e')
+            ->select('m.nome as medicoNome, e.nome as especialidadeNome')
+            ->orderBy('m.nome', 'ASC')
+            ->getQuery()
+            ->getArrayResult();
+    }
+
+    /**
+     * Retorna a lista de convênios/planos únicos.
+     */
+    public function obterConveniosUnicos(): array
+    {
+        $res = $this->agendamentoRepo->createQueryBuilder('a')
+            ->select('DISTINCT a.convenioNome')
+            ->where('a.convenioNome IS NOT NULL')
+            ->andWhere('a.convenioNome != \'\'')
+            ->orderBy('a.convenioNome', 'ASC')
+            ->getQuery()
+            ->getSingleColumnResult();
+
+        return array_values(array_filter($res));
+    }
+
+    /**
+     * Retorna um Iterable para streaming de todos os agendamentos com dados analíticos completos para exportação de dados brutos.
+     */
+    public function obterIterableAgendamentosCompletos(?string $tipoPeriodo = null, ?int $ano = null, ?int $mes = null, ?string $dataInicioCustom = null, ?string $dataFimCustom = null): iterable
+    {
+        $qb = $this->agendamentoRepo->createQueryBuilder('a')
+            ->leftJoin('a.paciente', 'p')
+            ->leftJoin('a.medico', 'm')
+            ->leftJoin('a.especialidade', 'e')
+            ->select('
+                a.id,
+                a.dataHoraAgendada,
+                a.createdAt,
+                a.horarioChegada,
+                a.horarioInicioConsulta,
+                a.horarioFimConsulta,
+                a.horarioSaida,
+                a.tipoAtendimento,
+                a.convenioNome,
+                a.procedimentoNome,
+                a.status,
+                a.encaixe,
+                p.nomeCompleto as pacienteNome,
+                p.sexo as pacienteSexo,
+                p.dataNascimento as pacienteNascimento,
+                m.nome as medicoNome,
+                e.nome as especialidadeNome
+            ')
+            ->orderBy('a.dataHoraAgendada', 'ASC');
+
+        if ($tipoPeriodo === 'ano_especifico' && $ano) {
+            $qb->where('a.dataHoraAgendada BETWEEN :inicio AND :fim')
+               ->setParameter('inicio', new \DateTime("{$ano}-01-01 00:00:00"))
+               ->setParameter('fim', new \DateTime("{$ano}-12-31 23:59:59"));
+        } elseif ($tipoPeriodo === 'mes_especifico' && $ano && $mes) {
+            $dtInicio = new \DateTime("{$ano}-{$mes}-01 00:00:00");
+            $dtFim = (clone $dtInicio)->modify('last day of this month')->setTime(23, 59, 59);
+            $qb->where('a.dataHoraAgendada BETWEEN :inicio AND :fim')
+               ->setParameter('inicio', $dtInicio)
+               ->setParameter('fim', $dtFim);
+        } elseif ($tipoPeriodo === 'personalizado' && !empty($dataInicioCustom) && !empty($dataFimCustom)) {
+            $dtInicio = \DateTime::createFromFormat('Y-m-d', $dataInicioCustom);
+            $dtFim = \DateTime::createFromFormat('Y-m-d', $dataFimCustom);
+            if ($dtInicio && $dtFim) {
+                $qb->where('a.dataHoraAgendada BETWEEN :inicio AND :fim')
+                   ->setParameter('inicio', $dtInicio->setTime(0, 0, 0))
+                   ->setParameter('fim', $dtFim->setTime(23, 59, 59));
+            }
+        } elseif ($tipoPeriodo === 'ultimos_6_meses') {
+            $hoje = new \DateTime();
+            $dataFim = (clone $hoje)->setTime(23, 59, 59);
+            $dataInicio = (clone $hoje)->modify('-5 months')->modify('first day of this month')->setTime(0, 0, 0);
+            $qb->where('a.dataHoraAgendada BETWEEN :inicio AND :fim')
+               ->setParameter('inicio', $dataInicio)
+               ->setParameter('fim', $dataFim);
+        }
+
+        return $qb->getQuery()->toIterable();
+    }
 }

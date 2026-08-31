@@ -59,118 +59,108 @@ class RelatorioAdminController extends AbstractController
         $dataInicioCustom = $request->query->get('dataInicio');
         $dataFimCustom = $request->query->get('dataFim');
 
-        $dados = $this->relatorioService->obterRelatorioProcedimentos($tipoPeriodo, $ano, $mes, $dataInicioCustom, $dataFimCustom);
+        $iterator = $this->relatorioService->obterIterableAgendamentosCompletos($tipoPeriodo, $ano, $mes, $dataInicioCustom, $dataFimCustom);
 
-        $response = new StreamedResponse(function () use ($dados) {
+        $diasSemanaMap = [
+            1 => 'Segunda-feira',
+            2 => 'Terça-feira',
+            3 => 'Quarta-feira',
+            4 => 'Quinta-feira',
+            5 => 'Sexta-feira',
+            6 => 'Sábado',
+            7 => 'Domingo'
+        ];
+
+        $response = new StreamedResponse(function () use ($iterator, $diasSemanaMap) {
             $handle = fopen('php://output', 'w+');
-            // UTF-8 BOM para Excel abrir acentos e caracteres especiais corretamente
+            // UTF-8 BOM para Excel
             fputs($handle, "\xEF\xBB\xBF");
 
-            // 1. Resumo Geral de Atendimentos
-            fputcsv($handle, ['=== RESUMO DE ATENDIMENTOS E FINANCIAMENTO ==='], ';');
-            fputcsv($handle, ['Métrica', 'Quantidade', 'Percentual'], ';');
-            fputcsv($handle, ['Total de Procedimentos / Exames', $dados['totalProcedimentos'], '100%'], ';');
-            fputcsv($handle, ['Atendimentos SUS', $dados['financiamento']['sus'], $dados['financiamento']['pctSus'] . '%'], ';');
-            fputcsv($handle, ['Atendimentos Filantrópicos', $dados['financiamento']['filantropico'], $dados['financiamento']['pctFilantropico'] . '%'], ';');
-            fputcsv($handle, ['Particular & Convênios', $dados['financiamento']['convenio'], $dados['financiamento']['pctConvenio'] . '%'], ';');
-            fputcsv($handle, ['Média Diária de Atendimentos', $dados['mediaDia'], '-'], ';');
-            fputcsv($handle, [], ';');
+            // Cabeçalho alinhado com a planilha 'procedimentos' do XLSX
+            fputcsv($handle, [
+                'ID Agendamento',
+                'Data',
+                'DataHora',
+                'Ano',
+                'Mês',
+                'Dia da Semana',
+                'Hora',
+                'Paciente',
+                'Sexo',
+                'Faixa Etária',
+                'Procedimento / Exame',
+                'Tipo Atendimento',
+                'Convênio / Plano',
+                'Médico Responsável',
+                'Especialidade',
+                'Status',
+                'Encaixe',
+                'Tempo Espera (min)'
+            ], ';');
 
-            // 2. Evolução por Dia
-            fputcsv($handle, ['=== EVOLUÇÃO TEMPORAL POR DIA ==='], ';');
-            fputcsv($handle, ['Data', 'Total de Atendimentos'], ';');
-            foreach ($dados['porDia'] as $dia => $qtd) {
-                fputcsv($handle, [$dia, $qtd], ';');
-            }
-            fputcsv($handle, [], ';');
-
-            // 3. Evolução por Mês
-            fputcsv($handle, ['=== EVOLUÇÃO TEMPORAL POR MÊS ==='], ';');
-            fputcsv($handle, ['Mês/Ano', 'Total de Atendimentos'], ';');
-            foreach ($dados['porMes'] as $mesAno => $qtd) {
-                fputcsv($handle, [$mesAno, $qtd], ';');
-            }
-            fputcsv($handle, [], ';');
-
-            // 4. Evolução por Trimestre
-            fputcsv($handle, ['=== EVOLUÇÃO TEMPORAL POR TRIMESTRE ==='], ';');
-            fputcsv($handle, ['Trimestre/Ano', 'Total de Atendimentos'], ';');
-            foreach ($dados['porTrimestre'] as $tri => $qtd) {
-                fputcsv($handle, [$tri, $qtd], ';');
-            }
-            fputcsv($handle, [], ';');
-
-            // 5. Evolução por Quadrimestre
-            fputcsv($handle, ['=== EVOLUÇÃO TEMPORAL POR QUADRIMESTRE ==='], ';');
-            fputcsv($handle, ['Quadrimestre/Ano', 'Total de Atendimentos'], ';');
-            foreach ($dados['porQuadrimestre'] as $quadri => $qtd) {
-                fputcsv($handle, [$quadri, $qtd], ';');
-            }
-            fputcsv($handle, [], ';');
-
-            // 6. Evolução por Semestre
-            fputcsv($handle, ['=== EVOLUÇÃO TEMPORAL POR SEMESTRE ==='], ';');
-            fputcsv($handle, ['Semestre/Ano', 'Total de Atendimentos'], ';');
-            foreach ($dados['porSemestre'] as $semestre => $qtd) {
-                fputcsv($handle, [$semestre, $qtd], ';');
-            }
-            fputcsv($handle, [], ';');
-
-            // 7. Evolução por Ano
-            fputcsv($handle, ['=== EVOLUÇÃO TEMPORAL POR ANO ==='], ';');
-            fputcsv($handle, ['Ano', 'Total de Atendimentos'], ';');
-            foreach ($dados['porAno'] as $anoVal => $qtd) {
-                fputcsv($handle, [$anoVal, $qtd], ';');
-            }
-            fputcsv($handle, [], ';');
-
-            // 8. Ranking por Procedimento / Exame
-            fputcsv($handle, ['=== VOLUME TOTAL POR PROCEDIMENTO E EXAME ==='], ';');
-            fputcsv($handle, ['Procedimento / Exame', 'Total de Atendimentos no Período'], ';');
-            foreach ($dados['porProcedimento'] as $proc => $qtd) {
-                fputcsv($handle, [$proc, $qtd], ';');
-            }
-            fputcsv($handle, [], ';');
-
-            // 9. Atendimentos Individuais Diários por Tipo de Procedimento
-            fputcsv($handle, ['=== ATENDIMENTOS DIÁRIOS POR TIPO DE PROCEDIMENTO ==='], ';');
-            fputcsv($handle, ['Data', 'Tipo de Procedimento / Exame', 'Quantidade Realizada no Dia'], ';');
-            foreach ($dados['porProcedimentoDia'] as $dataStr => $procsNoDia) {
-                $dtFmt = \DateTime::createFromFormat('Y-m-d', $dataStr);
-                $dtExib = $dtFmt ? $dtFmt->format('d/m/Y') : $dataStr;
-                foreach ($procsNoDia as $procNome => $qtdNoDia) {
-                    fputcsv($handle, [$dtExib, $procNome, $qtdNoDia], ';');
+            foreach ($iterator as $item) {
+                $dt = $item['dataHoraAgendada'] ?? $item['createdAt'];
+                if (!$dt instanceof \DateTimeInterface) {
+                    $dt = new \DateTime($dt ?? 'now');
                 }
-            }
-            fputcsv($handle, [], ';');
 
-            // 7. Registros Analíticos Completos
-            fputcsv($handle, ['=== REGISTROS ANALÍTICOS DETALHADOS ==='], ';');
-            fputcsv($handle, ['ID Agendamento', 'Data/Hora', 'Paciente', 'Procedimento / Exame', 'Tipo Atendimento', 'Convênio/Plano', 'Médico Responsável', 'Especialidade', 'Status Atendimento'], ';');
+                $nasc = $item['pacienteNascimento'] ?? null;
+                $faixaEtaria = 'Não informada';
+                if ($nasc instanceof \DateTimeInterface) {
+                    $idade = $dt->diff($nasc)->y;
+                    if ($idade <= 18) {
+                        $faixaEtaria = '0 a 18 anos';
+                    } elseif ($idade <= 39) {
+                        $faixaEtaria = '19 a 39 anos';
+                    } elseif ($idade <= 59) {
+                        $faixaEtaria = '40 a 59 anos';
+                    } elseif ($idade <= 79) {
+                        $faixaEtaria = '60 a 79 anos';
+                    } else {
+                        $faixaEtaria = '80+ anos';
+                    }
+                }
 
-            foreach ($dados['agendamentos'] as $ag) {
-                $dtAg = $ag['dataHoraAgendada'] ?? $ag['createdAt'];
-                if (!$dtAg instanceof \DateTimeInterface) {
-                    $dtAg = new \DateTime($dtAg ?? 'now');
+                $diaSemanaNum = (int) $dt->format('N');
+                $diaSemanaStr = $diasSemanaMap[$diaSemanaNum] ?? 'Outro';
+                $horaStr = $dt->format('H') . 'h';
+
+                $tempoEsperaMin = 0;
+                $chegada = $item['horarioChegada'] ?? null;
+                $fim = $item['horarioInicioConsulta'] ?? $item['horarioSaida'] ?? $item['horarioFimConsulta'] ?? null;
+                if ($chegada instanceof \DateTimeInterface && $fim instanceof \DateTimeInterface) {
+                    $diffSeg = $fim->getTimestamp() - $chegada->getTimestamp();
+                    if ($diffSeg > 0) {
+                        $tempoEsperaMin = round($diffSeg / 60);
+                    }
                 }
 
                 fputcsv($handle, [
-                    $ag['id'],
-                    $dtAg->format('d/m/Y H:i'),
-                    $ag['pacienteNome'] ?? 'Paciente',
-                    $ag['procedimentoNome'] ?? 'Procedimento Geral',
-                    strtoupper($ag['tipoAtendimento'] ?? 'SUS'),
-                    $ag['convenioNome'] ?? 'SUS',
-                    $ag['medicoNome'] ?? 'Não informado',
-                    $ag['especialidadeNome'] ?? 'Geral',
-                    strtoupper($ag['status'] ?? 'AGENDADO')
+                    $item['id'],
+                    $dt->format('Y-m-d'),
+                    $dt->format('d/m/Y H:i'),
+                    (int) $dt->format('Y'),
+                    (int) $dt->format('m'),
+                    $diaSemanaStr,
+                    $horaStr,
+                    $item['pacienteNome'] ?? 'Paciente',
+                    strtoupper($item['pacienteSexo'] ?? 'NÃO INFORMADO'),
+                    $faixaEtaria,
+                    $item['procedimentoNome'] ?? 'Consulta / Procedimento Geral',
+                    strtoupper($item['tipoAtendimento'] ?? 'SUS'),
+                    $item['convenioNome'] ?? 'SUS',
+                    $item['medicoNome'] ?? 'Não informado',
+                    $item['especialidadeNome'] ?? 'Geral',
+                    strtoupper($item['status'] ?? 'AGENDADO'),
+                    !empty($item['encaixe']) ? 'SIM' : 'NÃO',
+                    $tempoEsperaMin
                 ], ';');
             }
 
             fclose($handle);
         });
 
-        $nomeArquivo = 'relatorio_procedimentos_' . date('Ymd_His') . '.csv';
+        $nomeArquivo = 'dados_atendimentos_procordis_' . date('Ymd_His') . '.csv';
         $response->headers->set('Content-Type', 'text/csv; charset=utf-8');
         $response->headers->set('Content-Disposition', 'attachment; filename="' . $nomeArquivo . '"');
 
@@ -180,74 +170,56 @@ class RelatorioAdminController extends AbstractController
     #[Route('/procedimentos/exportar-excel', name: 'procedimentos_excel', methods: ['GET'])]
     public function exportarProcedimentosExcel(Request $request): StreamedResponse
     {
-        // Elevar temporariamente o limite de memória e tempo para permitir a montagem do XLSX com 20 anos de histórico
-        @ini_set('memory_limit', '1024M');
-        @ini_set('max_execution_time', '300');
-
-        // Buscar TODO o histórico do Procordis em ordem crescente de data
-        $dados = $this->relatorioService->obterRelatorioProcedimentos('sem_filtro');
-        $agendamentos = $dados['agendamentos']; // já em ordem crescente a.dataHoraAgendada ASC
-
         $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
 
+        $anoAtual = (int) date('Y');
+        $anos = range(2005, $anoAtual);
+
+        $procedimentosUnicos = $this->relatorioService->obterProcedimentosUnicos();
+        if (empty($procedimentosUnicos)) {
+            $procedimentosUnicos = ['Consulta Cardiológica', 'Ecocardiograma Transtorácico', 'Eletrocardiograma (ECG)', 'Holter 24 Horas', 'MAPA 24 Horas', 'Teste Ergométrico'];
+        }
+
+        $medicosList = $this->relatorioService->obterMedicosComEspecialidade();
+        $conveniosList = $this->relatorioService->obterConveniosUnicos();
+        if (empty($conveniosList)) {
+            $conveniosList = ['SUS - Sistema Único de Saúde', 'UNIMED', 'CASSI', 'BRADESCO SAÚDE', 'SULAMÉRICA', 'PARTICULAR'];
+        }
+
         // -------------------------------------------------------------
-        // Planilha 1: "procedimentos"
+        // Planilha 1: "procedimentos" (Aba de Dados - Deixada Limpa para Carga Instantânea)
         // -------------------------------------------------------------
         $sheet1 = $spreadsheet->getActiveSheet();
         $sheet1->setTitle('procedimentos');
 
-        // Títulos das colunas
         $headers1 = [
             'ID Agendamento',
             'Data',
             'DataHora',
             'Ano',
             'Mês',
+            'Dia da Semana',
+            'Hora',
             'Paciente',
+            'Sexo',
+            'Faixa Etária',
             'Procedimento / Exame',
             'Tipo Atendimento',
             'Convênio / Plano',
             'Médico Responsável',
             'Especialidade',
-            'Status'
+            'Status',
+            'Encaixe',
+            'Tempo Espera (min)'
         ];
         $sheet1->fromArray($headers1, null, 'A1');
 
-        $rowsData = [];
-        foreach ($agendamentos as $ag) {
-            $dtAg = $ag['dataHoraAgendada'] ?? $ag['createdAt'];
-            if (!$dtAg instanceof \DateTimeInterface) {
-                $dtAg = new \DateTime($dtAg ?? 'now');
-            }
-
-            $rowsData[] = [
-                $ag['id'],
-                $dtAg->format('Y-m-d'),
-                $dtAg->format('d/m/Y H:i'),
-                (int) $dtAg->format('Y'),
-                (int) $dtAg->format('m'),
-                $ag['pacienteNome'] ?? 'Paciente',
-                $ag['procedimentoNome'] ?? 'Consulta / Procedimento Geral',
-                strtoupper($ag['tipoAtendimento'] ?? 'SUS'),
-                $ag['convenioNome'] ?? 'SUS',
-                $ag['medicoNome'] ?? 'Não informado',
-                $ag['especialidadeNome'] ?? 'Geral',
-                strtoupper($ag['status'] ?? 'AGENDADO')
-            ];
-        }
-
-        // Escrever todas as linhas em lote (fromArray é 10x mais rápido e gasta menos memória que setCellValue linha a linha)
-        if (!empty($rowsData)) {
-            $sheet1->fromArray($rowsData, null, 'A2');
-        }
-        $lastRowSheet1 = count($rowsData) + 1;
-
-        // Estilizar cabeçalho da planilha 1
-        $sheet1->getStyle('A1:L1')->getFont()->setBold(true);
-        $sheet1->getStyle('A1:L1')->getFill()
+        $lastColLetter1 = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(count($headers1));
+        $sheet1->getStyle("A1:{$lastColLetter1}1")->getFont()->setBold(true);
+        $sheet1->getStyle("A1:{$lastColLetter1}1")->getFill()
             ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
-            ->getStartColor()->setARGB('FF0891B2');
-        $sheet1->getStyle('A1:L1')->getFont()->getColor()->setARGB('FFFFFFFF');
+            ->getStartColor()->setARGB('FF0891B2'); // Cyan Procordis
+        $sheet1->getStyle("A1:{$lastColLetter1}1")->getFont()->getColor()->setARGB('FFFFFFFF');
 
         // -------------------------------------------------------------
         // Planilha 2: "Evolução por tipo - ano"
@@ -255,73 +227,386 @@ class RelatorioAdminController extends AbstractController
         $sheet2 = $spreadsheet->createSheet();
         $sheet2->setTitle('Evolução por tipo - ano');
 
-        // Anos do período (2005 até o ano atual)
-        $anoAtual = (int) date('Y');
-        $anos = range(2005, $anoAtual);
-
-        // Montar cabeçalho da Planilha 2
         $headers2 = ['Tipo de Procedimento / Exame'];
         foreach ($anos as $a) {
             $headers2[] = (string) $a;
         }
-        $headers2[] = 'Total Geral (Fórmula)';
+        $headers2[] = 'Total Geral';
         $sheet2->fromArray($headers2, null, 'A1');
 
-        // Descobrir procedimentos únicos para aplicar fórmulas dinâmicas por linha
-        $procedimentosUnicos = array_keys($dados['porProcedimento']);
-        sort($procedimentosUnicos);
-
-        $sheet2RowsData = [];
-        $rowIdx2 = 2;
+        $sheet2Rows = [];
+        $r2 = 2;
         foreach ($procedimentosUnicos as $procNome) {
             $rowCells = [$procNome];
-
-            $colCharIdx = 2; // B = 2
+            $colIdx = 2;
             foreach ($anos as $a) {
-                $colLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colCharIdx);
-                // Fórmula do Excel apontando para a Planilha 1 ('procedimentos')
-                $rowCells[] = "=COUNTIFS(procedimentos!\$G\$2:\$G\${$lastRowSheet1}, \$A{$rowIdx2}, procedimentos!\$D\$2:\$D\${$lastRowSheet1}, {$colLetter}\$1)";
-                $colCharIdx++;
+                $colLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIdx);
+                $rowCells[] = "=COUNTIFS(procedimentos!\$K:\$K, \$A{$r2}, procedimentos!\$D:\$D, {$colLetter}\$1)";
+                $colIdx++;
             }
-
-            // Coluna Total Geral (Soma das colunas de anos)
-            $lastYearColLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colCharIdx - 1);
-            $rowCells[] = "=SUM(B{$rowIdx2}:{$lastYearColLetter}{$rowIdx2})";
-
-            $sheet2RowsData[] = $rowCells;
-            $rowIdx2++;
+            $lastYearCol = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIdx - 1);
+            $rowCells[] = "=SUM(B{$r2}:{$lastYearCol}{$r2})";
+            $sheet2Rows[] = $rowCells;
+            $r2++;
         }
+        $sheet2->fromArray($sheet2Rows, null, 'A2');
 
-        if (!empty($sheet2RowsData)) {
-            $sheet2->fromArray($sheet2RowsData, null, 'A2');
-        }
+        $lastRowS2 = max(2, $r2 - 1);
+        $lastColS2 = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(count($headers2));
 
-        $lastRowSheet2 = max(2, $rowIdx2 - 1);
-        $lastColLetterSheet2 = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(count($headers2));
-
-        // Linha de Total Geral no Rodapé da Planilha 2 com Fórmula SUM (SOMA)
-        $footerCells = ['TOTAL GERAL POR ANO'];
-        $colCharIdx = 2;
+        $footerS2 = ['TOTAL GERAL POR ANO'];
+        $colIdx = 2;
         foreach ($anos as $a) {
-            $colLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colCharIdx);
-            $footerCells[] = "=SUM({$colLetter}2:{$colLetter}{$lastRowSheet2})";
-            $colCharIdx++;
+            $colLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIdx);
+            $footerS2[] = "=SUM({$colLetter}2:{$colLetter}{$lastRowS2})";
+            $colIdx++;
         }
-        $footerCells[] = "=SUM(" . \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colCharIdx) . "2:" . \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colCharIdx) . "{$lastRowSheet2})";
+        $totalColS2 = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIdx);
+        $footerS2[] = "=SUM({$totalColS2}2:{$totalColS2}{$lastRowS2})";
+        $sheet2->fromArray([$footerS2], null, "A{$r2}");
 
-        $sheet2->fromArray([$footerCells], null, "A{$rowIdx2}");
+        $sheet2->getStyle("A1:{$lastColS2}1")->getFont()->setBold(true);
+        $sheet2->getStyle("A1:{$lastColS2}1")->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setARGB('FF059669');
+        $sheet2->getStyle("A1:{$lastColS2}1")->getFont()->getColor()->setARGB('FFFFFFFF');
+        $sheet2->getStyle("A{$r2}:{$lastColS2}{$r2}")->getFont()->setBold(true);
+        $sheet2->getStyle("A{$r2}:{$lastColS2}{$r2}")->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setARGB('FFE2E8F0');
 
-        // Estilização da Planilha 2
-        $sheet2->getStyle("A1:{$lastColLetterSheet2}1")->getFont()->setBold(true);
-        $sheet2->getStyle("A1:{$lastColLetterSheet2}1")->getFill()
-            ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
-            ->getStartColor()->setARGB('FF059669');
-        $sheet2->getStyle("A1:{$lastColLetterSheet2}1")->getFont()->getColor()->setARGB('FFFFFFFF');
+        // -------------------------------------------------------------
+        // Planilha 3: "Produtividade Médica"
+        // -------------------------------------------------------------
+        $sheet3 = $spreadsheet->createSheet();
+        $sheet3->setTitle('Produtividade Médica');
 
-        $sheet2->getStyle("A{$rowIdx2}:{$lastColLetterSheet2}{$rowIdx2}")->getFont()->setBold(true);
-        $sheet2->getStyle("A{$rowIdx2}:{$lastColLetterSheet2}{$rowIdx2}")->getFill()
-            ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
-            ->getStartColor()->setARGB('FFE2E8F0');
+        $headers3 = ['Médico Responsável', 'Especialidade'];
+        foreach ($anos as $a) {
+            $headers3[] = (string) $a;
+        }
+        $headers3[] = 'Total Atendimentos';
+        $headers3[] = 'Concluídos';
+        $headers3[] = 'Cancelados';
+        $sheet3->fromArray($headers3, null, 'A1');
+
+        $sheet3Rows = [];
+        $r3 = 2;
+        foreach ($medicosList as $med) {
+            $nomeM = $med['medicoNome'] ?? 'Não atribuído';
+            $espM = $med['especialidadeNome'] ?? 'Geral';
+            $rowCells = [$nomeM, $espM];
+            $colIdx = 3;
+            foreach ($anos as $a) {
+                $colLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIdx);
+                $rowCells[] = "=COUNTIFS(procedimentos!\$N:\$N, \$A{$r3}, procedimentos!\$D:\$D, {$colLetter}\$1)";
+                $colIdx++;
+            }
+            $lastYearCol3 = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIdx - 1);
+            $rowCells[] = "=SUM(C{$r3}:{$lastYearCol3}{$r3})";
+            $rowCells[] = "=COUNTIFS(procedimentos!\$N:\$N, \$A{$r3}, procedimentos!\$P:\$P, \"FINALIZADO\")";
+            $rowCells[] = "=COUNTIFS(procedimentos!\$N:\$N, \$A{$r3}, procedimentos!\$P:\$P, \"CANCELADO\")";
+
+            $sheet3Rows[] = $rowCells;
+            $r3++;
+        }
+        if (!empty($sheet3Rows)) {
+            $sheet3->fromArray($sheet3Rows, null, 'A2');
+        }
+
+        $lastRowS3 = max(2, $r3 - 1);
+        $lastColS3 = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(count($headers3));
+        $sheet3->getStyle("A1:{$lastColS3}1")->getFont()->setBold(true);
+        $sheet3->getStyle("A1:{$lastColS3}1")->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setARGB('FF4F46E5');
+        $sheet3->getStyle("A1:{$lastColS3}1")->getFont()->getColor()->setARGB('FFFFFFFF');
+
+        // -------------------------------------------------------------
+        // Planilha 4: "Composição Convênios"
+        // -------------------------------------------------------------
+        $sheet4 = $spreadsheet->createSheet();
+        $sheet4->setTitle('Composição Convênios');
+
+        $headers4 = ['Tipo de Financiamento'];
+        foreach ($anos as $a) {
+            $headers4[] = (string) $a;
+        }
+        $headers4[] = 'Total Geral';
+        $sheet4->fromArray($headers4, null, 'A1');
+
+        $tiposFin = ['SUS', 'CONVÊNIO', 'FILANTRÓPICO', 'PARTICULAR'];
+        $sheet4Rows = [];
+        $r4 = 2;
+        foreach ($tiposFin as $tf) {
+            $rowCells = [$tf];
+            $colIdx = 2;
+            foreach ($anos as $a) {
+                $colLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIdx);
+                $rowCells[] = "=COUNTIFS(procedimentos!\$L:\$L, \$A{$r4}, procedimentos!\$D:\$D, {$colLetter}\$1)";
+                $colIdx++;
+            }
+            $lastYearCol4 = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIdx - 1);
+            $rowCells[] = "=SUM(B{$r4}:{$lastYearCol4}{$r4})";
+            $sheet4Rows[] = $rowCells;
+            $r4++;
+        }
+        $sheet4->fromArray($sheet4Rows, null, 'A2');
+
+        $footerS4 = ['TOTAL GERAL'];
+        $colIdx = 2;
+        foreach ($anos as $a) {
+            $colLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIdx);
+            $footerS4[] = "=SUM({$colLetter}2:{$colLetter}5)";
+            $colIdx++;
+        }
+        $totalColS4 = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIdx);
+        $footerS4[] = "=SUM({$totalColS4}2:{$totalColS4}5)";
+        $sheet4->fromArray([$footerS4], null, 'A6');
+
+        $rowPctSus = ['% Participação SUS'];
+        $colIdx = 2;
+        foreach ($anos as $a) {
+            $colLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIdx);
+            $rowPctSus[] = "=IF({$colLetter}6>0, {$colLetter}2/{$colLetter}6, 0)";
+            $colIdx++;
+        }
+        $rowPctSus[] = "=IF({$totalColS4}6>0, {$totalColS4}2/{$totalColS4}6, 0)";
+        $sheet4->fromArray([$rowPctSus], null, 'A7');
+
+        // Seção 2: Top Operadoras de Convênio
+        $sheet4->setCellValue('A9', 'TOP OPERADORAS / CONVÊNIOS DE SAÚDE');
+        $sheet4->getStyle('A9')->getFont()->setBold(true);
+
+        $headersConv = ['Nome da Operadora / Convênio'];
+        foreach ($anos as $a) {
+            $headersConv[] = (string) $a;
+        }
+        $headersConv[] = 'Total';
+        $sheet4->fromArray($headersConv, null, 'A10');
+
+        $sheet4ConvRows = [];
+        $r4c = 11;
+        foreach ($conveniosList as $cNome) {
+            $rowCells = [$cNome];
+            $colIdx = 2;
+            foreach ($anos as $a) {
+                $colLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIdx);
+                $rowCells[] = "=COUNTIFS(procedimentos!\$M:\$M, \$A{$r4c}, procedimentos!\$D:\$D, {$colLetter}\$10)";
+                $colIdx++;
+            }
+            $lastYearCol4c = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIdx - 1);
+            $rowCells[] = "=SUM(B{$r4c}:{$lastYearCol4c}{$r4c})";
+            $sheet4ConvRows[] = $rowCells;
+            $r4c++;
+        }
+        if (!empty($sheet4ConvRows)) {
+            $sheet4->fromArray($sheet4ConvRows, null, 'A11');
+        }
+
+        $lastColS4 = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(count($headers4));
+        $sheet4->getStyle("A1:{$lastColS4}1")->getFont()->setBold(true);
+        $sheet4->getStyle("A1:{$lastColS4}1")->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setARGB('FF0284C7');
+        $sheet4->getStyle("A1:{$lastColS4}1")->getFont()->getColor()->setARGB('FFFFFFFF');
+        $sheet4->getStyle("A6:{$lastColS4}7")->getFont()->setBold(true);
+        $sheet4->getStyle("A10:{$lastColS4}10")->getFont()->setBold(true);
+
+        // -------------------------------------------------------------
+        // Planilha 5: "Status e Eficiência"
+        // -------------------------------------------------------------
+        $sheet5 = $spreadsheet->createSheet();
+        $sheet5->setTitle('Status e Eficiência');
+
+        $headers5 = ['Status do Atendimento'];
+        foreach ($anos as $a) {
+            $headers5[] = (string) $a;
+        }
+        $headers5[] = 'Total';
+        $sheet5->fromArray($headers5, null, 'A1');
+
+        $statusList = ['FINALIZADO', 'CANCELADO', 'AGENDADO', 'EM_CONSULTA', 'AGUARDANDO_MEDICO', 'AGUARDANDO_TRIAGEM'];
+        $sheet5Rows = [];
+        $r5 = 2;
+        foreach ($statusList as $st) {
+            $rowCells = [$st];
+            $colIdx = 2;
+            foreach ($anos as $a) {
+                $colLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIdx);
+                $rowCells[] = "=COUNTIFS(procedimentos!\$P:\$P, \$A{$r5}, procedimentos!\$D:\$D, {$colLetter}\$1)";
+                $colIdx++;
+            }
+            $lastYearCol5 = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIdx - 1);
+            $rowCells[] = "=SUM(B{$r5}:{$lastYearCol5}{$r5})";
+            $sheet5Rows[] = $rowCells;
+            $r5++;
+        }
+        $sheet5->fromArray($sheet5Rows, null, 'A2');
+
+        $footerS5 = ['TOTAL GERAL'];
+        $colIdx = 2;
+        foreach ($anos as $a) {
+            $colLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIdx);
+            $footerS5[] = "=SUM({$colLetter}2:{$colLetter}7)";
+            $colIdx++;
+        }
+        $totalColS5 = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIdx);
+        $footerS5[] = "=SUM({$totalColS5}2:{$totalColS5}7)";
+        $sheet5->fromArray([$footerS5], null, 'A8');
+
+        // Indicadores de Eficiência
+        $sheet5->setCellValue('A10', 'INDICADORES DE EFICIÊNCIA DE AGENDA');
+        $sheet5->getStyle('A10')->getFont()->setBold(true);
+
+        $rowEncaixes = ['Total de Encaixes'];
+        $colIdx = 2;
+        foreach ($anos as $a) {
+            $colLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIdx);
+            $rowEncaixes[] = "=COUNTIFS(procedimentos!\$Q:\$Q, \"SIM\", procedimentos!\$D:\$D, {$colLetter}\$1)";
+            $colIdx++;
+        }
+        $rowEncaixes[] = "=COUNTIF(procedimentos!\$Q:\$Q, \"SIM\")";
+        $sheet5->fromArray([$rowEncaixes], null, 'A11');
+
+        $rowTaxaEncaixe = ['Taxa de Encaixes (%)'];
+        $colIdx = 2;
+        foreach ($anos as $a) {
+            $colLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIdx);
+            $rowTaxaEncaixe[] = "=IF({$colLetter}8>0, {$colLetter}11/{$colLetter}8, 0)";
+            $colIdx++;
+        }
+        $rowTaxaEncaixe[] = "=IF({$totalColS5}8>0, {$totalColS5}11/{$totalColS5}8, 0)";
+        $sheet5->fromArray([$rowTaxaEncaixe], null, 'A12');
+
+        $rowTaxaCancel = ['Taxa de Cancelamento (%)'];
+        $colIdx = 2;
+        foreach ($anos as $a) {
+            $colLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIdx);
+            $rowTaxaCancel[] = "=IF({$colLetter}8>0, {$colLetter}3/{$colLetter}8, 0)";
+            $colIdx++;
+        }
+        $rowTaxaCancel[] = "=IF({$totalColS5}8>0, {$totalColS5}3/{$totalColS5}8, 0)";
+        $sheet5->fromArray([$rowTaxaCancel], null, 'A13');
+
+        $lastColS5 = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(count($headers5));
+        $sheet5->getStyle("A1:{$lastColS5}1")->getFont()->setBold(true);
+        $sheet5->getStyle("A1:{$lastColS5}1")->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setARGB('FFD97706');
+        $sheet5->getStyle("A1:{$lastColS5}1")->getFont()->getColor()->setARGB('FFFFFFFF');
+        $sheet5->getStyle("A8:{$lastColS5}8")->getFont()->setBold(true);
+
+        // -------------------------------------------------------------
+        // Planilha 6: "Horários e Dias de Pico"
+        // -------------------------------------------------------------
+        $sheet6 = $spreadsheet->createSheet();
+        $sheet6->setTitle('Horários e Dias de Pico');
+
+        $sheet6->fromArray(['Dia da Semana', 'Volume de Atendimentos', '% do Total'], null, 'A1');
+        $diasSemana = ['Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado', 'Domingo'];
+        $sheet6Dias = [];
+        $r6d = 2;
+        foreach ($diasSemana as $dia) {
+            $sheet6Dias[] = [
+                $dia,
+                "=COUNTIF(procedimentos!\$F:\$F, \$A{$r6d})",
+                "=IF(\$B\$9>0, B{$r6d}/\$B\$9, 0)"
+            ];
+            $r6d++;
+        }
+        $sheet6->fromArray($sheet6Dias, null, 'A2');
+        $sheet6->fromArray([['TOTAL', '=SUM(B2:B8)', '=SUM(C2:C8)']], null, 'A9');
+
+        $sheet6->setCellValue('A11', 'DISTRIBUIÇÃO POR FAIXA DE HORÁRIO');
+        $sheet6->getStyle('A11')->getFont()->setBold(true);
+        $sheet6->fromArray(['Faixa de Horário', 'Volume de Atendimentos', '% do Total'], null, 'A12');
+        $horas = ['06h', '07h', '08h', '09h', '10h', '11h', '12h', '13h', '14h', '15h', '16h', '17h', '18h', '19h', '20h'];
+        $sheet6Horas = [];
+        $r6h = 13;
+        foreach ($horas as $h) {
+            $sheet6Horas[] = [
+                $h,
+                "=COUNTIF(procedimentos!\$G:\$G, \$A{$r6h})",
+                "=IF(\$B\$28>0, B{$r6h}/\$B\$28, 0)"
+            ];
+            $r6h++;
+        }
+        $sheet6->fromArray($sheet6Horas, null, 'A13');
+        $sheet6->fromArray([['TOTAL', '=SUM(B13:B27)', '=SUM(C13:C27)']], null, 'A28');
+
+        $sheet6->getStyle('A1:C1')->getFont()->setBold(true);
+        $sheet6->getStyle('A1:C1')->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setARGB('FF7C3AED');
+        $sheet6->getStyle('A1:C1')->getFont()->getColor()->setARGB('FFFFFFFF');
+        $sheet6->getStyle('A9:C9')->getFont()->setBold(true);
+        $sheet6->getStyle('A12:C12')->getFont()->setBold(true);
+        $sheet6->getStyle('A12:C12')->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setARGB('FF7C3AED');
+        $sheet6->getStyle('A12:C12')->getFont()->getColor()->setARGB('FFFFFFFF');
+        $sheet6->getStyle('A28:C28')->getFont()->setBold(true);
+
+        // -------------------------------------------------------------
+        // Planilha 7: "Demografia e Perfil"
+        // -------------------------------------------------------------
+        $sheet7 = $spreadsheet->createSheet();
+        $sheet7->setTitle('Demografia e Perfil');
+
+        $sheet7->fromArray(['Gênero do Paciente', 'Total Atendimentos', '% do Total'], null, 'A1');
+        $generos = ['M', 'F', 'NÃO INFORMADO'];
+        $sheet7Gen = [];
+        $r7g = 2;
+        foreach ($generos as $g) {
+            $rotuloG = $g === 'M' ? 'MASCULINO (M)' : ($g === 'F' ? 'FEMININO (F)' : 'NÃO INFORMADO');
+            $sheet7Gen[] = [
+                $rotuloG,
+                "=COUNTIF(procedimentos!\$I:\$I, \"{$g}\")",
+                "=IF(\$B\$5>0, B{$r7g}/\$B\$5, 0)"
+            ];
+            $r7g++;
+        }
+        $sheet7->fromArray($sheet7Gen, null, 'A2');
+        $sheet7->fromArray([['TOTAL', '=SUM(B2:B4)', '=SUM(C2:C4)']], null, 'A5');
+
+        $sheet7->setCellValue('A7', 'DISTRIBUIÇÃO POR FAIXA ETÁRIA');
+        $sheet7->getStyle('A7')->getFont()->setBold(true);
+        $sheet7->fromArray(['Faixa Etária', 'Total Atendimentos', '% do Total'], null, 'A8');
+        $faixas = ['0 a 18 anos', '19 a 39 anos', '40 a 59 anos', '60 a 79 anos', '80+ anos', 'Não informada'];
+        $sheet7Faixas = [];
+        $r7f = 9;
+        foreach ($faixas as $fx) {
+            $sheet7Faixas[] = [
+                $fx,
+                "=COUNTIF(procedimentos!\$J:\$J, \$A{$r7f})",
+                "=IF(\$B\$15>0, B{$r7f}/\$B\$15, 0)"
+            ];
+            $r7f++;
+        }
+        $sheet7->fromArray($sheet7Faixas, null, 'A9');
+        $sheet7->fromArray([['TOTAL', '=SUM(B9:B14)', '=SUM(C9:C14)']], null, 'A15');
+
+        $sheet7->getStyle('A1:C1')->getFont()->setBold(true);
+        $sheet7->getStyle('A1:C1')->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setARGB('FFEC4899');
+        $sheet7->getStyle('A1:C1')->getFont()->getColor()->setARGB('FFFFFFFF');
+        $sheet7->getStyle('A5:C5')->getFont()->setBold(true);
+        $sheet7->getStyle('A8:C8')->getFont()->setBold(true);
+        $sheet7->getStyle('A8:C8')->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setARGB('FFEC4899');
+        $sheet7->getStyle('A8:C8')->getFont()->getColor()->setARGB('FFFFFFFF');
+        $sheet7->getStyle('A15:C15')->getFont()->setBold(true);
+
+        // -------------------------------------------------------------
+        // Planilha 8: "Resumo Geral KPIs"
+        // -------------------------------------------------------------
+        $sheet8 = $spreadsheet->createSheet();
+        $sheet8->setTitle('Resumo Geral KPIs');
+
+        $sheet8->fromArray(['Indicador Estratégico Procordis', 'Valor Calculado (Fórmula)', 'Descrição / Meta'], null, 'A1');
+        $kpis = [
+            ['Total Histórico de Procedimentos & Atendimentos', '=COUNTA(procedimentos!$A:$A)-1', 'Volume total de atendimentos na base de dados'],
+            ['Atendimentos Concluídos / Realizados', '=COUNTIF(procedimentos!$P:$P, "FINALIZADO")', 'Consultas e exames com saída confirmada'],
+            ['Volume Total SUS', '=COUNTIF(procedimentos!$L:$L, "SUS")', 'Atendimentos realizados pelo SUS'],
+            ['Participação do SUS no Mix Total', '=IF(B2>0, B4/B2, 0)', 'Percentual de atendimento público'],
+            ['Volume Total de Convênios Privados', '=COUNTIF(procedimentos!$L:$L, "CONVÊNIO")', 'Saúde suplementar e planos parceiros'],
+            ['Volume Total Filantrópico', '=COUNTIF(procedimentos!$L:$L, "FILANTRÓPICO")', 'Atendimentos de filantropia institucional'],
+            ['Total de Cancelamentos e Absenteísmo', '=COUNTIF(procedimentos!$P:$P, "CANCELADO")', 'Consultas desmarcadas ou faltas'],
+            ['Taxa Geral de Cancelamento (No-Show)', '=IF(B2>0, B8/B2, 0)', 'Índice de perda de capacidade de agenda'],
+            ['Total de Atendimentos por Encaixe', '=COUNTIF(procedimentos!$Q:$Q, "SIM")', 'Atendimentos não programados previamente'],
+            ['Taxa Geral de Encaixes', '=IF(B2>0, B10/B2, 0)', 'Percentual de encaixes sobre a agenda']
+        ];
+        $sheet8->fromArray($kpis, null, 'A2');
+
+        $sheet8->getStyle('A1:C1')->getFont()->setBold(true);
+        $sheet8->getStyle('A1:C1')->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setARGB('FF0F172A');
+        $sheet8->getStyle('A1:C1')->getFont()->getColor()->setARGB('FFFFFFFF');
+        $sheet8->getStyle('A2:A11')->getFont()->setBold(true);
 
         // Streaming Response do arquivo XLSX
         $response = new StreamedResponse(function () use ($spreadsheet) {
@@ -329,7 +614,7 @@ class RelatorioAdminController extends AbstractController
             $writer->save('php://output');
         });
 
-        $nomeArquivo = 'relatorio_procedimentos_completo_' . date('Ymd_His') . '.xlsx';
+        $nomeArquivo = 'modelo_dashboard_procordis_' . date('Ymd_His') . '.xlsx';
         $response->headers->set('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         $response->headers->set('Content-Disposition', 'attachment; filename="' . $nomeArquivo . '"');
 

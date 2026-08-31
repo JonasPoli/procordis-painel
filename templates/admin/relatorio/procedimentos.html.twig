@@ -14,13 +14,30 @@
             <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Análise temporal da quantidade de exames e consultas por período, distribuição SUS/Filantrópico e agrupamentos.</p>
         </div>
 
-        <div class="flex flex-wrap items-center gap-3">
-            <a href="{{ path('app_admin_relatorio_procedimentos_excel', app.request.query.all) }}" class="px-4 py-2 bg-green-700 hover:bg-green-800 text-white font-bold rounded-xl text-xs flex items-center gap-2 shadow-sm transition">
-                <sl-icon name="file-earmark-excel"></sl-icon> Exportar Excel Completo (Com Fórmulas)
+        <div class="flex flex-wrap items-center gap-2">
+            <a href="{{ path('app_admin_relatorio_procedimentos_csv', app.request.query.all) }}" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center gap-2 shadow-sm transition">
+                <sl-icon name="file-earmark-spreadsheet"></sl-icon> 1. Baixar Dados em CSV (Rápido)
             </a>
-            <a href="{{ path('app_admin_relatorio_procedimentos_csv', app.request.query.all) }}" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center gap-2 shadow-sm transition">
-                <sl-icon name="download"></sl-icon> Exportar CSV Completo
+            <a href="{{ path('app_admin_relatorio_procedimentos_excel', app.request.query.all) }}" class="px-3.5 py-2 bg-green-700 hover:bg-green-800 text-white font-bold rounded-xl text-xs flex items-center gap-2 shadow-sm transition">
+                <sl-icon name="file-earmark-excel"></sl-icon> 2. Baixar Modelo Excel (8 Abas com Fórmulas)
             </a>
+        </div>
+    </div>
+
+    <!-- Dica de Uso da Planilha Rápida -->
+    <div class="bg-gradient-to-r from-cyan-50 to-emerald-50 dark:from-slate-900 dark:to-slate-800 p-3.5 rounded-2xl border border-cyan-200/60 dark:border-slate-700 text-xs flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-xs">
+        <div class="flex items-start gap-2.5">
+            <div class="p-1.5 bg-cyan-600 text-white rounded-lg mt-0.5">
+                <sl-icon name="lightning-charge"></sl-icon>
+            </div>
+            <div>
+                <span class="font-bold text-slate-900 dark:text-white block">Como utilizar o Modelo Excel com Fórmulas Integradas:</span>
+                <span class="text-slate-600 dark:text-slate-300 text-[11px] leading-relaxed">
+                    <strong>Passo 1:</strong> Clique em <em>"1. Baixar Dados em CSV"</em> para extrair a base completa. <br class="hidden sm:inline">
+                    <strong>Passo 2:</strong> Baixe o <em>"2. Baixar Modelo Excel"</em> (abre instantaneamente). <br class="hidden sm:inline">
+                    <strong>Passo 3:</strong> Abra o CSV, copie os registros e cole na aba <code>procedimentos</code> da planilha Excel. Todas as 7 abas analíticas (Evolução por Ano, Produtividade Médica, Convênios, Status, Horários de Pico, Demografia e KPIs) atualizarão sozinhas em tempo real!
+                </span>
+            </div>
         </div>
     </div>
 
