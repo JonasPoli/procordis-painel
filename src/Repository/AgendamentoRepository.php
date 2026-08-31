@@ -196,4 +196,18 @@ class AgendamentoRepository extends ServiceEntityRepository
         }
         return null;
     }
+
+    /**
+     * Retorna a lista de procedimentos/exames únicos cadastrados com a quantidade total de ocorrências.
+     */
+    public function listarProcedimentosUnicosBanco(): array
+    {
+        return $this->createQueryBuilder('a')
+            ->select('a.procedimentoNome, e.nome as especialidadeNome, COUNT(a.id) as total')
+            ->leftJoin('a.especialidade', 'e')
+            ->groupBy('a.procedimentoNome, e.nome')
+            ->orderBy('total', 'DESC')
+            ->getQuery()
+            ->getResult();
+    }
 }

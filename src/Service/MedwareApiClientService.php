@@ -414,6 +414,33 @@ class MedwareApiClientService
                     }
                 }
             }
+
+            // 5. Histórico Clínico & Anamnese (AtendimentoEtapaHistorico)
+            if ($dtChegada) {
+                $etapaChegada = $this->em->getRepository(AtendimentoEtapaHistorico::class)->findOneBy(['agendamento' => $agendamento, 'etapa' => 'chegada']);
+                if (!$etapaChegada) {
+                    $etapaChegada = new AtendimentoEtapaHistorico();
+                    $etapaChegada->setAgendamento($agendamento);
+                    $etapaChegada->setEtapa('chegada');
+                    $etapaChegada->setDataHoraInicio($dtChegada);
+                    $etapaChegada->setDataHoraFim($dtConfirmado ?? $dtChegada);
+                    $etapaChegada->setResponsavel('Recepção Medware');
+                    $this->em->persist($etapaChegada);
+                }
+
+                if ($dtLiberacao || $agendamento->getStatus() === 'finalizado') {
+                    $etapaMed = $this->em->getRepository(AtendimentoEtapaHistorico::class)->findOneBy(['agendamento' => $agendamento, 'etapa' => 'finalizacao']);
+                    if (!$etapaMed) {
+                        $etapaMed = new AtendimentoEtapaHistorico();
+                        $etapaMed->setAgendamento($agendamento);
+                        $etapaMed->setEtapa('finalizacao');
+                        $etapaMed->setDataHoraInicio($dtChegada);
+                        $etapaMed->setDataHoraFim($dtLiberacao ?? new \DateTime());
+                        $etapaMed->setResponsavel($medico ? $medico->getNome() : 'Atendimento Medware');
+                        $this->em->persist($etapaMed);
+                    }
+                }
+            }
         }
 
         $this->em->flush();

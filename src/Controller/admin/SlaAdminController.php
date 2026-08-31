@@ -11,11 +11,14 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
+use App\Repository\AgendamentoRepository;
+
 #[Route('/admin/sla', name: 'app_admin_sla_')]
 class SlaAdminController extends AbstractController
 {
     public function __construct(
         private ProcedimentoSlaRepository $slaRepository,
+        private AgendamentoRepository $agendamentoRepo,
         private EntityManagerInterface $em
     ) {
     }
@@ -23,8 +26,11 @@ class SlaAdminController extends AbstractController
     #[Route('/', name: 'index', methods: ['GET'])]
     public function index(): Response
     {
+        $procedimentosMedware = $this->agendamentoRepo->listarProcedimentosUnicosBanco();
+
         return $this->render('admin/procedimento_sla/index.html.twig', [
             'regrasSla' => $this->slaRepository->findAll(),
+            'procedimentosMedware' => $procedimentosMedware,
         ]);
     }
 
