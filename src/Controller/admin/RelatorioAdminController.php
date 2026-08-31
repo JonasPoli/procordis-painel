@@ -177,6 +177,155 @@ class RelatorioAdminController extends AbstractController
         return $response;
     }
 
+    #[Route('/procedimentos/exportar-excel', name: 'procedimentos_excel', methods: ['GET'])]
+    public function exportarProcedimentosExcel(Request $request): StreamedResponse
+    {
+        // Buscar TODO o histórico do Procordis em ordem crescente de data
+        $dados = $this->relatorioService->obterRelatorioProcedimentos('sem_filtro');
+        $agendamentos = $dados['agendamentos']; // já em ordem crescente a.dataHoraAgendada ASC
+
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+
+        // -------------------------------------------------------------
+        // Planilha 1: "procedimentos"
+        // -------------------------------------------------------------
+        $sheet1 = $spreadsheet->getActiveSheet();
+        $sheet1->setTitle('procedimentos');
+
+        // Títulos das colunas
+        $headers1 = [
+            'ID Agendamento',
+            'Data',
+            'DataHora',
+            'Ano',
+            'Mês',
+            'Paciente',
+            'Procedimento / Exame',
+            'Tipo Atendimento',
+            'Convênio / Plano',
+            'Médico Responsável',
+            'Especialidade',
+            'Status'
+        ];
+        $sheet1->fromArray($headers1, null, 'A1');
+
+        $rowIdx = 2;
+        foreach ($agendamentos as $ag) {
+            $dtAg = $ag['dataHoraAgendada'] ?? $ag['createdAt'];
+            if (!$dtAg instanceof \DateTimeInterface) {
+                $dtAg = new \DateTime($dtAg ?? 'now');
+            }
+
+            $sheet1->setCellValue('A' . $rowIdx, $ag['id']);
+            $sheet1->setCellValue('B' . $rowIdx, $dtAg->format('Y-m-d'));
+            $sheet1->setCellValue('C' . $rowIdx, $dtAg->format('d/m/Y H:i'));
+            $sheet1->setCellValue('D' . $rowIdx, (int) $dtAg->format('Y'));
+            $sheet1->setCellValue('E' . $rowIdx, (int) $dtAg->format('m'));
+            $sheet1->setCellValue('F' . $rowIdx, $ag['pacienteNome'] ?? 'Paciente');
+            $sheet1->setCellValue('G' . $rowIdx, $ag['procedimentoNome'] ?? 'Consulta / Procedimento Geral');
+            $sheet1->setCellValue('H' . $rowIdx, strtoupper($ag['tipoAtendimento'] ?? 'SUS'));
+            $sheet1->setCellValue('I' . $rowIdx, $ag['convenioNome'] ?? 'SUS');
+            $sheet1->setCellValue('J' . $rowIdx, $ag['medicoNome'] ?? 'Não informado');
+            $sheet1->setCellValue('K' . $rowIdx, $ag['especialidadeNome'] ?? 'Geral');
+            $sheet1->setCellValue('L' . $rowIdx, strtoupper($ag['status'] ?? 'AGENDADO'));
+
+            $rowIdx++;
+        }
+        $lastRowSheet1 = max(2, $rowIdx - 1);
+
+        // Estilizar cabeçalho da planilha 1
+        $sheet1->getStyle('A1:L1')->getFont()->setBold(true);
+        $sheet1->getStyle('A1:L1')->getFill()
+            ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+            ->getStartColor()->setARGB('FF0891B2');
+        $sheet1->getStyle('A1:L1')->getFont()->getColor()->setARGB('FFFFFFFF');
+
+        // -------------------------------------------------------------
+        // Planilha 2: "Evolução por tipo - ano"
+        // -------------------------------------------------------------
+        $sheet2 = $spreadsheet->createSheet();
+        $sheet2->setTitle('Evolução por tipo - ano');
+
+        // Anos do período (2005 até o ano atual)
+        $anoAtual = (int) date('Y');
+        $anos = range(2005, $anoAtual);
+
+        // Montar cabeçalho da Planilha 2
+        $headers2 = ['Tipo de Procedimento / Exame'];
+        foreach ($anos as $a) {
+            $headers2[] = (string) $a;
+        }
+        $headers2[] = 'Total Geral (Fórmula)';
+        $sheet2->fromArray($headers2, null, 'A1');
+
+        // Descobrir procedimentos únicos para aplicar fórmulas dinâmicas por linha
+        $procedimentosUnicos = array_keys($dados['porProcedimento']);
+        sort($procedimentosUnicos);
+
+        $rowIdx2 = 2;
+        foreach ($procedimentosUnicos as $procNome) {
+            // Coluna A: Nome do procedimento
+            $sheet2->setCellValue('A' . $rowIdx2, $procNome);
+
+            // Colunas de Anos (B, C, D...): Fórmula SUMIFS (SOMASE) do Excel
+            // =SUMIFS(procedimentos!$A:$A, procedimentos!$G:$G, $A2, procedimentos!$D:$D, B$1)
+            $colCharIdx = 2; // B = 2
+            foreach ($anos as $a) {
+                $colLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colCharIdx);
+                // Fórmula do Excel apontando para a Planilha 1 ('procedimentos')
+                $formula = "=COUNTIFS(procedimentos!\$G\$2:\$G\${$lastRowSheet1}, \$A{$rowIdx2}, procedimentos!\$D\$2:\$D\${$lastRowSheet1}, {$colLetter}\$1)";
+                $sheet2->setCellValue("{$colLetter}{$rowIdx2}", $formula);
+                $colCharIdx++;
+            }
+
+            // Coluna Total Geral (Soma das colunas de anos)
+            $lastYearColLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colCharIdx - 1);
+            $formulaTotal = "=SUM(B{$rowIdx2}:{$lastYearColLetter}{$rowIdx2})";
+            $totalColLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colCharIdx);
+            $sheet2->setCellValue("{$totalColLetter}{$rowIdx2}", $formulaTotal);
+
+            $rowIdx2++;
+        }
+
+        $lastRowSheet2 = max(2, $rowIdx2 - 1);
+        $lastColLetterSheet2 = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(count($headers2));
+
+        // Linha de Total Geral no Rodapé da Planilha 2 com Fórmula SUM (SOMA)
+        $sheet2->setCellValue('A' . $rowIdx2, 'TOTAL GERAL POR ANO');
+        $colCharIdx = 2;
+        foreach ($anos as $a) {
+            $colLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colCharIdx);
+            $sheet2->setCellValue("{$colLetter}{$rowIdx2}", "=SUM({$colLetter}2:{$colLetter}{$lastRowSheet2})");
+            $colCharIdx++;
+        }
+        $totalColLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colCharIdx);
+        $sheet2->setCellValue("{$totalColLetter}{$rowIdx2}", "=SUM({$totalColLetter}2:{$totalColLetter}{$lastRowSheet2})");
+
+        // Estilização da Planilha 2
+        $sheet2->getStyle("A1:{$lastColLetterSheet2}1")->getFont()->setBold(true);
+        $sheet2->getStyle("A1:{$lastColLetterSheet2}1")->getFill()
+            ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+            ->getStartColor()->setARGB('FF059669');
+        $sheet2->getStyle("A1:{$lastColLetterSheet2}1")->getFont()->getColor()->setARGB('FFFFFFFF');
+
+        $sheet2->getStyle("A{$rowIdx2}:{$lastColLetterSheet2}{$rowIdx2}")->getFont()->setBold(true);
+        $sheet2->getStyle("A{$rowIdx2}:{$lastColLetterSheet2}{$rowIdx2}")->getFill()
+            ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+            ->getStartColor()->setARGB('FFE2E8F0');
+
+        // Streaming Response do arquivo XLSX
+        $response = new StreamedResponse(function () use ($spreadsheet) {
+            $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+            $writer->save('php://output');
+        });
+
+        $nomeArquivo = 'relatorio_procedimentos_completo_' . date('Ymd_His') . '.xlsx';
+        $response->headers->set('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        $response->headers->set('Content-Disposition', 'attachment; filename="' . $nomeArquivo . '"');
+
+        return $response;
+    }
+
     #[Route('/anamneses', name: 'anamneses', methods: ['GET'])]
     public function relatorioAnamneses(Request $request): Response
     {
