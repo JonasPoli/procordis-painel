@@ -15,8 +15,8 @@
         </div>
 
         <div class="flex flex-wrap items-center gap-3">
-            <a href="{{ path('app_admin_backup_download') }}" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center gap-2 shadow-md transition">
-                <sl-icon name="download"></sl-icon> Gerar & Baixar Backup Completo (.bak)
+            <a href="{{ path('app_admin_backup_download') }}" data-turbo="false" download="procordis_backup.bak" class="btn-download-action px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center gap-2 shadow-md transition">
+                <sl-icon name="download"></sl-icon> <span>Gerar & Baixar Backup Completo (.bak)</span>
             </a>
         </div>
     </div>
@@ -47,8 +47,8 @@
                 </ul>
             </div>
 
-            <a href="{{ path('app_admin_backup_download') }}" class="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition shadow flex items-center justify-center gap-2">
-                <sl-icon name="download"></sl-icon> Baixar Snapshot do Sistema
+            <a href="{{ path('app_admin_backup_download') }}" data-turbo="false" download="procordis_backup.bak" class="btn-download-action w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition shadow flex items-center justify-center gap-2">
+                <sl-icon name="download"></sl-icon> <span>Baixar Snapshot do Sistema</span>
             </a>
         </div>
 
@@ -64,7 +64,7 @@
                 </div>
             </div>
 
-            <form method="POST" action="{{ path('app_admin_backup_restaurar') }}" enctype="multipart/form-data" class="space-y-4" onsubmit="return confirmarRestauracao()">
+            <form method="POST" action="{{ path('app_admin_backup_restaurar') }}" enctype="multipart/form-data" data-turbo="false" class="space-y-4" onsubmit="return confirmarRestauracao(this)">
                 <div>
                     <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Selecione o Arquivo de Backup (.bak)</label>
                     <input type="file" name="backupFile" accept=".bak,.json,.zip" required class="w-full p-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl text-xs">
@@ -82,8 +82,8 @@
                     </label>
                 </div>
 
-                <button type="submit" class="w-full py-2.5 px-4 bg-cyan-600 hover:bg-cyan-700 text-white font-bold text-xs rounded-xl transition shadow flex items-center justify-center gap-2">
-                    <sl-icon name="upload"></sl-icon> Restaurar Sistema Agora
+                <button type="submit" id="btnRestaurarSubmit" class="w-full py-2.5 px-4 bg-cyan-600 hover:bg-cyan-700 text-white font-bold text-xs rounded-xl transition shadow flex items-center justify-center gap-2">
+                    <sl-icon name="upload"></sl-icon> <span>Restaurar Sistema Agora</span>
                 </button>
             </form>
         </div>
@@ -91,8 +91,28 @@
 </div>
 
 <script>
-    function confirmarRestauracao() {
-        return confirm("ATENÇÃO: A restauração substituirá os dados atuais pelo conteúdo do arquivo de backup.\n\nDeseja realmente prosseguir?");
+    function confirmarRestauracao(form) {
+        if (confirm("ATENÇÃO: A restauração substituirá os dados atuais pelo conteúdo do arquivo de backup.\n\nDeseja realmente prosseguir?")) {
+            const btn = document.getElementById('btnRestaurarSubmit');
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<sl-icon name="arrow-repeat" class="animate-spin"></sl-icon> <span>Restaurando banco de dados... (aguarde)</span>';
+            }
+            return true;
+        }
+        return false;
     }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.btn-download-action').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const originalHtml = this.innerHTML;
+                this.innerHTML = '<sl-icon name="arrow-repeat" class="animate-spin"></sl-icon> <span>Gerando backup...</span>';
+                setTimeout(() => {
+                    this.innerHTML = originalHtml;
+                }, 4000);
+            });
+        });
+    });
 </script>
 {% endblock %}
