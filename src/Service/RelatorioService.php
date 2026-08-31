@@ -302,32 +302,70 @@ class RelatorioService
                 $porFaixaEtaria['Não informada']++;
             }
 
-            // 1. Tempo de Espera (minutos)
+            // 1. Tempo de Espera e Execução (minutos)
             $chegada = $item['horarioChegada'] ?? $item['dataHoraAgendada'] ?? null;
             $inicioConsulta = $item['horarioInicioConsulta'] ?? null;
+            $fimConsulta = $item['horarioFimConsulta'] ?? $item['horarioSaida'] ?? null;
+            $nomeProc = $item['procedimentoNome'] ?? 'Consulta / Procedimento Geral';
+
             $esperaMin = null;
+            $execucaoMin = null;
+            $permanenciaMin = null;
+
+            if ($chegada instanceof \DateTimeInterface && $fimConsulta instanceof \DateTimeInterface) {
+                $diffTotalSec = $fimConsulta->getTimestamp() - $chegada->getTimestamp();
+                if ($diffTotalSec > 0 && $diffTotalSec < 43200) { // menos de 12 horas
+                    $permanenciaMin = round($diffTotalSec / 60, 1);
+                }
+            }
+
             if ($chegada instanceof \DateTimeInterface && $inicioConsulta instanceof \DateTimeInterface) {
                 $diffSec = $inicioConsulta->getTimestamp() - $chegada->getTimestamp();
                 if ($diffSec >= 0 && $diffSec < 43200) { // menos de 12 horas
                     $esperaMin = round($diffSec / 60, 1);
-                    $totalEsperaMinutos += $esperaMin;
-                    $countComEspera++;
                 }
             }
 
-            // 2. Tempo de Execução / Atendimento (minutos)
-            $fimConsulta = $item['horarioFimConsulta'] ?? $item['horarioSaida'] ?? null;
-            $execucaoMin = null;
             if ($inicioConsulta instanceof \DateTimeInterface && $fimConsulta instanceof \DateTimeInterface) {
                 $diffExecSec = $fimConsulta->getTimestamp() - $inicioConsulta->getTimestamp();
                 if ($diffExecSec > 0 && $diffExecSec < 28800) { // menos de 8 horas
                     $execucaoMin = round($diffExecSec / 60, 1);
-                    $totalExecucaoMinutos += $execucaoMin;
-                    $countComExecucao++;
                 }
             }
 
-            $nomeProc = $item['procedimentoNome'] ?? 'Consulta / Procedimento Geral';
+            // Se o exame possui horário de chegada e liberação registrados, mas não teve o carimbo intermediário de início
+            if ($permanenciaMin !== null && ($esperaMin === null || $execucaoMin === null)) {
+                $nomeProcLower = mb_strtolower($nomeProc);
+                $duracaoEstimada = 15;
+                if (str_contains($nomeProcLower, 'eletro') || str_contains($nomeProcLower, 'ecg')) {
+                    $duracaoEstimada = 10;
+                } elseif (str_contains($nomeProcLower, 'ecocardio') || str_contains($nomeProcLower, 'eco')) {
+                    $duracaoEstimada = 20;
+                } elseif (str_contains($nomeProcLower, 'ergom') || str_contains($nomeProcLower, 'esteira')) {
+                    $duracaoEstimada = 25;
+                } elseif (str_contains($nomeProcLower, 'holter') || str_contains($nomeProcLower, 'mapa')) {
+                    $duracaoEstimada = 10;
+                } elseif (str_contains($nomeProcLower, 'consulta')) {
+                    $duracaoEstimada = 20;
+                }
+
+                if ($execucaoMin === null) {
+                    $execucaoMin = min($permanenciaMin, $duracaoEstimada);
+                }
+                if ($esperaMin === null) {
+                    $esperaMin = max(0, round($permanenciaMin - $execucaoMin, 1));
+                }
+            }
+
+            if ($esperaMin !== null) {
+                $totalEsperaMinutos += $esperaMin;
+                $countComEspera++;
+            }
+            if ($execucaoMin !== null) {
+                $totalExecucaoMinutos += $execucaoMin;
+                $countComExecucao++;
+            }
+
             $porProcedimento[$nomeProc] = ($porProcedimento[$nomeProc] ?? 0) + 1;
 
             // Acumular tempos consolidados por procedimento
