@@ -125,17 +125,70 @@
         </div>
     </div>
 
+    <!-- Gráfico Inteligente de Comparação por Procedimentos (Linhas Individuais com Liga/Desliga) -->
+    <div class="bg-white/80 dark:bg-slate-900/80 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
+            <div>
+                <h3 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <sl-icon name="sliders" class="text-cyan-500"></sl-icon> Gráfico Inteligente: Comparativo por Procedimento / Exame
+                </h3>
+                <p class="text-xs text-slate-500">Selecione abaixo quais exames deseja ligar ou desligar na visualização gráfica em linha ao longo dos meses</p>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <button type="button" onclick="marcarTodosProcedimentos(true)" class="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 font-bold rounded-lg text-[11px] transition">
+                    Ligar Todos
+                </button>
+                <button type="button" onclick="marcarTodosProcedimentos(false)" class="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 font-bold rounded-lg text-[11px] transition">
+                    Desligar Todos
+                </button>
+            </div>
+        </div>
+
+        <!-- Chips de Procedimentos para Ativar / Desativar Linhas -->
+        <div class="flex flex-wrap gap-2 max-h-36 overflow-y-auto p-1 bg-slate-50 dark:bg-slate-950/50 rounded-xl border border-slate-100 dark:border-slate-800" id="containerChipsProcedimentos">
+            {% for dataset in dados.datasetsProcedimentos %}
+                <button type="button" 
+                        onclick="toggleLinhaProcedimento({{ loop.index0 }}, this)" 
+                        id="chipProc_{{ loop.index0 }}"
+                        class="px-2.5 py-1 rounded-lg font-bold text-xs flex items-center gap-1.5 transition border shadow-xs active-chip"
+                        style="background-color: {{ dataset.cor }}20; color: {{ dataset.cor }}; border-color: {{ dataset.cor }}40;">
+                    <span class="w-2.5 h-2.5 rounded-full inline-block" style="background-color: {{ dataset.cor }};"></span>
+                    <span class="truncate max-w-[200px]">{{ dataset.nome }}</span>
+                    <span class="opacity-70 font-mono text-[10px]">({{ dataset.total }})</span>
+                </button>
+            {% endfor %}
+        </div>
+
+        <div class="h-80 w-full">
+            <canvas id="graficoComparativoProcedimentos"></canvas>
+        </div>
+    </div>
+
     <!-- Gráficos de Evolução e Composição -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- Gráfico de Evolução Temporal (Linha) -->
+        <!-- Gráfico de Evolução Temporal (Linha) com Agrupamento Dinâmico -->
         <div class="lg:col-span-2 bg-white/80 dark:bg-slate-900/80 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
-            <div class="flex items-center justify-between mb-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
                 <div>
-                    <h3 class="text-base font-bold text-slate-900 dark:text-white">Evolução Temporal de Atendimentos</h3>
-                    <p class="text-xs text-slate-500">Volume de procedimentos e exames realizados no período selecionado</p>
+                    <h3 class="text-base font-bold text-slate-900 dark:text-white">Evolução Temporal Geral</h3>
+                    <p class="text-xs text-slate-500">Volume total de atendimentos agregados</p>
                 </div>
-                <sl-badge variant="neutral" pill size="small">{{ dados.porDia|length }} dias com movimento</sl-badge>
+                
+                <!-- Seletor de Agrupamento do Gráfico -->
+                <div class="flex items-center gap-1 bg-slate-100 dark:bg-slate-950 p-1 rounded-xl text-xs font-bold">
+                    <span class="text-[10px] text-slate-400 px-1 uppercase">Agrupar gráfico:</span>
+                    <select id="seletorAgrupamentoGrafico" onchange="atualizarGraficoEvolucao(this.value)" class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 text-xs text-cyan-600 dark:text-cyan-400 font-bold focus:outline-none">
+                        <option value="dia">Por Dia</option>
+                        <option value="mes" selected>Por Mês</option>
+                        <option value="trimestre">Por Trimestre</option>
+                        <option value="quadrimestre">Por Quadrimestre</option>
+                        <option value="semestre">Por Semestre</option>
+                        <option value="ano">Por Ano</option>
+                    </select>
+                </div>
             </div>
+
             <div class="h-64 w-full">
                 <canvas id="graficoEvolucaoTemporal"></canvas>
             </div>
@@ -167,25 +220,56 @@
         </div>
     </div>
 
-    <!-- Tabelas Planilhadas por Intervalo (Dia / Mês / Semestre / Ano) -->
+    <!-- Gráficos Adicionais: Top 10 Exames (Barras Horizontais) + Distribuição por Status (Pizza) -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Top 10 Procedimentos e Exames Mais Realizados (Barras Horizontais) -->
+        <div class="lg:col-span-2 bg-white/80 dark:bg-slate-900/80 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+            <div class="mb-4">
+                <h3 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <sl-icon name="bar-chart-line" class="text-indigo-500"></sl-icon> Top Exames / Procedimentos Mais Demandados
+                </h3>
+                <p class="text-xs text-slate-500">Ranking dos 10 procedimentos com maior volume de realizações no período</p>
+            </div>
+            <div class="h-64 w-full">
+                <canvas id="graficoTopProcedimentos"></canvas>
+            </div>
+        </div>
+
+        <!-- Distribuição por Status de Atendimento (Pizza) -->
+        <div class="bg-white/80 dark:bg-slate-900/80 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+            <div class="mb-2">
+                <h3 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <sl-icon name="pie-chart" class="text-emerald-500"></sl-icon> Status dos Agendamentos
+                </h3>
+                <p class="text-xs text-slate-500">Distribuição entre Agendados, Finalizados, Faltas e Cancelados</p>
+            </div>
+            <div class="h-56 w-full flex items-center justify-center">
+                <canvas id="graficoStatusPizza"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabelas Planilhadas por Intervalo (Dia / Mês / Trimestre / Quadrimestre / Semestre / Ano) -->
     <div class="bg-white/80 dark:bg-slate-900/80 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
             <div>
                 <h3 class="text-base font-bold text-slate-900 dark:text-white">Tabelas Planilhadas por Intervalo Temporal</h3>
-                <p class="text-xs text-slate-500">Visão estatística agregada de procedimentos & exames por Dia, Mês, Semestre e Ano</p>
+                <p class="text-xs text-slate-500">Visão estatística agregada de procedimentos & exames por Dia, Mês, Trimestre, Quadrimestre, Semestre e Ano</p>
             </div>
 
             <!-- Abas de Navegação das Tabelas -->
-            <div class="flex items-center gap-1 bg-slate-100 dark:bg-slate-950 p-1 rounded-xl text-xs font-bold">
-                <button type="button" onclick="mostrarTabelaAgregada('dia')" id="btnTabDia" class="px-3 py-1.5 rounded-lg transition bg-white dark:bg-slate-800 text-cyan-600 dark:text-cyan-400 shadow-sm">Por Dia</button>
-                <button type="button" onclick="mostrarTabelaAgregada('mes')" id="btnTabMes" class="px-3 py-1.5 rounded-lg transition text-slate-600 dark:text-slate-400 hover:text-slate-900">Por Mês</button>
-                <button type="button" onclick="mostrarTabelaAgregada('semestre')" id="btnTabSemestre" class="px-3 py-1.5 rounded-lg transition text-slate-600 dark:text-slate-400 hover:text-slate-900">Por Semestre</button>
-                <button type="button" onclick="mostrarTabelaAgregada('ano')" id="btnTabAno" class="px-3 py-1.5 rounded-lg transition text-slate-600 dark:text-slate-400 hover:text-slate-900">Por Ano</button>
+            <div class="flex flex-wrap items-center gap-1 bg-slate-100 dark:bg-slate-950 p-1 rounded-xl text-xs font-bold">
+                <button type="button" onclick="mostrarTabelaAgregada('dia')" id="btnTabDia" class="px-2.5 py-1 rounded-lg transition text-slate-600 dark:text-slate-400 hover:text-slate-900">Por Dia</button>
+                <button type="button" onclick="mostrarTabelaAgregada('mes')" id="btnTabMes" class="px-2.5 py-1 rounded-lg transition bg-white dark:bg-slate-800 text-cyan-600 dark:text-cyan-400 shadow-sm">Por Mês</button>
+                <button type="button" onclick="mostrarTabelaAgregada('trimestre')" id="btnTabTrimestre" class="px-2.5 py-1 rounded-lg transition text-slate-600 dark:text-slate-400 hover:text-slate-900">Por Trimestre</button>
+                <button type="button" onclick="mostrarTabelaAgregada('quadrimestre')" id="btnTabQuadrimestre" class="px-2.5 py-1 rounded-lg transition text-slate-600 dark:text-slate-400 hover:text-slate-900">Por Quadrimestre</button>
+                <button type="button" onclick="mostrarTabelaAgregada('semestre')" id="btnTabSemestre" class="px-2.5 py-1 rounded-lg transition text-slate-600 dark:text-slate-400 hover:text-slate-900">Por Semestre</button>
+                <button type="button" onclick="mostrarTabelaAgregada('ano')" id="btnTabAno" class="px-2.5 py-1 rounded-lg transition text-slate-600 dark:text-slate-400 hover:text-slate-900">Por Ano</button>
             </div>
         </div>
 
         <!-- Tabela por Dia -->
-        <div id="tabConceitoDia" class="tabela-agregada-painel">
+        <div id="tabConceitoDia" class="tabela-agregada-painel hidden">
             <div class="max-h-72 overflow-y-auto">
                 <table class="w-full text-left text-xs border-collapse">
                     <thead class="sticky top-0 bg-slate-100 dark:bg-slate-950 font-bold uppercase text-slate-500">
@@ -213,7 +297,7 @@
         </div>
 
         <!-- Tabela por Mês -->
-        <div id="tabConceitoMes" class="tabela-agregada-painel hidden">
+        <div id="tabConceitoMes" class="tabela-agregada-painel">
             <div class="max-h-72 overflow-y-auto">
                 <table class="w-full text-left text-xs border-collapse">
                     <thead class="sticky top-0 bg-slate-100 dark:bg-slate-950 font-bold uppercase text-slate-500">
@@ -234,6 +318,62 @@
                             </tr>
                         {% else %}
                             <tr><td colspan="3" class="py-4 text-center text-slate-400">Nenhum dado mensal.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Tabela por Trimestre -->
+        <div id="tabConceitoTrimestre" class="tabela-agregada-painel hidden">
+            <div class="max-h-72 overflow-y-auto">
+                <table class="w-full text-left text-xs border-collapse">
+                    <thead class="sticky top-0 bg-slate-100 dark:bg-slate-950 font-bold uppercase text-slate-500">
+                        <tr>
+                            <th class="py-2.5 px-3">Trimestre / Ano</th>
+                            <th class="py-2.5 px-3 text-right">Volume de Atendimentos</th>
+                            <th class="py-2.5 px-3 text-right">Participação no Período</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                        {% for tri, count in dados.porTrimestre %}
+                            <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                                <td class="py-2 px-3 font-mono font-bold text-slate-800 dark:text-slate-200">{{ tri }}</td>
+                                <td class="py-2 px-3 text-right font-mono font-black text-sky-600 dark:text-sky-400">{{ count }} exames</td>
+                                <td class="py-2 px-3 text-right font-mono text-slate-500">
+                                    {{ dados.totalProcedimentos > 0 ? ((count / dados.totalProcedimentos) * 100)|number_format(1, ',', '.') : 0 }}%
+                                </td>
+                            </tr>
+                        {% else %}
+                            <tr><td colspan="3" class="py-4 text-center text-slate-400">Nenhum dado por trimestre.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Tabela por Quadrimestre -->
+        <div id="tabConceitoQuadrimestre" class="tabela-agregada-painel hidden">
+            <div class="max-h-72 overflow-y-auto">
+                <table class="w-full text-left text-xs border-collapse">
+                    <thead class="sticky top-0 bg-slate-100 dark:bg-slate-950 font-bold uppercase text-slate-500">
+                        <tr>
+                            <th class="py-2.5 px-3">Quadrimestre / Ano</th>
+                            <th class="py-2.5 px-3 text-right">Volume de Atendimentos</th>
+                            <th class="py-2.5 px-3 text-right">Participação no Período</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                        {% for quadri, count in dados.porQuadrimestre %}
+                            <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                                <td class="py-2 px-3 font-mono font-bold text-slate-800 dark:text-slate-200">{{ quadri }}</td>
+                                <td class="py-2 px-3 text-right font-mono font-black text-purple-600 dark:text-purple-400">{{ count }} exames</td>
+                                <td class="py-2 px-3 text-right font-mono text-slate-500">
+                                    {{ dados.totalProcedimentos > 0 ? ((count / dados.totalProcedimentos) * 100)|number_format(1, ',', '.') : 0 }}%
+                                </td>
+                            </tr>
+                        {% else %}
+                            <tr><td colspan="3" class="py-4 text-center text-slate-400">Nenhum dado por quadrimestre.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
@@ -455,31 +595,132 @@
         document.querySelectorAll('.tabela-agregada-painel').forEach(el => el.classList.add('hidden'));
         document.getElementById('tabConceito' + aba.charAt(0).toUpperCase() + aba.slice(1)).classList.remove('hidden');
 
-        ['Dia', 'Mes', 'Semestre', 'Ano'].forEach(item => {
+        ['Dia', 'Mes', 'Trimestre', 'Quadrimestre', 'Semestre', 'Ano'].forEach(item => {
             const btn = document.getElementById('btnTab' + item);
-            if (item.toLowerCase() === aba) {
-                btn.className = "px-3 py-1.5 rounded-lg transition bg-white dark:bg-slate-800 text-cyan-600 dark:text-cyan-400 shadow-sm";
-            } else {
-                btn.className = "px-3 py-1.5 rounded-lg transition text-slate-600 dark:text-slate-400 hover:text-slate-900";
+            if (btn) {
+                if (item.toLowerCase() === aba) {
+                    btn.className = "px-2.5 py-1 rounded-lg transition bg-white dark:bg-slate-800 text-cyan-600 dark:text-cyan-400 shadow-sm";
+                } else {
+                    btn.className = "px-2.5 py-1 rounded-lg transition text-slate-600 dark:text-slate-400 hover:text-slate-900";
+                }
             }
         });
     }
 
+    // Mapa de dados para troca dinâmica do agrupamento do Gráfico
+    const mapasAgrupamentos = {
+        dia: {
+            labels: {{ dados.porDiaKeys|json_encode|raw }},
+            data: {{ dados.porDiaValues|json_encode|raw }}
+        },
+        mes: {
+            labels: {{ dados.porMesKeys|json_encode|raw }},
+            data: {{ dados.porMesValues|json_encode|raw }}
+        },
+        trimestre: {
+            labels: {{ dados.porTrimestreKeys|json_encode|raw }},
+            data: {{ dados.porTrimestreValues|json_encode|raw }}
+        },
+        quadrimestre: {
+            labels: {{ dados.porQuadrimestreKeys|json_encode|raw }},
+            data: {{ dados.porQuadrimestreValues|json_encode|raw }}
+        },
+        semestre: {
+            labels: {{ dados.porSemestreKeys|json_encode|raw }},
+            data: {{ dados.porSemestreValues|json_encode|raw }}
+        },
+        ano: {
+            labels: {{ dados.porAnoKeys|json_encode|raw }},
+            data: {{ dados.porAnoValues|json_encode|raw }}
+        }
+    };
+
+    let meuGraficoComparativo = null;
+    const rawDatasetsProcedimentos = {{ dados.datasetsProcedimentos|json_encode|raw }};
+    const mesesLabels = {{ dados.porMesKeys|json_encode|raw }};
+
+    function toggleLinhaProcedimento(index, btnEl) {
+        if (!meuGraficoComparativo) return;
+        const isHidden = !meuGraficoComparativo.isDatasetVisible(index);
+        meuGraficoComparativo.setDatasetVisibility(index, isHidden);
+        meuGraficoComparativo.update();
+
+        if (isHidden) {
+            btnEl.classList.remove('opacity-40', 'line-through');
+            btnEl.classList.add('active-chip');
+        } else {
+            btnEl.classList.add('opacity-40', 'line-through');
+            btnEl.classList.remove('active-chip');
+        }
+    }
+
+    function marcarTodosProcedimentos(visivel) {
+        if (!meuGraficoComparativo) return;
+        rawDatasetsProcedimentos.forEach((_, idx) => {
+            meuGraficoComparativo.setDatasetVisibility(idx, visivel);
+            const btnEl = document.getElementById('chipProc_' + idx);
+            if (btnEl) {
+                if (visivel) {
+                    btnEl.classList.remove('opacity-40', 'line-through');
+                    btnEl.classList.add('active-chip');
+                } else {
+                    btnEl.classList.add('opacity-40', 'line-through');
+                    btnEl.classList.remove('active-chip');
+                }
+            }
+        });
+        meuGraficoComparativo.update();
+    }
+
     // Inicialização dos Gráficos Chart.js
     document.addEventListener('DOMContentLoaded', function() {
+        // 0. Gráfico Inteligente Comparativo por Procedimento (Linhas Individuais)
+        const ctxComparativo = document.getElementById('graficoComparativoProcedimentos');
+        if (ctxComparativo) {
+            const chartDatasets = rawDatasetsProcedimentos.map(ds => ({
+                label: ds.nome,
+                data: ds.data,
+                borderColor: ds.cor,
+                backgroundColor: ds.cor + '15',
+                borderWidth: 2,
+                tension: 0.3,
+                pointRadius: 2,
+                pointHoverRadius: 5
+            }));
+
+            meuGraficoComparativo = new Chart(ctxComparativo, {
+                type: 'line',
+                data: {
+                    labels: mesesLabels,
+                    datasets: chartDatasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { mode: 'index', intersect: false }
+                    },
+                    scales: {
+                        x: { grid: { display: false } },
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+        }
+
         // 1. Gráfico de Evolução Temporal (Linha)
         const ctxLinha = document.getElementById('graficoEvolucaoTemporal');
         if (ctxLinha) {
-            const diasLabels = {{ dados.porDiaKeys|json_encode|raw }};
-            const diasData = {{ dados.porDiaValues|json_encode|raw }};
+            const configInicial = mapasAgrupamentos.mes;
 
-            new Chart(ctxLinha, {
+            meuGraficoEvolucao = new Chart(ctxLinha, {
                 type: 'line',
                 data: {
-                    labels: diasLabels,
+                    labels: configInicial.labels,
                     datasets: [{
                         label: 'Atendimentos Realizados',
-                        data: diasData,
+                        data: configInicial.data,
                         borderColor: '#0891b2',
                         backgroundColor: 'rgba(8, 145, 178, 0.1)',
                         borderWidth: 3,
@@ -527,6 +768,60 @@
                         legend: { position: 'bottom' }
                     },
                     cutout: '70%'
+                }
+            });
+        }
+
+        // 3. Gráfico Top 10 Procedimentos e Exames Mais Realizados (Barras Horizontais)
+        const ctxTop = document.getElementById('graficoTopProcedimentos');
+        if (ctxTop) {
+            const top10 = rawDatasetsProcedimentos.slice(0, 10);
+            new Chart(ctxTop, {
+                type: 'bar',
+                data: {
+                    labels: top10.map(d => d.nome.length > 25 ? d.nome.substring(0, 25) + '...' : d.nome),
+                    datasets: [{
+                        label: 'Volume de Exames',
+                        data: top10.map(d => d.total),
+                        backgroundColor: top10.map(d => d.cor),
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: { beginAtZero: true, grid: { display: false } },
+                        y: { grid: { display: false } }
+                    }
+                }
+            });
+        }
+
+        // 4. Gráfico por Status dos Agendamentos (Pizza)
+        const ctxStatus = document.getElementById('graficoStatusPizza');
+        if (ctxStatus) {
+            const statusObj = {{ dados.porStatus|json_encode|raw }};
+            new Chart(ctxStatus, {
+                type: 'pie',
+                data: {
+                    labels: Object.keys(statusObj),
+                    datasets: [{
+                        data: Object.values(statusObj),
+                        backgroundColor: ['#0891b2', '#059669', '#f59e0b', '#ef4444', '#64748b', '#8b5cf6'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    }
                 }
             });
         }

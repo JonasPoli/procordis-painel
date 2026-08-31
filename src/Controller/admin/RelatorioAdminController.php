@@ -92,7 +92,23 @@ class RelatorioAdminController extends AbstractController
             }
             fputcsv($handle, [], ';');
 
-            // 4. Evolução por Semestre
+            // 4. Evolução por Trimestre
+            fputcsv($handle, ['=== EVOLUÇÃO TEMPORAL POR TRIMESTRE ==='], ';');
+            fputcsv($handle, ['Trimestre/Ano', 'Total de Atendimentos'], ';');
+            foreach ($dados['porTrimestre'] as $tri => $qtd) {
+                fputcsv($handle, [$tri, $qtd], ';');
+            }
+            fputcsv($handle, [], ';');
+
+            // 5. Evolução por Quadrimestre
+            fputcsv($handle, ['=== EVOLUÇÃO TEMPORAL POR QUADRIMESTRE ==='], ';');
+            fputcsv($handle, ['Quadrimestre/Ano', 'Total de Atendimentos'], ';');
+            foreach ($dados['porQuadrimestre'] as $quadri => $qtd) {
+                fputcsv($handle, [$quadri, $qtd], ';');
+            }
+            fputcsv($handle, [], ';');
+
+            // 6. Evolução por Semestre
             fputcsv($handle, ['=== EVOLUÇÃO TEMPORAL POR SEMESTRE ==='], ';');
             fputcsv($handle, ['Semestre/Ano', 'Total de Atendimentos'], ';');
             foreach ($dados['porSemestre'] as $semestre => $qtd) {
@@ -100,7 +116,7 @@ class RelatorioAdminController extends AbstractController
             }
             fputcsv($handle, [], ';');
 
-            // 5. Evolução por Ano
+            // 7. Evolução por Ano
             fputcsv($handle, ['=== EVOLUÇÃO TEMPORAL POR ANO ==='], ';');
             fputcsv($handle, ['Ano', 'Total de Atendimentos'], ';');
             foreach ($dados['porAno'] as $anoVal => $qtd) {

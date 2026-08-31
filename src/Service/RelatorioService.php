@@ -94,15 +94,20 @@ class RelatorioService
         $countConvenio = 0;
         $countParticular = 0;
 
-        // Agrupamentos temporais
+        // Agrupamentos temporais e por entidade
         $porDia = [];
         $porSemana = [];
         $porMes = [];
+        $porTrimestre = [];
+        $porQuadrimestre = [];
         $porSemestre = [];
         $porAno = [];
         $porProcedimento = [];
         $porEspecialidade = [];
         $porMedico = [];
+        $porStatus = [];
+        $porProcedimentoMes = []; // Matriz [procedimentoNome][mês] = qtd
+        $porProcedimentoDia = []; // Matriz [dia][procedimentoNome] = qtd
 
         foreach ($items as $item) {
             $tipoAt = strtolower($item['tipoAtendimento'] ?? 'sus');
@@ -126,24 +131,44 @@ class RelatorioService
             $chaveMes = $dt->format('m/Y');
             
             $numMes = (int) $dt->format('m');
+            $trimestreNum = (int) ceil($numMes / 3);
+            $quadrimestreNum = (int) ceil($numMes / 4);
             $semestreNum = $numMes <= 6 ? 1 : 2;
+
+            $chaveTrimestre = $trimestreNum . 'º Trimestre/' . $dt->format('Y');
+            $chaveQuadrimestre = $quadrimestreNum . 'º Quadrimestre/' . $dt->format('Y');
             $chaveSemestre = $semestreNum . 'º Semestre/' . $dt->format('Y');
             $chaveAno = $dt->format('Y');
 
             $porDia[$chaveDia] = ($porDia[$chaveDia] ?? 0) + 1;
             $porSemana[$chaveSemana] = ($porSemana[$chaveSemana] ?? 0) + 1;
             $porMes[$chaveMes] = ($porMes[$chaveMes] ?? 0) + 1;
+            $porTrimestre[$chaveTrimestre] = ($porTrimestre[$chaveTrimestre] ?? 0) + 1;
+            $porQuadrimestre[$chaveQuadrimestre] = ($porQuadrimestre[$chaveQuadrimestre] ?? 0) + 1;
             $porSemestre[$chaveSemestre] = ($porSemestre[$chaveSemestre] ?? 0) + 1;
             $porAno[$chaveAno] = ($porAno[$chaveAno] ?? 0) + 1;
 
             $nomeProc = $item['procedimentoNome'] ?? 'Consulta / Procedimento Geral';
             $porProcedimento[$nomeProc] = ($porProcedimento[$nomeProc] ?? 0) + 1;
 
+            if (!isset($porProcedimentoMes[$nomeProc])) {
+                $porProcedimentoMes[$nomeProc] = [];
+            }
+            $porProcedimentoMes[$nomeProc][$chaveMes] = ($porProcedimentoMes[$nomeProc][$chaveMes] ?? 0) + 1;
+
             $espNome = $item['especialidadeNome'] ?? 'Sem Especialidade';
             $porEspecialidade[$espNome] = ($porEspecialidade[$espNome] ?? 0) + 1;
 
             $medicoNome = $item['medicoNome'] ?? 'Não Atribuído';
             $porMedico[$medicoNome] = ($porMedico[$medicoNome] ?? 0) + 1;
+
+            $st = strtoupper($item['status'] ?? 'AGENDADO');
+            $porStatus[$st] = ($porStatus[$st] ?? 0) + 1;
+
+            if (!isset($porProcedimentoDia[$chaveDia])) {
+                $porProcedimentoDia[$chaveDia] = [];
+            }
+            $porProcedimentoDia[$chaveDia][$nomeProc] = ($porProcedimentoDia[$chaveDia][$nomeProc] ?? 0) + 1;
         }
 
         // Percentuais
@@ -151,15 +176,45 @@ class RelatorioService
         $pctFilantropico = $totalProcedimentos > 0 ? round(($countFilantropico / $totalProcedimentos) * 100, 1) : 0;
         $pctConvenio = $totalProcedimentos > 0 ? round((($countConvenio + $countParticular) / $totalProcedimentos) * 100, 1) : 0;
 
-        // Ordenar dados por dia
+        // Ordenar dados
         ksort($porDia);
         ksort($porMes);
+        ksort($porTrimestre);
+        ksort($porQuadrimestre);
         ksort($porSemestre);
         ksort($porAno);
+        arsort($porProcedimento);
+        arsort($porEspecialidade);
+        arsort($porMedico);
 
         // Média por dia com atendimento
         $diasComAtendimento = count($porDia);
         $mediaDia = $diasComAtendimento > 0 ? round($totalProcedimentos / $diasComAtendimento, 1) : 0;
+
+        // Preparar datasets por procedimento alinhados aos meses
+        $mesesUnicos = array_keys($porMes);
+        $datasetsProcedimentos = [];
+        $paletaCores = [
+            '#0891b2', '#059669', '#6366f1', '#d97706', '#dc2626', 
+            '#8b5cf6', '#ec4899', '#0284c7', '#14b8a6', '#f59e0b',
+            '#64748b', '#84cc16', '#3b82f6', '#a855f7', '#f43f5e'
+        ];
+        $i = 0;
+
+        foreach ($porProcedimento as $procName => $totalCount) {
+            $serieData = [];
+            foreach ($mesesUnicos as $m) {
+                $serieData[] = $porProcedimentoMes[$procName][$m] ?? 0;
+            }
+            $cor = $paletaCores[$i % count($paletaCores)];
+            $datasetsProcedimentos[] = [
+                'nome' => $procName,
+                'total' => $totalCount,
+                'cor' => $cor,
+                'data' => $serieData,
+            ];
+            $i++;
+        }
 
         return [
             'tipoPeriodo' => $tipoPeriodo,
@@ -183,11 +238,25 @@ class RelatorioService
             'porDiaValues' => array_values($porDia),
             'porSemana' => $porSemana,
             'porMes' => $porMes,
+            'porMesKeys' => array_keys($porMes),
+            'porMesValues' => array_values($porMes),
+            'porTrimestre' => $porTrimestre,
+            'porTrimestreKeys' => array_keys($porTrimestre),
+            'porTrimestreValues' => array_values($porTrimestre),
+            'porQuadrimestre' => $porQuadrimestre,
+            'porQuadrimestreKeys' => array_keys($porQuadrimestre),
+            'porQuadrimestreValues' => array_values($porQuadrimestre),
             'porSemestre' => $porSemestre,
+            'porSemestreKeys' => array_keys($porSemestre),
+            'porSemestreValues' => array_values($porSemestre),
             'porAno' => $porAno,
+            'porAnoKeys' => array_keys($porAno),
+            'porAnoValues' => array_values($porAno),
             'porProcedimento' => $porProcedimento,
             'porEspecialidade' => $porEspecialidade,
             'porMedico' => $porMedico,
+            'porStatus' => $porStatus,
+            'datasetsProcedimentos' => $datasetsProcedimentos,
             'agendamentos' => $items,
         ];
     }
