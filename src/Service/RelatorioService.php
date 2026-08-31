@@ -511,12 +511,41 @@ class RelatorioService
         $tempoMedioExecucaoMin = $countComExecucao > 0 ? round($totalExecucaoMinutos / $countComExecucao, 1) : 0;
         $tempoMedioPermanenciaMin = round($tempoMedioEsperaMin + $tempoMedioExecucaoMin, 1);
 
-        // Ordenar dados
+        // Ordenar dados estritamente em ordem cronológica real
         ksort($porDia);
-        ksort($porMes);
-        ksort($porTrimestre);
-        ksort($porQuadrimestre);
-        ksort($porSemestre);
+
+        uksort($porMes, function($a, $b) {
+            $partsA = explode('/', $a);
+            $partsB = explode('/', $b);
+            $yearComp = ((int)($partsA[1] ?? 0)) <=> ((int)($partsB[1] ?? 0));
+            if ($yearComp !== 0) return $yearComp;
+            return ((int)($partsA[0] ?? 0)) <=> ((int)($partsB[0] ?? 0));
+        });
+
+        uksort($porTrimestre, function($a, $b) {
+            preg_match('/(\d+)º Trimestre\/(\d+)/', $a, $mA);
+            preg_match('/(\d+)º Trimestre\/(\d+)/', $b, $mB);
+            $yA = (int)($mA[2] ?? 0); $yB = (int)($mB[2] ?? 0);
+            if ($yA !== $yB) return $yA <=> $yB;
+            return ((int)($mA[1] ?? 0)) <=> ((int)($mB[1] ?? 0));
+        });
+
+        uksort($porQuadrimestre, function($a, $b) {
+            preg_match('/(\d+)º Quadrimestre\/(\d+)/', $a, $mA);
+            preg_match('/(\d+)º Quadrimestre\/(\d+)/', $b, $mB);
+            $yA = (int)($mA[2] ?? 0); $yB = (int)($mB[2] ?? 0);
+            if ($yA !== $yB) return $yA <=> $yB;
+            return ((int)($mA[1] ?? 0)) <=> ((int)($mB[1] ?? 0));
+        });
+
+        uksort($porSemestre, function($a, $b) {
+            preg_match('/(\d+)º Semestre\/(\d+)/', $a, $mA);
+            preg_match('/(\d+)º Semestre\/(\d+)/', $b, $mB);
+            $yA = (int)($mA[2] ?? 0); $yB = (int)($mB[2] ?? 0);
+            if ($yA !== $yB) return $yA <=> $yB;
+            return ((int)($mA[1] ?? 0)) <=> ((int)($mB[1] ?? 0));
+        });
+
         ksort($porAno);
         arsort($porProcedimento);
         arsort($porEspecialidade);
@@ -592,15 +621,15 @@ class RelatorioService
             foreach ($keys as $k) {
                 $cEsp = $temposGeralTemporais[$mod][$k]['countEspera'] ?? 0;
                 $sEsp = $temposGeralTemporais[$mod][$k]['somaEspera'] ?? 0;
-                $mEsp = $cEsp > 0 ? round($sEsp / $cEsp, 1) : 0;
+                $mEsp = $cEsp > 0 ? round($sEsp / $cEsp, 1) : null;
 
                 $cExec = $temposGeralTemporais[$mod][$k]['countExec'] ?? 0;
                 $sExec = $temposGeralTemporais[$mod][$k]['somaExec'] ?? 0;
-                $mExec = $cExec > 0 ? round($sExec / $cExec, 1) : 0;
+                $mExec = $cExec > 0 ? round($sExec / $cExec, 1) : null;
 
                 $arrEsp[] = $mEsp;
                 $arrExec[] = $mExec;
-                $arrTot[] = round($mEsp + $mExec, 1);
+                $arrTot[] = ($mEsp !== null || $mExec !== null) ? round(($mEsp ?? 0) + ($mExec ?? 0), 1) : null;
             }
             $seriesTemposGeral['espera'][$mod] = $arrEsp;
             $seriesTemposGeral['execucao'][$mod] = $arrExec;
@@ -622,15 +651,15 @@ class RelatorioService
                 foreach ($keys as $k) {
                     $cEsp = $temposProcTemporais[$procName][$mod][$k]['countEspera'] ?? 0;
                     $sEsp = $temposProcTemporais[$procName][$mod][$k]['somaEspera'] ?? 0;
-                    $mEsp = $cEsp > 0 ? round($sEsp / $cEsp, 1) : 0;
+                    $mEsp = $cEsp > 0 ? round($sEsp / $cEsp, 1) : null;
 
                     $cExec = $temposProcTemporais[$procName][$mod][$k]['countExec'] ?? 0;
                     $sExec = $temposProcTemporais[$procName][$mod][$k]['somaExec'] ?? 0;
-                    $mExec = $cExec > 0 ? round($sExec / $cExec, 1) : 0;
+                    $mExec = $cExec > 0 ? round($sExec / $cExec, 1) : null;
 
                     $arrEsp[] = $mEsp;
                     $arrExec[] = $mExec;
-                    $arrTot[] = round($mEsp + $mExec, 1);
+                    $arrTot[] = ($mEsp !== null || $mExec !== null) ? round(($mEsp ?? 0) + ($mExec ?? 0), 1) : null;
                 }
                 $seriesTemposProcedimentos[$procName]['espera'][$mod] = $arrEsp;
                 $seriesTemposProcedimentos[$procName]['execucao'][$mod] = $arrExec;
