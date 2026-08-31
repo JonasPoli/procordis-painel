@@ -8,7 +8,7 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
-use Symfony\Component\HttpFoundation\StreamedResponse;
+use Symfony\Component\HttpFoundation\ResponseHeaderBag;
 use Symfony\Component\Routing\Attribute\Route;
 
 #[Route('/admin/backup', name: 'app_admin_backup_')]
@@ -36,25 +36,12 @@ class BackupAdminController extends AbstractController
                 throw new \RuntimeException("Arquivo de backup não encontrado no disco.");
             }
 
-            $tamanhoArquivo = @filesize($caminhoArquivo);
-
-            $response = new StreamedResponse(function () use ($caminhoArquivo) {
-                $handle = fopen($caminhoArquivo, 'rb');
-                if ($handle) {
-                    while (!feof($handle)) {
-                        echo fread($handle, 65536);
-                        flush();
-                    }
-                    fclose($handle);
-                }
-                @unlink($caminhoArquivo);
-            });
-
-            $response->headers->set('Content-Type', 'application/octet-stream');
-            $response->headers->set('Content-Disposition', 'attachment; filename="' . $nomeDownload . '"');
-            if ($tamanhoArquivo) {
-                $response->headers->set('Content-Length', (string) $tamanhoArquivo);
-            }
+            $response = new BinaryFileResponse($caminhoArquivo);
+            $response->setContentDisposition(
+                ResponseHeaderBag::DISPOSITION_ATTACHMENT,
+                $nomeDownload
+            );
+            $response->deleteFileAfterSend(true);
 
             return $response;
         } catch (\Throwable $e) {
