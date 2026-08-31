@@ -1066,8 +1066,8 @@
         let fonteDadosEspera = [];
         let fonteDadosExec = [];
         let fonteDadosTotal = [];
-        let mediaRefEspera = {{ dados.eficiencia.tempoMedioEsperaMin }};
-        let mediaRefExec = {{ dados.eficiencia.tempoMedioExecucaoMin }};
+        let mediaRefEspera = {{ dados.eficiencia.tempoMedioEsperaMin|default(0) }};
+        let mediaRefExec = {{ dados.eficiencia.tempoMedioExecucaoMin|default(0) }};
 
         if (procSel === '__geral__') {
             fonteDadosEspera = (seriesTemposGeral.espera && seriesTemposGeral.espera[agrupamentoTempoAtual]) || [];

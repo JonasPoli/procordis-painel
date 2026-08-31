@@ -795,7 +795,7 @@ class RelatorioService
             'seriesTemposGeral' => $seriesTemposGeral,
             'seriesTemposProcedimentos' => $seriesTemposProcedimentos,
             'tabelaTemposProcedimentos' => $tabelaTemposProcedimentos,
-            'detalhesMedicos' => $detalhesMedicos,
+            'detalhesMedicos' => array_values($detalhesMedicos),
             'porConvenio' => $porConvenio,
             'porGenero' => $porGenero,
             'porFaixaEtaria' => $porFaixaEtaria,
