@@ -23,10 +23,19 @@
                 </div>
             </div>
 
-            <sl-button variant="primary" size="medium" href="{{ path('app_admin_sla_new') }}">
-                <sl-icon slot="prefix" name="plus-lg"></sl-icon>
-                Nova Regra de SLA
-            </sl-button>
+            <div class="flex items-center gap-2">
+                <form method="POST" action="{{ path('app_admin_sla_sync_medware') }}" onsubmit="return confirm('Deseja importar automaticamente os procedimentos reais do Medware e remover regras obsoletas não utilizadas?');" class="inline">
+                    <input type="hidden" name="_token" value="{{ csrf_token('sync_medware_sla') }}">
+                    <button type="submit" class="py-2 px-3 bg-cyan-600 hover:bg-cyan-700 text-white font-bold text-xs rounded-xl shadow transition flex items-center gap-1.5">
+                        <sl-icon name="arrow-repeat"></sl-icon> Sincronizar Procedimentos Reais
+                    </button>
+                </form>
+
+                <sl-button variant="primary" size="medium" href="{{ path('app_admin_sla_new') }}">
+                    <sl-icon slot="prefix" name="plus-lg"></sl-icon>
+                    Nova Regra
+                </sl-button>
+            </div>
         </div>
 
         <div class="overflow-x-auto">

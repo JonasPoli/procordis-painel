@@ -63,6 +63,38 @@
                 </tbody>
             </table>
         </div>
+
+        <!-- Paginação -->
+        {% if totalPages > 1 %}
+            <div class="p-4 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+                <span class="text-slate-500">
+                    Mostrando <strong>{{ ((page - 1) * limit) + 1 }}</strong> até <strong>{{ page * limit > totalItems ? totalItems : page * limit }}</strong> de <strong>{{ totalItems }}</strong> pacientes
+                </span>
+
+                <div class="flex items-center gap-1">
+                    {% if page > 1 %}
+                        <a href="{{ path('app_admin_paciente_index', app.request.query.all|merge({'page': page - 1})) }}" class="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-lg transition">
+                            &laquo; Anterior
+                        </a>
+                    {% endif %}
+
+                    {% set startPage = max(1, page - 2) %}
+                    {% set endPage = min(totalPages, page + 2) %}
+
+                    {% for p in startPage..endPage %}
+                        <a href="{{ path('app_admin_paciente_index', app.request.query.all|merge({'page': p})) }}" class="px-3 py-1.5 font-bold rounded-lg transition {% if p == page %}bg-cyan-600 text-white shadow-sm{% else %}bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700{% endif %}">
+                            {{ p }}
+                        </a>
+                    {% endfor %}
+
+                    {% if page < totalPages %}
+                        <a href="{{ path('app_admin_paciente_index', app.request.query.all|merge({'page': page + 1})) }}" class="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-lg transition">
+                            Próximo &raquo;
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        {% endif %}
     </sl-card>
 </div>
 {% endblock %}

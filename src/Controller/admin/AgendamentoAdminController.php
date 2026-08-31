@@ -57,7 +57,19 @@ class AgendamentoAdminController extends AbstractController
                ->setParameter('b', '%' . $busca . '%');
         }
 
-        $agendamentos = $qb->setMaxResults(500)->getQuery()->getResult();
+        $page = max(1, (int) $request->query->get('page', 1));
+        $limit = 50;
+        $offset = ($page - 1) * $limit;
+
+        // Clone para contar o total exato de registros filtrados
+        $countQb = clone $qb;
+        $totalItems = (int) $countQb->select('COUNT(DISTINCT a.id)')->getQuery()->getSingleScalarResult();
+        $totalPages = max(1, (int) ceil($totalItems / $limit));
+
+        $agendamentos = $qb->setFirstResult($offset)
+            ->setMaxResults($limit)
+            ->getQuery()
+            ->getResult();
 
         return $this->render('admin/agendamento/index.html.twig', [
             'agendamentos' => $agendamentos,
@@ -65,6 +77,10 @@ class AgendamentoAdminController extends AbstractController
             'dataFim' => $dtFimStr,
             'status' => $statusStr,
             'busca' => $busca,
+            'page' => $page,
+            'totalPages' => $totalPages,
+            'totalItems' => $totalItems,
+            'limit' => $limit,
         ]);
     }
 }

@@ -74,6 +74,68 @@ class SlaAdminController extends AbstractController
         ]);
     }
 
+    #[Route('/sincronizar-com-medware', name: 'sync_medware', methods: ['POST'])]
+    public function sincronizarComMedware(Request $request): Response
+    {
+        if (!$this->isCsrfTokenValid('sync_medware_sla', (string) $request->request->get('_token'))) {
+            $this->addFlash('danger', 'Token CSRF inválido.');
+            return $this->redirectToRoute('app_admin_sla_index');
+        }
+
+        $procedimentosMedware = $this->agendamentoRepo->listarProcedimentosUnicosBanco();
+        $regrasAtuais = $this->slaRepository->findAll();
+
+        $nomesReaisMap = [];
+        foreach ($procedimentosMedware as $p) {
+            $nome = trim($p['procedimentoNome']);
+            if ($nome !== '') {
+                $nomesReaisMap[mb_strtolower($nome)] = $nome;
+            }
+        }
+
+        $criados = 0;
+        $removidos = 0;
+
+        // 1. Criar regras SLA para procedimentos reais do Medware que ainda não existem
+        foreach ($nomesReaisMap as $nomeMin => $nomeOriginal) {
+            $existe = false;
+            foreach ($regrasAtuais as $r) {
+                if (mb_strtolower(trim($r->getNomeProcedimento())) === $nomeMin) {
+                    $existe = true;
+                    break;
+                }
+            }
+
+            if (!$existe) {
+                $novaSla = new ProcedimentoSla();
+                $prefixo = strtoupper(substr(preg_replace('/[^a-zA-Z0-9]/', '', $nomeOriginal), 0, 4));
+                $novaSla->setCodigo($prefixo . '-' . rand(100, 999));
+                $novaSla->setNomeProcedimento($nomeOriginal);
+                $novaSla->setLimiteVerdeMinutos(15);
+                $novaSla->setLimiteAmareloMinutos(30);
+                $novaSla->setDescricao('Importado automaticamente dos atendimentos reais da API Medware');
+                $this->em->persist($novaSla);
+                $criados++;
+            }
+        }
+
+        // 2. Remover regras de SLA obsoletas que não correspondem aos procedimentos reais do Medware
+        if (!empty($nomesReaisMap)) {
+            foreach ($regrasAtuais as $r) {
+                $nomeRegraMin = mb_strtolower(trim($r->getNomeProcedimento()));
+                if (!isset($nomesReaisMap[$nomeRegraMin])) {
+                    $this->em->remove($r);
+                    $removidos++;
+                }
+            }
+        }
+
+        $this->em->flush();
+
+        $this->addFlash('success', "Sincronização de SLA concluída! ({$criados} novos procedimentos importados, {$removidos} regras obsoletas removidas).");
+        return $this->redirectToRoute('app_admin_sla_index');
+    }
+
     #[Route('/{id}', name: 'delete', methods: ['POST'])]
     public function delete(Request $request, ProcedimentoSla $sla): Response
     {

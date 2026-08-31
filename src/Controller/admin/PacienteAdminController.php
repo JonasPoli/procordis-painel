@@ -32,11 +32,26 @@ class PacienteAdminController extends AbstractController
                ->setParameter('b', '%' . $busca . '%');
         }
 
-        $pacientes = $qb->setMaxResults(200)->getQuery()->getResult();
+        $page = max(1, (int) $request->query->get('page', 1));
+        $limit = 50;
+        $offset = ($page - 1) * $limit;
+
+        $countQb = clone $qb;
+        $totalItems = (int) $countQb->select('COUNT(DISTINCT p.id)')->getQuery()->getSingleScalarResult();
+        $totalPages = max(1, (int) ceil($totalItems / $limit));
+
+        $pacientes = $qb->setFirstResult($offset)
+            ->setMaxResults($limit)
+            ->getQuery()
+            ->getResult();
 
         return $this->render('admin/paciente/index.html.twig', [
             'pacientes' => $pacientes,
             'busca' => $busca,
+            'page' => $page,
+            'totalPages' => $totalPages,
+            'totalItems' => $totalItems,
+            'limit' => $limit,
         ]);
     }
 
