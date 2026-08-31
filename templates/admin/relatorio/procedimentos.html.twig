@@ -202,13 +202,13 @@
                     <button type="button" id="btnMetricaTempoTotal" onclick="alterarMetricaTempo('total')" class="px-2.5 py-1 rounded-lg transition text-slate-600 dark:text-slate-400 hover:text-slate-900">Total na Clínica</button>
                 </div>
 
-                <!-- Tipo de Visualização (Barras Agrupadas / Linha / Área) -->
+                <!-- Tipo de Visualização (Linhas / Barras / Área) -->
                 <div class="inline-flex p-0.5 bg-slate-100 dark:bg-slate-950 rounded-xl text-xs font-semibold">
-                    <button type="button" id="btnTipoTempoBarra" onclick="alterarTipoGraficoTempo('bar')" title="Barras Comparativas" class="px-2 py-1 rounded-lg transition bg-white dark:bg-slate-800 text-amber-600 dark:text-amber-400 shadow-xs">
-                        <sl-icon name="bar-chart-line"></sl-icon>
-                    </button>
-                    <button type="button" id="btnTipoTempoLinha" onclick="alterarTipoGraficoTempo('line')" title="Linhas Suaves" class="px-2 py-1 rounded-lg transition text-slate-600 dark:text-slate-400 hover:text-slate-900">
+                    <button type="button" id="btnTipoTempoLinha" onclick="alterarTipoGraficoTempo('line')" title="Linhas Suaves" class="px-2 py-1 rounded-lg transition bg-white dark:bg-slate-800 text-amber-600 dark:text-amber-400 shadow-xs">
                         <sl-icon name="activity"></sl-icon>
+                    </button>
+                    <button type="button" id="btnTipoTempoBarra" onclick="alterarTipoGraficoTempo('bar')" title="Barras Comparativas" class="px-2 py-1 rounded-lg transition text-slate-600 dark:text-slate-400 hover:text-slate-900">
+                        <sl-icon name="bar-chart-line"></sl-icon>
                     </button>
                     <button type="button" id="btnTipoTempoArea" onclick="alterarTipoGraficoTempo('area')" title="Área Preenchida" class="px-2 py-1 rounded-lg transition text-slate-600 dark:text-slate-400 hover:text-slate-900">
                         <sl-icon name="water"></sl-icon>
@@ -224,6 +224,12 @@
                     <option value="semestre">Por Semestre</option>
                     <option value="ano">Por Ano</option>
                 </select>
+
+                <!-- Checkbox Linhas de Média Geral de Referência -->
+                <label class="inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-600 dark:text-slate-400 cursor-pointer bg-slate-100 dark:bg-slate-950 px-2 py-1 rounded-xl">
+                    <input type="checkbox" id="chkLinhasReferencia" onchange="renderizarGraficoTempos()" checked class="rounded text-amber-600 focus:ring-amber-500 accent-amber-600">
+                    <span>Médias Gerais</span>
+                </label>
             </div>
         </div>
 
@@ -468,23 +474,23 @@
         </div>
     </div>
 
-    <!-- 5. Painel de Produtividade Médica & Distribuição por Especialidade -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- Tabela de Produtividade Médica com Filtro Rápido -->
-        <div class="lg:col-span-2 bg-white/80 dark:bg-slate-900/80 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
-                <div>
-                    <h3 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                        <sl-icon name="person-badge" class="text-indigo-600"></sl-icon> Produtividade Médica & Escalas
-                    </h3>
-                    <p class="text-xs text-slate-500">Volume de atendimentos, conclusão de consultas e taxa de absenteísmo por profissional</p>
-                </div>
-                <div class="relative">
-                    <input type="text" id="filtroMedicosInput" onkeyup="filtrarTabelaMedicos()" placeholder="Buscar médico ou especialidade..." class="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 w-full sm:w-60">
-                </div>
+    <!-- 5. Painel de Produtividade Médica & Escalas (Tabela + Gráfico Integrado de Médicos) -->
+    <div class="bg-white/80 dark:bg-slate-900/80 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
+            <div>
+                <h3 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <sl-icon name="person-badge" class="text-indigo-600"></sl-icon> Produtividade Médica & Escalas
+                </h3>
+                <p class="text-xs text-slate-500">Volume de atendimentos, consultas concluídas e taxa de absenteísmo por profissional com gráfico comparativo</p>
             </div>
+            <div class="relative">
+                <input type="text" id="filtroMedicosInput" onkeyup="filtrarTabelaMedicos()" placeholder="Buscar médico ou especialidade..." class="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 w-full sm:w-64">
+            </div>
+        </div>
 
-            <div class="max-h-72 overflow-y-auto custom-scrollbar">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <!-- Tabela de Produtividade Médica (7 Colunas) -->
+            <div class="lg:col-span-7 max-h-80 overflow-y-auto custom-scrollbar">
                 <table id="tabelaMedicosCorpo" class="w-full text-left text-xs border-collapse">
                     <thead class="sticky top-0 bg-slate-100 dark:bg-slate-950 font-bold uppercase text-slate-500 text-[10px]">
                         <tr>
@@ -503,8 +509,8 @@
                                 <td class="py-2 px-3 font-bold text-slate-900 dark:text-white medico-nome">{{ med.nome }}</td>
                                 <td class="py-2 px-2 text-slate-500 medico-esp">{{ med.especialidade }}</td>
                                 <td class="py-2 px-2 text-right font-black font-mono text-indigo-600 dark:text-indigo-400">{{ med.total }}</td>
-                                <td class="py-2 px-2 text-right font-mono text-emerald-600">{{ med.finalizados }}</td>
-                                <td class="py-2 px-2 text-right font-mono text-rose-500">{{ med.cancelados }}</td>
+                                <td class="py-2 px-2 text-right font-mono text-emerald-600 font-bold">{{ med.finalizados }}</td>
+                                <td class="py-2 px-2 text-right font-mono text-rose-500 font-bold">{{ med.cancelados }}</td>
                                 <td class="py-2 px-2 text-right font-mono text-slate-500">{{ med.taxaCancelamento }}%</td>
                                 <td class="py-2 px-3 text-right font-mono font-bold text-slate-700 dark:text-slate-300">{{ med.pctTotal }}%</td>
                             </tr>
@@ -514,18 +520,18 @@
                     </tbody>
                 </table>
             </div>
-        </div>
 
-        <!-- Gráfico de Especialidades e Top Exames -->
-        <div class="bg-white/80 dark:bg-slate-900/80 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
-            <div class="mb-3">
-                <h3 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                    <sl-icon name="award" class="text-amber-500"></sl-icon> Demandas por Especialidade
-                </h3>
-                <p class="text-xs text-slate-500">Volume consolidado por área clínica</p>
-            </div>
-            <div class="h-64 w-full">
-                <canvas id="graficoEspecialidadesBarra"></canvas>
+            <!-- Gráfico Integrado de Produtividade Médica: Concluídos vs Cancelados (5 Colunas) -->
+            <div class="lg:col-span-5 bg-slate-50/50 dark:bg-slate-950/40 p-4 rounded-xl border border-slate-100 dark:border-slate-800 flex flex-col justify-between">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1">
+                        <sl-icon name="bar-chart-line-fill" class="text-indigo-500"></sl-icon> Top Médicos: Concluídos vs Faltas
+                    </span>
+                    <span class="text-[10px] text-slate-400">Atuação Clínica</span>
+                </div>
+                <div class="h-64 w-full">
+                    <canvas id="graficoProdutividadeMedicaBarra"></canvas>
+                </div>
             </div>
         </div>
     </div>
@@ -619,7 +625,7 @@
         </div>
     </div>
 
-    <!-- 8. Tabelas Planilhadas por Intervalo (Dia / Mês / Trimestre / Quadrimestre / Semestre / Ano) -->
+    <!-- 8. Tabelas Planilhadas por Intervalo (com Gráfico Integrado de Exames vs Pessoas) -->
     <div class="bg-white/80 dark:bg-slate-900/80 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
             <div>
@@ -637,6 +643,20 @@
                 <button type="button" onclick="mostrarTabelaAgregada('quadrimestre')" id="btnTabQuadrimestre" class="px-2.5 py-1 rounded-lg transition text-slate-600 dark:text-slate-400 hover:text-slate-900">Por Quadrimestre</button>
                 <button type="button" onclick="mostrarTabelaAgregada('semestre')" id="btnTabSemestre" class="px-2.5 py-1 rounded-lg transition text-slate-600 dark:text-slate-400 hover:text-slate-900">Por Semestre</button>
                 <button type="button" onclick="mostrarTabelaAgregada('ano')" id="btnTabAno" class="px-2.5 py-1 rounded-lg transition text-slate-600 dark:text-slate-400 hover:text-slate-900">Por Ano</button>
+            </div>
+        </div>
+
+        <!-- Gráfico Integrado da Tabela Planilhada (Atualizado ao trocar de aba) -->
+        <div class="p-3 bg-slate-50/50 dark:bg-slate-950/40 rounded-xl border border-slate-100 dark:border-slate-800">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                    <sl-icon name="bar-chart-steps" class="text-cyan-600"></sl-icon> 
+                    Visualização Gráfica do Intervalo: <span id="rotuloGraficoAgregado" class="text-cyan-600 font-extrabold">Por Mês</span>
+                </span>
+                <span class="text-[10px] text-slate-400 font-medium">Comparação entre Volume de Exames e Pessoas Atendidas</span>
+            </div>
+            <div class="h-52 w-full">
+                <canvas id="graficoTabelasAgregadas"></canvas>
             </div>
         </div>
 
@@ -877,6 +897,19 @@
         document.querySelectorAll('.tabela-agregada-painel').forEach(el => el.classList.add('hidden'));
         document.getElementById('tabConceito' + aba.charAt(0).toUpperCase() + aba.slice(1)).classList.remove('hidden');
 
+        const nomesRotulos = {
+            dia: 'Por Dia',
+            mes: 'Por Mês',
+            trimestre: 'Por Trimestre',
+            quadrimestre: 'Por Quadrimestre',
+            semestre: 'Por Semestre',
+            ano: 'Por Ano'
+        };
+        const rotuloEl = document.getElementById('rotuloGraficoAgregado');
+        if (rotuloEl) {
+            rotuloEl.textContent = nomesRotulos[aba] || aba;
+        }
+
         ['Dia', 'Mes', 'Trimestre', 'Quadrimestre', 'Semestre', 'Ano'].forEach(item => {
             const btn = document.getElementById('btnTab' + item);
             if (btn) {
@@ -887,6 +920,8 @@
                 }
             }
         });
+
+        renderizarGraficoTabelasAgregadas(aba);
     }
 
     function filtrarTabelaMedicos() {
@@ -954,10 +989,11 @@
     let meuGraficoComparativo = null;
     let meuGraficoEvolucao = null;
     let meuGraficoTempos = null;
+    let meuGraficoTabelasAgregadas = null;
 
     // Estado do Módulo de Tempos
     let metricaTempoAtual = 'ambos'; // ambos, espera, execucao, total
-    let tipoGraficoTempoAtual = 'bar'; // bar, line, area
+    let tipoGraficoTempoAtual = 'line'; // line, bar, area
     let agrupamentoTempoAtual = 'mes'; // dia, mes, trimestre, quadrimestre, semestre, ano
 
     // Estado da Evolução Geral
@@ -969,16 +1005,69 @@
     const mesesLabels = {{ dados.porMesKeys|json_encode|raw }};
 
     // ==========================================
+    // MÓDULO DE TABELAS PLANILHADAS (GRÁFICO)
+    // ==========================================
+    function renderizarGraficoTabelasAgregadas(aba) {
+        const ctxAgregado = document.getElementById('graficoTabelasAgregadas');
+        if (!ctxAgregado) return;
+
+        const config = mapasAgrupamentos[aba] || mapasAgrupamentos.mes;
+        const pessoas = (seriesPessoas && seriesPessoas[aba]) || [];
+
+        if (meuGraficoTabelasAgregadas) {
+            meuGraficoTabelasAgregadas.destroy();
+        }
+
+        meuGraficoTabelasAgregadas = new Chart(ctxAgregado, {
+            type: 'bar',
+            data: {
+                labels: config.labels,
+                datasets: [
+                    {
+                        label: 'Volume de Atendimentos',
+                        data: config.data,
+                        backgroundColor: '#0891b2',
+                        borderRadius: 5
+                    },
+                    {
+                        label: 'Pessoas Atendidas (Pacientes Únicos)',
+                        data: pessoas,
+                        backgroundColor: '#10b981',
+                        borderRadius: 5
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: { position: 'top', labels: { boxWidth: 12, font: { size: 11, weight: 'bold' } } }
+                },
+                scales: {
+                    x: { grid: { display: false } },
+                    y: { beginAtZero: true, grid: { color: 'rgba(150, 150, 150, 0.08)' } }
+                }
+            }
+        });
+    }
+
+    // ==========================================
     // MÓDULO DE TEMPOS DE ESPERA E EXECUÇÃO
     // ==========================================
     function obterDatasetsTempos() {
         const procSel = document.getElementById('seletorProcedimentoTempos')?.value || '__geral__';
         const isArea = tipoGraficoTempoAtual === 'area';
         const isBar = tipoGraficoTempoAtual === 'bar';
+        const config = mapasAgrupamentos[agrupamentoTempoAtual] || mapasAgrupamentos.mes;
+        const totalPontos = (config.labels && config.labels.length) || 0;
+        const mostrarLinhasReferencia = document.getElementById('chkLinhasReferencia')?.checked ?? true;
 
         let fonteDadosEspera = [];
         let fonteDadosExec = [];
         let fonteDadosTotal = [];
+        let mediaRefEspera = {{ dados.eficiencia.tempoMedioEsperaMin }};
+        let mediaRefExec = {{ dados.eficiencia.tempoMedioExecucaoMin }};
 
         if (procSel === '__geral__') {
             fonteDadosEspera = (seriesTemposGeral.espera && seriesTemposGeral.espera[agrupamentoTempoAtual]) || [];
@@ -989,51 +1078,88 @@
             fonteDadosEspera = (procData.espera && procData.espera[agrupamentoTempoAtual]) || [];
             fonteDadosExec = (procData.execucao && procData.execucao[agrupamentoTempoAtual]) || [];
             fonteDadosTotal = (procData.total && procData.total[agrupamentoTempoAtual]) || [];
+            
+            const item = tabelaTemposProcedimentos.find(t => t.nome === procSel);
+            if (item) {
+                mediaRefEspera = item.mediaEsperaMin;
+                mediaRefExec = item.mediaExecucaoMin;
+            }
         }
 
         const datasets = [];
 
         if (metricaTempoAtual === 'ambos' || metricaTempoAtual === 'espera') {
             datasets.push({
-                label: 'Tempo Médio de Espera (min)',
+                type: isBar ? 'bar' : 'line',
+                label: 'Linha: Tempo Médio de Espera (min)',
                 data: fonteDadosEspera,
                 borderColor: '#d97706',
                 backgroundColor: isBar ? '#d97706' : (isArea ? 'rgba(217, 119, 6, 0.25)' : 'rgba(217, 119, 6, 0.05)'),
                 fill: isArea,
                 tension: 0.35,
-                borderWidth: 2.5,
+                borderWidth: 3,
                 borderRadius: isBar ? 5 : 0,
-                pointRadius: isBar ? 0 : 3,
+                pointRadius: isBar ? 0 : 3.5,
                 pointHoverRadius: isBar ? 0 : 6
             });
+
+            if (mostrarLinhasReferencia && totalPontos > 0) {
+                datasets.push({
+                    type: 'line',
+                    label: 'Ref. Média de Espera (' + mediaRefEspera + ' min)',
+                    data: Array(totalPontos).fill(mediaRefEspera),
+                    borderColor: '#f59e0b',
+                    borderDash: [6, 6],
+                    borderWidth: 1.5,
+                    pointRadius: 0,
+                    fill: false,
+                    tension: 0
+                });
+            }
         }
 
         if (metricaTempoAtual === 'ambos' || metricaTempoAtual === 'execucao') {
             datasets.push({
-                label: 'Tempo Médio de Execução / Atendimento (min)',
+                type: isBar ? 'bar' : 'line',
+                label: 'Linha: Tempo Médio de Execução (min)',
                 data: fonteDadosExec,
                 borderColor: '#9333ea',
                 backgroundColor: isBar ? '#9333ea' : (isArea ? 'rgba(147, 51, 234, 0.25)' : 'rgba(147, 51, 234, 0.05)'),
                 fill: isArea,
                 tension: 0.35,
-                borderWidth: 2.5,
+                borderWidth: 3,
                 borderRadius: isBar ? 5 : 0,
-                pointRadius: isBar ? 0 : 3,
+                pointRadius: isBar ? 0 : 3.5,
                 pointHoverRadius: isBar ? 0 : 6
             });
+
+            if (mostrarLinhasReferencia && totalPontos > 0) {
+                datasets.push({
+                    type: 'line',
+                    label: 'Ref. Média de Execução (' + mediaRefExec + ' min)',
+                    data: Array(totalPontos).fill(mediaRefExec),
+                    borderColor: '#c084fc',
+                    borderDash: [6, 6],
+                    borderWidth: 1.5,
+                    pointRadius: 0,
+                    fill: false,
+                    tension: 0
+                });
+            }
         }
 
         if (metricaTempoAtual === 'total') {
             datasets.push({
-                label: 'Tempo Total na Clínica (Permanência em min)',
+                type: isBar ? 'bar' : 'line',
+                label: 'Linha: Tempo Total na Clínica (min)',
                 data: fonteDadosTotal,
                 borderColor: '#0891b2',
                 backgroundColor: isBar ? '#0891b2' : (isArea ? 'rgba(8, 145, 178, 0.25)' : 'rgba(8, 145, 178, 0.05)'),
                 fill: isArea,
                 tension: 0.35,
-                borderWidth: 2.5,
+                borderWidth: 3,
                 borderRadius: isBar ? 5 : 0,
-                pointRadius: isBar ? 0 : 3,
+                pointRadius: isBar ? 0 : 3.5,
                 pointHoverRadius: isBar ? 0 : 6
             });
         }
@@ -1489,7 +1615,48 @@
         // 2. Gráfico de Evolução Temporal Geral & Pessoas
         renderizarGraficoEvolucao();
 
-        // 3. Gráfico de Rosca (Financiamento)
+        // 3. Gráfico de Produtividade Médica (Concluídos vs Cancelados)
+        const ctxMed = document.getElementById('graficoProdutividadeMedicaBarra');
+        if (ctxMed) {
+            const medicosData = {{ dados.detalhesMedicos|slice(0, 8)|json_encode|raw }};
+            new Chart(ctxMed, {
+                type: 'bar',
+                data: {
+                    labels: medicosData.map(m => m.nome.length > 18 ? m.nome.substring(0, 18) + '...' : m.nome),
+                    datasets: [
+                        {
+                            label: 'Concluídos',
+                            data: medicosData.map(m => m.finalizados),
+                            backgroundColor: '#10b981',
+                            borderRadius: 5
+                        },
+                        {
+                            label: 'Cancelados / Faltas',
+                            data: medicosData.map(m => m.cancelados),
+                            backgroundColor: '#ef4444',
+                            borderRadius: 5
+                        }
+                    ]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top', labels: { boxWidth: 10, font: { size: 10 } } }
+                    },
+                    scales: {
+                        x: { stacked: true, beginAtZero: true, grid: { display: false } },
+                        y: { stacked: true, grid: { display: false }, ticks: { font: { size: 10 } } }
+                    }
+                }
+            });
+        }
+
+        // 4. Gráfico das Tabelas Planilhadas Agregadas (Padrão: Por Mês)
+        renderizarGraficoTabelasAgregadas('mes');
+
+        // 5. Gráfico de Rosca (Financiamento)
         const ctxRosca = document.getElementById('graficoFinanciamentoRosca');
         if (ctxRosca) {
             new Chart(ctxRosca, {
@@ -1517,38 +1684,7 @@
             });
         }
 
-        // 4. Gráfico de Especialidades (Barras Horizontais)
-        const ctxEsp = document.getElementById('graficoEspecialidadesBarra');
-        if (ctxEsp) {
-            const espObj = {{ dados.porEspecialidade|json_encode|raw }};
-            const labelsEsp = Object.keys(espObj).slice(0, 8);
-            const valsEsp = Object.values(espObj).slice(0, 8);
-
-            new Chart(ctxEsp, {
-                type: 'bar',
-                data: {
-                    labels: labelsEsp.map(l => l.length > 20 ? l.substring(0, 20) + '...' : l),
-                    datasets: [{
-                        label: 'Atendimentos',
-                        data: valsEsp,
-                        backgroundColor: '#6366f1',
-                        borderRadius: 6
-                    }]
-                },
-                options: {
-                    indexAxis: 'y',
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        x: { beginAtZero: true, grid: { display: false } },
-                        y: { grid: { display: false } }
-                    }
-                }
-            });
-        }
-
-        // 5. Gráfico Fluxo por Dia da Semana (Barras)
+        // 6. Gráfico Fluxo por Dia da Semana (Barras)
         const ctxDias = document.getElementById('graficoDiasSemanaBarra');
         if (ctxDias) {
             const diasObj = {{ dados.porDiaSemana|json_encode|raw }};
@@ -1575,7 +1711,7 @@
             });
         }
 
-        // 6. Gráfico Faixas Horárias (Área / Linha)
+        // 7. Gráfico Faixas Horárias (Área / Linha)
         const ctxHoras = document.getElementById('graficoFaixasHorariasArea');
         if (ctxHoras) {
             const horasObj = {{ dados.porFaixaHoraria|json_encode|raw }};
@@ -1606,7 +1742,7 @@
             });
         }
 
-        // 7. Gráfico Gênero (Rosca)
+        // 8. Gráfico Gênero (Rosca)
         const ctxGen = document.getElementById('graficoGeneroRosca');
         if (ctxGen) {
             const genObj = {{ dados.porGenero|json_encode|raw }};
@@ -1629,7 +1765,7 @@
             });
         }
 
-        // 8. Gráfico Faixa Etária (Barras)
+        // 9. Gráfico Faixa Etária (Barras)
         const ctxFx = document.getElementById('graficoFaixaEtariaBarra');
         if (ctxFx) {
             const fxObj = {{ dados.porFaixaEtaria|json_encode|raw }};
@@ -1656,7 +1792,7 @@
             });
         }
 
-        // 9. Gráfico Top Convênios (Barras Horizontais)
+        // 10. Gráfico Top Convênios (Barras Horizontais)
         const ctxConv = document.getElementById('graficoTopConveniosBarra');
         if (ctxConv) {
             const convObj = {{ dados.porConvenio|json_encode|raw }};
