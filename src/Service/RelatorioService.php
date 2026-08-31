@@ -148,6 +148,9 @@ class RelatorioService
     /**
      * Retorna os dados consolidados do relatório de anamneses e triagens por período.
      */
+    /**
+     * Retorna os dados consolidados do relatório de anamneses e triagens por período.
+     */
     public function obterRelatorioAnamneses(string $tipoPeriodo = 'ultimos_6_meses', ?int $ano = null, ?int $mes = null): array
     {
         $hoje = new \DateTime();
@@ -164,20 +167,19 @@ class RelatorioService
             $rotuloPeriodo = 'Últimos 6 meses (' . $dataInicio->format('m/Y') . ' a ' . $dataFim->format('m/Y') . ')';
         }
 
-        $qb = $this->etapaRepo->createQueryBuilder('e')
-            ->leftJoin('e.agendamento', 'a')->addSelect('a')
+        // Buscar todos os agendamentos do período selecionado
+        $agendamentos = $this->agendamentoRepo->createQueryBuilder('a')
             ->leftJoin('a.paciente', 'p')->addSelect('p')
             ->leftJoin('a.medico', 'm')->addSelect('m')
-            ->where('e.dataHoraInicio BETWEEN :inicio AND :fim')
+            ->leftJoin('a.historicoEtapas', 'h')->addSelect('h')
+            ->where('a.dataHoraAgendada BETWEEN :inicio AND :fim OR a.horarioChegada BETWEEN :inicio AND :fim')
             ->setParameter('inicio', $dataInicio)
             ->setParameter('fim', $dataFim)
-            ->orderBy('e.dataHoraInicio', 'DESC');
+            ->orderBy('a.dataHoraAgendada', 'DESC')
+            ->getQuery()
+            ->getResult();
 
-        /** @var AtendimentoEtapaHistorico[] $triagens */
-        $triagens = $qb->getQuery()->getResult();
-
-        $totalAnamneses = count($triagens);
-
+        $triagens = [];
         $riscos = [
             'verde' => 0,
             'amarelo' => 0,
@@ -189,20 +191,38 @@ class RelatorioService
         $somaDuracaoSegundos = 0;
         $totalDuracaoValida = 0;
 
-        foreach ($triagens as $t) {
-            $r = strtolower($t->getClassificacaoRisco() ?? 'nao_classificado');
+        foreach ($agendamentos as $ag) {
+            $etapas = $ag->getHistoricoEtapas();
+            $etapaPrincipal = null;
+
+            if (count($etapas) > 0) {
+                $etapaPrincipal = $etapas[0];
+            } else {
+                // Criar instância de apresentação se o agendamento ainda não possuir etapa vinculada
+                $etapaPrincipal = new AtendimentoEtapaHistorico();
+                $etapaPrincipal->setAgendamento($ag);
+                $etapaPrincipal->setEtapa('chegada');
+                $etapaPrincipal->setDataHoraInicio($ag->getHorarioChegada() ?? $ag->getDataHoraAgendada() ?? new \DateTime());
+                $etapaPrincipal->setDataHoraFim($ag->getHorarioSaida() ?? $ag->getHorarioFimConsulta());
+                $etapaPrincipal->setResponsavel($ag->getMedico() ? $ag->getMedico()->getNome() : 'Medware API');
+            }
+
+            $triagens[] = $etapaPrincipal;
+
+            $r = strtolower($etapaPrincipal->getClassificacaoRisco() ?? 'nao_classificado');
             if (isset($riscos[$r])) {
                 $riscos[$r]++;
             } else {
                 $riscos['nao_classificado']++;
             }
 
-            if ($t->getDuracaoSegundos() && $t->getDuracaoSegundos() > 0) {
-                $somaDuracaoSegundos += $t->getDuracaoSegundos();
+            if ($etapaPrincipal->getDuracaoSegundos() && $etapaPrincipal->getDuracaoSegundos() > 0) {
+                $somaDuracaoSegundos += $etapaPrincipal->getDuracaoSegundos();
                 $totalDuracaoValida++;
             }
         }
 
+        $totalAnamneses = count($triagens);
         $tempoMedioTriagemMin = $totalDuracaoValida > 0 ? round(($somaDuracaoSegundos / $totalDuracaoValida) / 60, 1) : 5.0;
 
         return [
