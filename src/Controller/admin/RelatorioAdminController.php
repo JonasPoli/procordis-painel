@@ -124,11 +124,23 @@ class RelatorioAdminController extends AbstractController
             }
             fputcsv($handle, [], ';');
 
-            // 6. Ranking por Procedimento / Exame
-            fputcsv($handle, ['=== VOLUME POR PROCEDIMENTO E EXAME ==='], ';');
-            fputcsv($handle, ['Procedimento / Exame', 'Total de Atendimentos'], ';');
+            // 8. Ranking por Procedimento / Exame
+            fputcsv($handle, ['=== VOLUME TOTAL POR PROCEDIMENTO E EXAME ==='], ';');
+            fputcsv($handle, ['Procedimento / Exame', 'Total de Atendimentos no Período'], ';');
             foreach ($dados['porProcedimento'] as $proc => $qtd) {
                 fputcsv($handle, [$proc, $qtd], ';');
+            }
+            fputcsv($handle, [], ';');
+
+            // 9. Atendimentos Individuais Diários por Tipo de Procedimento
+            fputcsv($handle, ['=== ATENDIMENTOS DIÁRIOS POR TIPO DE PROCEDIMENTO ==='], ';');
+            fputcsv($handle, ['Data', 'Tipo de Procedimento / Exame', 'Quantidade Realizada no Dia'], ';');
+            foreach ($dados['porProcedimentoDia'] as $dataStr => $procsNoDia) {
+                $dtFmt = \DateTime::createFromFormat('Y-m-d', $dataStr);
+                $dtExib = $dtFmt ? $dtFmt->format('d/m/Y') : $dataStr;
+                foreach ($procsNoDia as $procNome => $qtdNoDia) {
+                    fputcsv($handle, [$dtExib, $procNome, $qtdNoDia], ';');
+                }
             }
             fputcsv($handle, [], ';');
 

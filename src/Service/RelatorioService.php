@@ -253,6 +253,7 @@ class RelatorioService
             'porAnoKeys' => array_keys($porAno),
             'porAnoValues' => array_values($porAno),
             'porProcedimento' => $porProcedimento,
+            'porProcedimentoDia' => $porProcedimentoDia,
             'porEspecialidade' => $porEspecialidade,
             'porMedico' => $porMedico,
             'porStatus' => $porStatus,
