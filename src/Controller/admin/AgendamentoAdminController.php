@@ -7,6 +7,8 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
+use Symfony\Component\HttpFoundation\Request;
+
 #[Route('/admin/agendamento', name: 'app_admin_agendamento_')]
 class AgendamentoAdminController extends AbstractController
 {
@@ -16,12 +18,53 @@ class AgendamentoAdminController extends AbstractController
     }
 
     #[Route('', name: 'index')]
-    public function index(): Response
+    public function index(Request $request): Response
     {
-        $agendamentos = $this->agendamentoRepo->findBy([], ['id' => 'DESC'], 100);
+        $dtInicioStr = $request->query->get('dataInicio');
+        $dtFimStr = $request->query->get('dataFim');
+        $statusStr = $request->query->get('status');
+        $busca = trim((string) $request->query->get('busca', ''));
+
+        $qb = $this->agendamentoRepo->createQueryBuilder('a')
+            ->leftJoin('a.paciente', 'p')->addSelect('p')
+            ->leftJoin('a.medico', 'm')->addSelect('m')
+            ->leftJoin('a.especialidade', 'e')->addSelect('e')
+            ->orderBy('a.dataHoraAgendada', 'DESC');
+
+        if (!empty($dtInicioStr)) {
+            $dtInicio = \DateTime::createFromFormat('Y-m-d', $dtInicioStr);
+            if ($dtInicio) {
+                $qb->andWhere('a.dataHoraAgendada >= :dtInicio')
+                   ->setParameter('dtInicio', $dtInicio->setTime(0, 0, 0));
+            }
+        }
+
+        if (!empty($dtFimStr)) {
+            $dtFim = \DateTime::createFromFormat('Y-m-d', $dtFimStr);
+            if ($dtFim) {
+                $qb->andWhere('a.dataHoraAgendada <= :dtFim')
+                   ->setParameter('dtFim', $dtFim->setTime(23, 59, 59));
+            }
+        }
+
+        if (!empty($statusStr)) {
+            $qb->andWhere('a.status = :st')
+               ->setParameter('st', $statusStr);
+        }
+
+        if (!empty($busca)) {
+            $qb->andWhere('(p.nomeCompleto LIKE :b OR p.cpf LIKE :b OR a.codigoAgendamento LIKE :b OR a.procedimentoNome LIKE :b OR m.nome LIKE :b)')
+               ->setParameter('b', '%' . $busca . '%');
+        }
+
+        $agendamentos = $qb->setMaxResults(500)->getQuery()->getResult();
 
         return $this->render('admin/agendamento/index.html.twig', [
             'agendamentos' => $agendamentos,
+            'dataInicio' => $dtInicioStr,
+            'dataFim' => $dtFimStr,
+            'status' => $statusStr,
+            'busca' => $busca,
         ]);
     }
 }

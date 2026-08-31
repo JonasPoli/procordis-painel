@@ -522,25 +522,58 @@ class DataSimulatorService
     public function deduplicarMedicosBanco(): int
     {
         $medicos = $this->medicoRepo->findAll();
-        $vistos = [];
+        $vistosNome = [];
+        $vistosCrm = [];
+        $vistosCod = [];
         $removidos = 0;
 
         foreach ($medicos as $m) {
-            $chave = mb_strtolower(trim($m->getNome())) . '|' . mb_strtolower(trim($m->getCrm() ?? ''));
-            if (isset($vistos[$chave])) {
-                $original = $vistos[$chave];
+            $nomeLimpo = mb_strtolower(trim($m->getNome()));
+            $crmLimpo = mb_strtolower(trim($m->getCrm() ?? ''));
+            $codLimpo = mb_strtolower(trim($m->getCodigoExterno() ?? ''));
+
+            $original = null;
+
+            if ($codLimpo !== '' && isset($vistosCod[$codLimpo])) {
+                $original = $vistosCod[$codLimpo];
+            } elseif ($crmLimpo !== '' && isset($vistosCrm[$crmLimpo])) {
+                $original = $vistosCrm[$crmLimpo];
+            } elseif ($nomeLimpo !== '' && isset($vistosNome[$nomeLimpo])) {
+                $original = $vistosNome[$nomeLimpo];
+            }
+
+            if ($original && $original->getId() !== $m->getId()) {
+                // Reatribuir agendamentos
                 $agendamentos = $this->agendamentoRepo->findBy(['medico' => $m]);
                 foreach ($agendamentos as $ag) {
                     $ag->setMedico($original);
                 }
+                // Reatribuir chamadas
                 $chamadas = $this->chamadaRepo->findBy(['medico' => $m]);
                 foreach ($chamadas as $ch) {
                     $ch->setMedico($original);
                 }
+
+                // Se o original não tiver CRM ou Especialidade, copia do duplicado
+                if (!$original->getCrm() && $m->getCrm()) {
+                    $original->setCrm($m->getCrm());
+                }
+                if (!$original->getEspecialidade() && $m->getEspecialidade()) {
+                    $original->setEspecialidade($m->getEspecialidade());
+                }
+
                 $this->em->remove($m);
                 $removidos++;
             } else {
-                $vistos[$chave] = $m;
+                if ($nomeLimpo !== '') {
+                    $vistosNome[$nomeLimpo] = $m;
+                }
+                if ($crmLimpo !== '') {
+                    $vistosCrm[$crmLimpo] = $m;
+                }
+                if ($codLimpo !== '') {
+                    $vistosCod[$codLimpo] = $m;
+                }
             }
         }
 

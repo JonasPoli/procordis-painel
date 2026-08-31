@@ -117,7 +117,10 @@ class MedwareApiClientService
     /**
      * Consulta agendamentos da API Medware (/Medware/Agendamento/Listar).
      */
-    public function listarAgendamentos(\DateTimeInterface $dataInicio, \DateTimeInterface $dataFim): array
+    /**
+     * Consulta agendamentos da API Medware (/Medware/Agendamento/Listar) com retentativa (até 3 tentativas).
+     */
+    public function listarAgendamentos(\DateTimeInterface $dataInicio, \DateTimeInterface $dataFim, int $maxTentativas = 3): array
     {
         $config = $this->configRepository->getObterOuCriarConfiguracao();
         if ($config->isModoSimulacao()) {
@@ -130,58 +133,81 @@ class MedwareApiClientService
             }
         }
 
-        $inicio = microtime(true);
-        try {
-            $url = $this->getApiUrl('/Medware/Agendamento/Listar');
-            $response = $this->httpClient->request('GET', $url, [
-                'headers' => [
-                    'Authorization' => 'Bearer ' . $config->getApiToken()
-                ],
-                'query' => [
-                    'dataInicio' => $dataInicio->format('d/m/Y'),
-                    'dataFim' => $dataFim->format('d/m/Y'),
-                    'pageSize' => 500
-                ],
-                'timeout' => 12.0,
-                'verify_peer' => false,
-                'verify_host' => false,
-            ]);
+        $tentativa = 1;
+        while ($tentativa <= $maxTentativas) {
+            $inicio = microtime(true);
+            try {
+                $url = $this->getApiUrl('/Medware/Agendamento/Listar');
+                $response = $this->httpClient->request('GET', $url, [
+                    'headers' => [
+                        'Authorization' => 'Bearer ' . $config->getApiToken()
+                    ],
+                    'query' => [
+                        'dataInicio' => $dataInicio->format('d/m/Y'),
+                        'dataFim' => $dataFim->format('d/m/Y'),
+                        'pageSize' => 500
+                    ],
+                    'timeout' => 15.0,
+                    'verify_peer' => false,
+                    'verify_host' => false,
+                ]);
 
-            $status = $response->getStatusCode();
-            $tempoMs = (int) ((microtime(true) - $inicio) * 1000);
+                $status = $response->getStatusCode();
+                $tempoMs = (int) ((microtime(true) - $inicio) * 1000);
 
-            if ($status === 200) {
-                $items = $response->toArray();
-                $this->registrarLog('/Medware/Agendamento/Listar', 'GET', 200, $tempoMs, null, count($items));
-                return $items;
-            }
+                if ($status === 200) {
+                    $items = $response->toArray();
+                    // Se veio com dados, grava o log de sucesso e retorna imediatamente
+                    if (!empty($items)) {
+                        $this->registrarLog('/Medware/Agendamento/Listar', 'GET', 200, $tempoMs, null, count($items));
+                        return $items;
+                    }
 
-            // Se deu 401 Unauthorized, tenta re-autenticar uma vez
-            if ($status === 401) {
-                if ($this->autenticar()) {
-                    return $this->listarAgendamentos($dataInicio, $dataFim);
+                    // Se retornou array vazio, pode ser um falso negativo da API em caso de flutuação de rede.
+                    // Tenta de novo se ainda tiver tentativas.
+                    if ($tentativa < $maxTentativas) {
+                        usleep(300000); // 300ms de pausa antes do retry
+                        $tentativa++;
+                        continue;
+                    }
+
+                    // Confirmado vazio após 3 tentativas
+                    $this->registrarLog('/Medware/Agendamento/Listar', 'GET', 200, $tempoMs, 'Confirmado sem registros após ' . $maxTentativas . ' tentativas', 0);
+                    return [];
                 }
+
+                if ($status === 401) {
+                    if ($this->autenticar()) {
+                        $tentativa++;
+                        continue;
+                    }
+                }
+
+                $this->registrarLog('/Medware/Agendamento/Listar', 'GET', $status, $tempoMs, 'Status HTTP: ' . $status . ' (tentativa ' . $tentativa . '/' . $maxTentativas . ')', 0);
+            } catch (\Throwable $e) {
+                $tempoMs = (int) ((microtime(true) - $inicio) * 1000);
+                $this->registrarLog('/Medware/Agendamento/Listar', 'GET', 500, $tempoMs, 'Tentativa ' . $tentativa . '/' . $maxTentativas . ' falhou: ' . $e->getMessage(), 0);
             }
 
-            $this->registrarLog('/Medware/Agendamento/Listar', 'GET', $status, $tempoMs, 'Status HTTP: ' . $status, 0);
-            return [];
-        } catch (\Throwable $e) {
-            $tempoMs = (int) ((microtime(true) - $inicio) * 1000);
-            $this->registrarLog('/Medware/Agendamento/Listar', 'GET', 500, $tempoMs, $e->getMessage(), 0);
-            return [];
+            $tentativa++;
+            if ($tentativa <= $maxTentativas) {
+                usleep(400000); // 400ms pausa
+            }
         }
+
+        return [];
     }
 
     /**
-     * Sincroniza os agendamentos da data com a base local.
+     * Sincroniza os agendamentos da data com a base local (com retentativa ate 3x).
      */
-    public function sincronizarAgendamentosHoje(?\DateTimeInterface $data = null): array
+    public function sincronizarAgendamentosHoje(?\DateTimeInterface $data = null, int $maxTentativas = 3): array
     {
         $data = $data ?? new \DateTime();
-        $items = $this->listarAgendamentos($data, $data);
+        $items = $this->listarAgendamentos($data, $data, $maxTentativas);
 
         if (empty($items)) {
-            return ['total' => 0, 'novos' => 0, 'atualizados' => 0, 'erro' => 'Nenhum registro retornado ou erro de conexão'];
+            return ['total' => 0, 'novos' => 0, 'atualizados' => 0, 'erro' => 'Nenhum registro retornado ou erro de conexão (confirmado após ' . $maxTentativas . ' tentativas)'];
         }
 
         $unidade = $this->unidadeRepo->findOneBy([]) ?? new Unidade();
@@ -250,8 +276,13 @@ class MedwareApiClientService
 
             $medico = null;
             if (!empty($nomeMed)) {
+                $crmFormatado = !empty($crmMed) ? 'CRM-' . ($ufMed ? $ufMed . ' ' : '') . $crmMed : null;
+
                 if (!empty($codMed)) {
                     $medico = $this->medicoRepo->findOneBy(['codigoExterno' => 'MED-' . $codMed]);
+                }
+                if (!$medico && $crmFormatado) {
+                    $medico = $this->medicoRepo->findOneBy(['crm' => $crmFormatado]);
                 }
                 if (!$medico) {
                     $medico = $this->medicoRepo->findOneBy(['nome' => $nomeMed]);
@@ -264,8 +295,8 @@ class MedwareApiClientService
                     $this->em->persist($medico);
                 }
 
-                if (!empty($crmMed)) {
-                    $medico->setCrm('CRM-' . ($ufMed ? $ufMed . ' ' : '') . $crmMed);
+                if ($crmFormatado) {
+                    $medico->setCrm($crmFormatado);
                 }
 
                 if (!empty($espMedStr)) {

@@ -5,12 +5,12 @@
 {% block body %}
 <div class="max-w-7xl mx-auto space-y-6">
     <sl-card class="w-full">
-        <div slot="header" class="flex items-center justify-between">
+        <div slot="header" class="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div class="flex items-center gap-3">
                 <sl-icon name="calendar-event" class="text-3xl text-cyan-500"></sl-icon>
                 <div>
-                    <h2 class="text-xl font-bold dark:text-white">Gerenciamento de Agendamentos</h2>
-                    <p class="text-xs text-slate-500 dark:text-slate-400">Listagem de todos os pacientes e histórico do fluxo de atendimento</p>
+                    <h2 class="text-xl font-bold dark:text-white">Gerenciamento & Histórico de Agendamentos</h2>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Consulte exames, consultas, prontuários e fluxo de pacientes por período</p>
                 </div>
             </div>
 
@@ -20,46 +20,87 @@
             </sl-button>
         </div>
 
+        <!-- Formulário de Filtros e Busca por Período -->
+        <form method="GET" action="{{ path('app_admin_agendamento_index') }}" class="p-4 bg-slate-50 dark:bg-slate-900/60 rounded-xl border border-slate-200 dark:border-slate-800 grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
+            <div>
+                <label class="block text-[11px] font-bold uppercase text-slate-500 mb-1">Buscar Paciente / Exame / Código</label>
+                <input type="text" name="busca" value="{{ busca }}" placeholder="Nome, CPF, Exame ou Código..." class="w-full p-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg text-xs">
+            </div>
+
+            <div>
+                <label class="block text-[11px] font-bold uppercase text-slate-500 mb-1">Data Inicial</label>
+                <input type="date" name="dataInicio" value="{{ dataInicio }}" class="w-full p-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg text-xs">
+            </div>
+
+            <div>
+                <label class="block text-[11px] font-bold uppercase text-slate-500 mb-1">Data Final</label>
+                <input type="date" name="dataFim" value="{{ dataFim }}" class="w-full p-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg text-xs">
+            </div>
+
+            <div class="flex items-end gap-2">
+                <button type="submit" class="w-full py-2 px-3 bg-cyan-600 hover:bg-cyan-700 text-white font-bold rounded-lg text-xs transition flex items-center justify-center gap-1.5">
+                    <sl-icon name="search"></sl-icon> Filtrar Atendimentos
+                </button>
+                <a href="{{ path('app_admin_agendamento_index') }}" class="py-2 px-3 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold rounded-lg text-xs transition">
+                    Limpar
+                </a>
+            </div>
+        </form>
+
         <div class="overflow-x-auto">
             <table class="w-full text-left text-sm border-collapse">
                 <thead>
                     <tr class="border-b border-slate-200 dark:border-slate-800 text-xs font-bold uppercase text-slate-500">
                         <th class="py-3 px-4">Código</th>
+                        <th class="py-3 px-4">Data/Hora</th>
                         <th class="py-3 px-4">Paciente</th>
+                        <th class="py-3 px-4">Procedimento / Exame</th>
                         <th class="py-3 px-4">Médico</th>
-                        <th class="py-3 px-4">Especialidade</th>
+                        <th class="py-3 px-4">Financiamento</th>
                         <th class="py-3 px-4">Status</th>
-                        <th class="py-3 px-4">Chegada</th>
-                        <th class="py-3 px-4">Tempo Espera</th>
-                        <th class="py-3 px-4 text-right">Ação</th>
+                        <th class="py-3 px-4 text-right">Prontuário & Histórico</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100 dark:divide-slate-800/60">
                     {% for a in agendamentos %}
                         <tr class="hover:bg-slate-50 dark:hover:bg-slate-900/50 transition">
                             <td class="py-3 px-4 font-mono font-bold text-xs">{{ a.codigoAgendamento }}</td>
+                            <td class="py-3 px-4 font-mono text-xs whitespace-nowrap">
+                                {{ a.dataHoraAgendada ? a.dataHoraAgendada|date("d/m/Y H:i") : '--' }}
+                            </td>
                             <td class="py-3 px-4 font-semibold dark:text-white">
-                                {{ a.paciente ? a.paciente.nomeExibicao : 'Paciente' }}
+                                {{ a.paciente ? a.paciente.nomeCompleto : 'Paciente não cadastrado' }}
                                 {% if a.prioridade %}
                                     <sl-badge variant="danger" size="small">Prioritário</sl-badge>
                                 {% endif %}
                             </td>
-                            <td class="py-3 px-4">{{ a.medico ? a.medico.nome : 'A definir' }}</td>
-                            <td class="py-3 px-4 text-xs text-slate-500">{{ a.especialidade ? a.especialidade.nome : 'Clínica' }}</td>
+                            <td class="py-3 px-4 text-xs">
+                                <span class="font-bold dark:text-slate-200">{{ a.procedimentoNome }}</span>
+                                <span class="block text-[10px] text-slate-400">{{ a.especialidade ? a.especialidade.nome : 'Geral' }}</span>
+                            </td>
+                            <td class="py-3 px-4 text-xs">{{ a.medico ? a.medico.nome : 'A definir' }}</td>
+                            <td class="py-3 px-4 text-xs">
+                                {% if a.tipoAtendimento == 'sus' %}
+                                    <sl-badge variant="success" size="small">SUS</sl-badge>
+                                {% elseif a.tipoAtendimento == 'filantropico' %}
+                                    <sl-badge variant="neutral" size="small">Filantrópico</sl-badge>
+                                {% else %}
+                                    <sl-badge variant="primary" size="small">{{ a.convenioNome|default('Particular/Convênio') }}</sl-badge>
+                                {% endif %}
+                            </td>
                             <td class="py-3 px-4">
                                 <sl-badge variant="neutral">{{ a.status|upper }}</sl-badge>
                             </td>
-                            <td class="py-3 px-4 font-mono text-xs">{{ a.horarioChegada ? a.horarioChegada|date("H:i") : '--:--' }}</td>
-                            <td class="py-3 px-4 font-mono font-bold text-cyan-500">{{ a.tempoEsperaMinutos ?? 0 }} min</td>
                             <td class="py-3 px-4 text-right">
                                 <sl-button size="small" variant="neutral" href="/painel/paciente/{{ a.id }}" target="_blank">
-                                    Histórico
+                                    <sl-icon slot="prefix" name="file-earmark-medical"></sl-icon>
+                                    Ver Prontuário
                                 </sl-button>
                             </td>
                         </tr>
                     {% else %}
                         <tr>
-                            <td colspan="8" class="text-center py-8 text-slate-400">Nenhum agendamento registrado ainda. Execute a simulação no menu "Simulador".</td>
+                            <td colspan="8" class="text-center py-8 text-slate-400">Nenhum agendamento ou atendimento encontrado no período selecionado.</td>
                         </tr>
                     {% endfor %}
                 </tbody>
