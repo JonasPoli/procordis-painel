@@ -204,7 +204,12 @@
             } catch (jsonErr) {
                 loading.classList.add('hidden');
                 alertaErro.classList.remove('hidden');
-                document.getElementById('diagErroTexto').innerHTML = '<strong>O servidor retornou uma mensagem HTML/PHP em vez de JSON:</strong><div class="mt-2 p-3 bg-black/80 rounded border border-red-500/40 text-red-300 font-mono text-xs overflow-x-auto">' + rawText + '</div>';
+                const box = document.getElementById('diagErroTexto');
+                box.innerHTML = '<strong>O servidor retornou uma mensagem HTML/PHP em vez de JSON:</strong>';
+                const pre = document.createElement('pre');
+                pre.className = 'mt-2 p-3 bg-black/90 text-amber-300 font-mono text-xs overflow-x-auto rounded border border-amber-500/50 whitespace-pre-wrap';
+                pre.textContent = rawText;
+                box.appendChild(pre);
                 content.classList.remove('hidden');
                 return;
             }
