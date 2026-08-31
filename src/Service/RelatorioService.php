@@ -168,9 +168,7 @@ class RelatorioService
             ->leftJoin('e.agendamento', 'a')->addSelect('a')
             ->leftJoin('a.paciente', 'p')->addSelect('p')
             ->leftJoin('a.medico', 'm')->addSelect('m')
-            ->where('e.etapa = :etapa')
-            ->andWhere('e.dataHoraInicio BETWEEN :inicio AND :fim')
-            ->setParameter('etapa', 'triagem')
+            ->where('e.dataHoraInicio BETWEEN :inicio AND :fim')
             ->setParameter('inicio', $dataInicio)
             ->setParameter('fim', $dataFim)
             ->orderBy('e.dataHoraInicio', 'DESC');
