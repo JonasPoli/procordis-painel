@@ -177,6 +177,10 @@ class BackupRestoreService
             throw new \RuntimeException("Arquivo de backup sem conteúdo legível.");
         }
 
+        if (stripos(ltrim($jsonStr), '<!DOCTYPE') === 0 || stripos(ltrim($jsonStr), '<html') === 0) {
+            throw new \RuntimeException("O arquivo enviado é uma página HTML e não um arquivo de dados (.bak). O download anterior no servidor antigo salvou a página da web em vez do arquivo de banco. Gere e baixe o backup novamente agora.");
+        }
+
         $dados = json_decode($jsonStr, true);
         unset($jsonStr); // Libera memória imediatamente
 
