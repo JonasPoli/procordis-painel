@@ -395,22 +395,34 @@ class BackupRestoreService
     {
         $projectDir = dirname(__DIR__, 2);
         $arquivosLog = [
+            $projectDir . '/var/log/backup.log',
             $projectDir . '/var/log/prod.log',
             $projectDir . '/var/log/dev.log',
-            $projectDir . '/var/log/backup.log',
         ];
 
         $erros = [];
 
         foreach ($arquivosLog as $logFile) {
             if (file_exists($logFile) && is_readable($logFile)) {
-                $linhas = file($logFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-                if ($linhas) {
-                    $ultimas = array_slice($linhas, -30);
-                    foreach (array_reverse($ultimas) as $l) {
-                        if (stripos($l, 'CRITICAL') !== false || stripos($l, 'ERROR') !== false || stripos($l, 'Fatal') !== false || stripos($l, 'Exception') !== false) {
-                            $erros[] = substr($l, 0, 250);
-                            if (count($erros) >= 10) break 2;
+                $fp = @fopen($logFile, 'rb');
+                if ($fp) {
+                    $size = (int) @filesize($logFile);
+                    $readSize = min($size, 65536);
+                    if ($size > $readSize) {
+                        @fseek($fp, $size - $readSize);
+                    }
+                    $buffer = (string) @fread($fp, $readSize);
+                    @fclose($fp);
+
+                    if ($buffer !== '') {
+                        $linhas = explode("\n", $buffer);
+                        foreach (array_reverse($linhas) as $l) {
+                            $l = trim($l);
+                            if ($l === '') continue;
+                            if (stripos($l, 'CRITICAL') !== false || stripos($l, 'ERROR') !== false || stripos($l, 'Fatal') !== false || stripos($l, 'Exception') !== false) {
+                                $erros[] = substr($l, 0, 300);
+                                if (count($erros) >= 15) break 2;
+                            }
                         }
                     }
                 }

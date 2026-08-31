@@ -16,7 +16,7 @@
 
         <div class="flex flex-wrap items-center gap-3">
             <button type="button" onclick="executarDiagnosticoOnline()" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 text-cyan-400 font-bold rounded-xl text-xs flex items-center gap-2 shadow transition">
-                <sl-icon name="activity"></sl-icon> <span>Diagnóstico Online do Servidor</span>
+                <sl-icon name="activity"></sl-icon> <span>Reexecutar Teste / Diagnóstico</span>
             </button>
             <a href="{{ path('app_admin_backup_download') }}" data-turbo="false" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center gap-2 shadow-md transition">
                 <sl-icon name="download"></sl-icon> <span>Gerar & Baixar Backup Completo (.bak)</span>
@@ -24,34 +24,34 @@
         </div>
     </div>
 
-    <!-- Painel de Diagnóstico em Tempo Real (Expandível) -->
-    <div id="painelDiagnostico" class="hidden bg-slate-900 text-slate-100 p-6 rounded-2xl border border-cyan-500/30 shadow-xl space-y-4 transition-all">
+    <!-- Painel de Diagnóstico em Tempo Real -->
+    <div id="painelDiagnostico" class="bg-slate-900 text-slate-100 p-6 rounded-2xl border border-cyan-500/30 shadow-xl space-y-4">
         <div class="flex items-center justify-between border-b border-slate-800 pb-3">
             <div class="flex items-center gap-2">
                 <sl-icon name="cpu" class="text-cyan-400 text-xl"></sl-icon>
-                <h3 class="text-base font-bold text-white">Resultado do Diagnóstico em Tempo Real (Servidor Online)</h3>
+                <h3 class="text-base font-bold text-white">Status do Servidor & Diagnóstico de Backup</h3>
             </div>
-            <button type="button" onclick="document.getElementById('painelDiagnostico').classList.add('hidden')" class="text-slate-400 hover:text-white text-xs">Fechar [x]</button>
+            <span class="text-xs text-slate-400 font-mono" id="diagTimestamp">{{ diag.timestamp|default("now"|date('Y-m-d H:i:s')) }}</span>
         </div>
 
-        <div id="diagLoading" class="text-center py-6">
+        <div id="diagLoading" class="hidden text-center py-6">
             <sl-icon name="arrow-repeat" class="text-cyan-400 text-3xl animate-spin"></sl-icon>
             <p class="text-xs text-slate-400 mt-2 font-mono">Executando varredura de permissões, banco e teste de geração de backup...</p>
         </div>
 
-        <div id="diagContent" class="hidden space-y-4 text-xs">
+        <div id="diagContent" class="space-y-4 text-xs">
             <!-- Grid de Métricas -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <!-- Card 1: Ambiente PHP -->
                 <div class="bg-slate-950/80 p-4 rounded-xl border border-slate-800 space-y-2">
                     <h4 class="font-bold text-cyan-400 flex items-center gap-1.5"><sl-icon name="gear"></sl-icon> Ambiente PHP</h4>
                     <div class="space-y-1 text-slate-300">
-                        <div>Versão PHP: <span id="diagPhpVersion" class="font-mono text-emerald-400 font-bold"></span></div>
-                        <div>Memory Limit: <span id="diagMemoryLimit" class="font-mono text-cyan-300"></span></div>
-                        <div>Max Execution Time: <span id="diagMaxTime" class="font-mono text-cyan-300"></span></div>
-                        <div>open_basedir: <span id="diagOpenBasedir" class="font-mono text-slate-400"></span></div>
-                        <div>Extensão ZIP: <span id="diagExtZip" class="font-mono"></span></div>
-                        <div>Extensão GZ/Zlib: <span id="diagExtGz" class="font-mono text-emerald-400 font-bold"></span></div>
+                        <div>Versão PHP: <span id="diagPhpVersion" class="font-mono text-emerald-400 font-bold">{{ diag.ambiente.php_version|default('N/A') }} ({{ diag.ambiente.sapi|default('fpm') }})</span></div>
+                        <div>Memory Limit: <span id="diagMemoryLimit" class="font-mono text-cyan-300">{{ diag.ambiente.memory_limit|default('N/A') }}</span></div>
+                        <div>Max Execution Time: <span id="diagMaxTime" class="font-mono text-cyan-300">{{ diag.ambiente.max_execution_time|default('N/A') }}s</span></div>
+                        <div>open_basedir: <span id="diagOpenBasedir" class="font-mono text-slate-400">{{ diag.ambiente.open_basedir|default('(livre)') }}</span></div>
+                        <div>Extensão ZIP: <span id="diagExtZip" class="font-mono">{{ diag.ambiente.extensoes.zip|default('N/A') }}</span></div>
+                        <div>Extensão GZ/Zlib: <span id="diagExtGz" class="font-mono text-emerald-400 font-bold">{{ diag.ambiente.extensoes.zlib_gz|default('N/A') }}</span></div>
                     </div>
                 </div>
 
@@ -59,10 +59,22 @@
                 <div class="bg-slate-950/80 p-4 rounded-xl border border-slate-800 space-y-2">
                     <h4 class="font-bold text-emerald-400 flex items-center gap-1.5"><sl-icon name="folder-check"></sl-icon> Diretórios & Permissões</h4>
                     <div class="space-y-1 text-slate-300">
-                        <div>Pasta <code>var/backup</code>: <span id="diagVarBackupStatus" class="font-bold"></span></div>
-                        <div class="text-[11px] text-slate-500 break-all" id="diagVarBackupPath"></div>
-                        <div class="mt-2">Pasta Temp Sistema: <span id="diagSysTempStatus" class="font-bold"></span></div>
-                        <div class="text-[11px] text-slate-500 break-all" id="diagSysTempPath"></div>
+                        <div>Pasta <code>var/backup</code>: <span id="diagVarBackupStatus" class="font-bold">
+                            {% if diag.pastas.var_backup.gravavel|default(false) %}
+                                <span class="text-emerald-400">Gravável [OK]</span>
+                            {% else %}
+                                <span class="text-red-400">Sem Permissão</span>
+                            {% endif %}
+                        </span></div>
+                        <div class="text-[11px] text-slate-500 break-all" id="diagVarBackupPath">{{ diag.pastas.var_backup.caminho|default('var/backup') }}</div>
+                        <div class="mt-2">Pasta Temp Sistema: <span id="diagSysTempStatus" class="font-bold">
+                            {% if diag.pastas.sys_temp.gravavel|default(false) %}
+                                <span class="text-emerald-400">Gravável [OK]</span>
+                            {% else %}
+                                <span class="text-red-400">Sem Permissão</span>
+                            {% endif %}
+                        </span></div>
+                        <div class="text-[11px] text-slate-500 break-all" id="diagSysTempPath">{{ diag.pastas.sys_temp.caminho|default('/tmp') }}</div>
                     </div>
                 </div>
 
@@ -70,33 +82,52 @@
                 <div class="bg-slate-950/80 p-4 rounded-xl border border-slate-800 space-y-2">
                     <h4 class="font-bold text-amber-400 flex items-center gap-1.5"><sl-icon name="lightning-charge"></sl-icon> Teste Real de Geração</h4>
                     <div class="space-y-1 text-slate-300">
-                        <div>Status do Teste: <span id="diagTesteStatus" class="font-bold"></span></div>
-                        <div>Tempo de Geração: <span id="diagTesteTempo" class="font-mono text-cyan-300"></span></div>
-                        <div>Pico de RAM: <span id="diagTesteRam" class="font-mono text-cyan-300"></span></div>
-                        <div>Tamanho do Backup: <span id="diagTesteTamanho" class="font-mono text-emerald-400 font-bold"></span></div>
+                        <div>Status do Teste: <span id="diagTesteStatus" class="font-bold">
+                            {% if diag.teste_geracao.sucesso|default(false) %}
+                                <span class="text-emerald-400">Sucesso Absoluto (100% OK)</span>
+                            {% else %}
+                                <span class="text-red-400">Falha ou Pendente</span>
+                            {% endif %}
+                        </span></div>
+                        <div>Tempo de Geração: <span id="diagTesteTempo" class="font-mono text-cyan-300">{{ diag.teste_geracao.tempo_ms|default(0) }} ms</span></div>
+                        <div>Pico de RAM: <span id="diagTesteRam" class="font-mono text-cyan-300">{{ diag.teste_geracao.memoria_pico_mb|default(0) }} MB</span></div>
+                        <div>Tamanho do Backup: <span id="diagTesteTamanho" class="font-mono text-emerald-400 font-bold">{{ diag.teste_geracao.tamanho_formatado|default('0 KB') }}</span></div>
                     </div>
                 </div>
             </div>
 
             <!-- Alerta de Erro se houver no teste -->
-            <div id="diagAlertaErro" class="hidden p-3.5 rounded-xl bg-red-950/70 border border-red-500/50 text-red-300">
+            <div id="diagAlertaErro" class="{% if diag.teste_geracao.sucesso|default(true) %}hidden{% endif %} p-3.5 rounded-xl bg-red-950/70 border border-red-500/50 text-red-300">
                 <div class="font-bold text-red-200 flex items-center gap-2">
                     <sl-icon name="exclamation-octagon" class="text-red-400 text-base"></sl-icon> ERRO DETECTADO NA EXECUÇÃO:
                 </div>
-                <div id="diagErroTexto" class="mt-1 font-mono text-[11px] text-red-300 break-all"></div>
-                <pre id="diagErroTrace" class="mt-2 p-2 bg-black/60 rounded text-[10px] text-red-400 max-h-40 overflow-y-auto font-mono"></pre>
+                <div id="diagErroTexto" class="mt-1 font-mono text-[11px] text-red-300 break-all">{{ diag.teste_geracao.erro|default('') }}</div>
+                <pre id="diagErroTrace" class="mt-2 p-2 bg-black/60 rounded text-[10px] text-red-400 max-h-40 overflow-y-auto font-mono whitespace-pre-wrap">{{ diag.teste_geracao.trace|default('') }}</pre>
             </div>
 
             <!-- Tabela de Registros Contabilizados no Banco -->
             <div class="bg-slate-950/80 p-4 rounded-xl border border-slate-800 space-y-2">
                 <h4 class="font-bold text-slate-200 flex items-center gap-1.5"><sl-icon name="table"></sl-icon> Linhas Encontradas por Tabela</h4>
-                <div id="diagTabelasGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2"></div>
+                <div id="diagTabelasGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
+                    {% for tabela, info in diag.tabelas|default({}) %}
+                        <div class="p-2 rounded bg-slate-900 border border-slate-800 text-center">
+                            <div class="text-[10px] text-slate-400 truncate" title="{{ tabela }}">{{ tabela }}</div>
+                            <div class="font-bold text-cyan-300">{{ info.total|default(0)|number_format(0, ',', '.') }}</div>
+                        </div>
+                    {% endfor %}
+                </div>
             </div>
 
             <!-- Últimos Logs de Erro do Servidor -->
             <div class="bg-slate-950/80 p-4 rounded-xl border border-slate-800 space-y-2">
                 <h4 class="font-bold text-slate-400 flex items-center gap-1.5"><sl-icon name="file-earmark-text"></sl-icon> Últimas Linhas de Erro dos Logs do Servidor</h4>
-                <div id="diagLogsBox" class="p-2.5 bg-black/60 rounded-lg text-[11px] font-mono text-slate-400 max-h-36 overflow-y-auto space-y-1"></div>
+                <div id="diagLogsBox" class="p-2.5 bg-black/60 rounded-lg text-[11px] font-mono text-slate-400 max-h-36 overflow-y-auto space-y-1">
+                    {% for logLine in diag.ultimos_logs_erro|default([]) %}
+                        <div class="text-red-400 border-b border-slate-800 pb-0.5">{{ logLine }}</div>
+                    {% else %}
+                        <div class="text-emerald-400">Nenhum log crítico de erro recente encontrado.</div>
+                    {% endfor %}
+                </div>
             </div>
         </div>
     </div>
@@ -224,6 +255,7 @@
             }
 
             // 1. Preencher Ambiente
+            document.getElementById('diagTimestamp').textContent = data.timestamp;
             document.getElementById('diagPhpVersion').textContent = data.ambiente.php_version + ' (' + data.ambiente.sapi + ')';
             document.getElementById('diagMemoryLimit').textContent = data.ambiente.memory_limit;
             document.getElementById('diagMaxTime').textContent = data.ambiente.max_execution_time + 's';

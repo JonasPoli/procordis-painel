@@ -22,7 +22,39 @@ class BackupAdminController extends AbstractController
     #[Route('', name: 'index', methods: ['GET'])]
     public function index(): Response
     {
-        return $this->render('admin/backup/index.html.twig');
+        $diag = null;
+        try {
+            $diag = $this->backupService->diagnosticarAmbiente();
+        } catch (\Throwable $e) {
+            $diag = [
+                'timestamp' => date('Y-m-d H:i:s'),
+                'ambiente' => [
+                    'php_version' => PHP_VERSION,
+                    'sapi' => PHP_SAPI,
+                    'memory_limit' => ini_get('memory_limit'),
+                    'max_execution_time' => ini_get('max_execution_time'),
+                    'open_basedir' => ini_get('open_basedir') ?: '(livre)',
+                    'extensoes' => [
+                        'zip' => class_exists('ZipArchive') ? 'Instalada' : 'Não instalada',
+                        'zlib_gz' => function_exists('gzopen') ? 'Instalada' : 'Não instalada',
+                        'pdo_mysql' => extension_loaded('pdo_mysql') ? 'Instalada' : 'Não instalada',
+                        'json' => function_exists('json_encode') ? 'Instalada' : 'Não instalada',
+                        'mbstring' => extension_loaded('mbstring') ? 'Instalada' : 'Não instalada',
+                    ],
+                ],
+                'pastas' => [
+                    'var_backup' => ['caminho' => 'var/backup', 'gravavel' => true],
+                    'sys_temp' => ['caminho' => sys_get_temp_dir(), 'gravavel' => true],
+                ],
+                'tabelas' => [],
+                'teste_geracao' => ['sucesso' => false, 'erro' => $e->getMessage()],
+                'ultimos_logs_erro' => [$e->getMessage()],
+            ];
+        }
+
+        return $this->render('admin/backup/index.html.twig', [
+            'diag' => $diag,
+        ]);
     }
 
     #[Route('/download', name: 'download', methods: ['GET'])]
