@@ -1097,6 +1097,7 @@
                 backgroundColor: isBar ? '#d97706' : (isArea ? 'rgba(217, 119, 6, 0.25)' : 'rgba(217, 119, 6, 0.05)'),
                 fill: isArea,
                 tension: 0.35,
+                spanGaps: true,
                 borderWidth: 3,
                 borderRadius: isBar ? 5 : 0,
                 pointRadius: isBar ? 0 : 3.5,
@@ -1113,7 +1114,8 @@
                     borderWidth: 1.5,
                     pointRadius: 0,
                     fill: false,
-                    tension: 0
+                    tension: 0,
+                    spanGaps: true
                 });
             }
         }
@@ -1127,6 +1129,7 @@
                 backgroundColor: isBar ? '#9333ea' : (isArea ? 'rgba(147, 51, 234, 0.25)' : 'rgba(147, 51, 234, 0.05)'),
                 fill: isArea,
                 tension: 0.35,
+                spanGaps: true,
                 borderWidth: 3,
                 borderRadius: isBar ? 5 : 0,
                 pointRadius: isBar ? 0 : 3.5,
@@ -1143,7 +1146,8 @@
                     borderWidth: 1.5,
                     pointRadius: 0,
                     fill: false,
-                    tension: 0
+                    tension: 0,
+                    spanGaps: true
                 });
             }
         }
@@ -1157,6 +1161,7 @@
                 backgroundColor: isBar ? '#0891b2' : (isArea ? 'rgba(8, 145, 178, 0.25)' : 'rgba(8, 145, 178, 0.05)'),
                 fill: isArea,
                 tension: 0.35,
+                spanGaps: true,
                 borderWidth: 3,
                 borderRadius: isBar ? 5 : 0,
                 pointRadius: isBar ? 0 : 3.5,
@@ -1202,6 +1207,7 @@
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                spanGaps: true,
                 interaction: {
                     mode: 'index',
                     intersect: false
