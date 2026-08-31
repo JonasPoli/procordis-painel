@@ -111,66 +111,217 @@
         </div>
     </div>
 
-    <!-- Gráficos e Agrupamentos -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <!-- Distribuição por Financiamento -->
-        <div class="bg-white/80 dark:bg-slate-900/80 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-            <h3 class="text-base font-bold text-slate-900 dark:text-white mb-4">Composição de Convênios & Financiamento</h3>
-            
-            <div class="space-y-4">
+    <!-- Gráficos de Evolução e Composição -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Gráfico de Evolução Temporal (Linha) -->
+        <div class="lg:col-span-2 bg-white/80 dark:bg-slate-900/80 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+            <div class="flex items-center justify-between mb-4">
                 <div>
-                    <div class="flex justify-between text-xs font-bold mb-1">
-                        <span class="text-emerald-600 dark:text-emerald-400">SUS - Sistema Único de Saúde</span>
-                        <span class="text-slate-700 dark:text-slate-300">{{ dados.financiamento.sus }} ({{ dados.financiamento.pctSus }}%)</span>
-                    </div>
-                    <div class="w-full h-3 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                        <div class="h-full bg-emerald-500 rounded-full" style="width: {{ dados.financiamento.pctSus }}%;"></div>
-                    </div>
+                    <h3 class="text-base font-bold text-slate-900 dark:text-white">Evolução Temporal de Atendimentos</h3>
+                    <p class="text-xs text-slate-500">Volume de procedimentos e exames realizados no período selecionado</p>
                 </div>
-
-                <div>
-                    <div class="flex justify-between text-xs font-bold mb-1">
-                        <span class="text-indigo-600 dark:text-indigo-400">Filantrópico Procordis</span>
-                        <span class="text-slate-700 dark:text-slate-300">{{ dados.financiamento.filantropico }} ({{ dados.financiamento.pctFilantropico }}%)</span>
-                    </div>
-                    <div class="w-full h-3 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                        <div class="h-full bg-indigo-500 rounded-full" style="width: {{ dados.financiamento.pctFilantropico }}%;"></div>
-                    </div>
-                </div>
-
-                <div>
-                    <div class="flex justify-between text-xs font-bold mb-1">
-                        <span class="text-sky-600 dark:text-sky-400">Particular & Convênios</span>
-                        <span class="text-slate-700 dark:text-slate-300">{{ dados.financiamento.convenio }} ({{ dados.financiamento.pctConvenio }}%)</span>
-                    </div>
-                    <div class="w-full h-3 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                        <div class="h-full bg-sky-500 rounded-full" style="width: {{ dados.financiamento.pctConvenio }}%;"></div>
-                    </div>
-                </div>
+                <sl-badge variant="neutral" pill size="small">{{ dados.porDia|length }} dias com movimento</sl-badge>
+            </div>
+            <div class="h-64 w-full">
+                <canvas id="graficoEvolucaoTemporal"></canvas>
             </div>
         </div>
 
-        <!-- Procedimentos Mais Realizados -->
+        <!-- Gráfico de Rosca (Financiamento) -->
+        <div class="bg-white/80 dark:bg-slate-900/80 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+            <div class="mb-2">
+                <h3 class="text-base font-bold text-slate-900 dark:text-white">Composição de Convênios</h3>
+                <p class="text-xs text-slate-500">Divisão SUS vs Filantropia vs Convênios</p>
+            </div>
+            <div class="h-56 w-full flex items-center justify-center">
+                <canvas id="graficoFinanciamentoRosca"></canvas>
+            </div>
+            <div class="grid grid-cols-3 gap-1 text-center pt-3 border-t border-slate-100 dark:border-slate-800 text-[10px]">
+                <div>
+                    <span class="block font-bold text-emerald-600">SUS</span>
+                    <span class="font-mono text-slate-500">{{ dados.financiamento.pctSus }}%</span>
+                </div>
+                <div>
+                    <span class="block font-bold text-indigo-600">Filantrópico</span>
+                    <span class="font-mono text-slate-500">{{ dados.financiamento.pctFilantropico }}%</span>
+                </div>
+                <div>
+                    <span class="block font-bold text-sky-600">Convênios</span>
+                    <span class="font-mono text-slate-500">{{ dados.financiamento.pctConvenio }}%</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabelas Planilhadas por Intervalo (Dia / Mês / Semestre / Ano) -->
+    <div class="bg-white/80 dark:bg-slate-900/80 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
+            <div>
+                <h3 class="text-base font-bold text-slate-900 dark:text-white">Tabelas Planilhadas por Intervalo Temporal</h3>
+                <p class="text-xs text-slate-500">Visão estatística agregada de procedimentos & exames por Dia, Mês, Semestre e Ano</p>
+            </div>
+
+            <!-- Abas de Navegação das Tabelas -->
+            <div class="flex items-center gap-1 bg-slate-100 dark:bg-slate-950 p-1 rounded-xl text-xs font-bold">
+                <button type="button" onclick="mostrarTabelaAgregada('dia')" id="btnTabDia" class="px-3 py-1.5 rounded-lg transition bg-white dark:bg-slate-800 text-cyan-600 dark:text-cyan-400 shadow-sm">Por Dia</button>
+                <button type="button" onclick="mostrarTabelaAgregada('mes')" id="btnTabMes" class="px-3 py-1.5 rounded-lg transition text-slate-600 dark:text-slate-400 hover:text-slate-900">Por Mês</button>
+                <button type="button" onclick="mostrarTabelaAgregada('semestre')" id="btnTabSemestre" class="px-3 py-1.5 rounded-lg transition text-slate-600 dark:text-slate-400 hover:text-slate-900">Por Semestre</button>
+                <button type="button" onclick="mostrarTabelaAgregada('ano')" id="btnTabAno" class="px-3 py-1.5 rounded-lg transition text-slate-600 dark:text-slate-400 hover:text-slate-900">Por Ano</button>
+            </div>
+        </div>
+
+        <!-- Tabela por Dia -->
+        <div id="tabConceitoDia" class="tabela-agregada-painel">
+            <div class="max-h-72 overflow-y-auto">
+                <table class="w-full text-left text-xs border-collapse">
+                    <thead class="sticky top-0 bg-slate-100 dark:bg-slate-950 font-bold uppercase text-slate-500">
+                        <tr>
+                            <th class="py-2.5 px-3">Data</th>
+                            <th class="py-2.5 px-3 text-right">Volume de Atendimentos</th>
+                            <th class="py-2.5 px-3 text-right">Participação no Período</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                        {% for dia, count in dados.porDia %}
+                            <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                                <td class="py-2 px-3 font-mono font-bold text-slate-800 dark:text-slate-200">{{ dia|date('d/m/Y') }}</td>
+                                <td class="py-2 px-3 text-right font-mono font-black text-cyan-600 dark:text-cyan-400">{{ count }} exames</td>
+                                <td class="py-2 px-3 text-right font-mono text-slate-500">
+                                    {{ dados.totalProcedimentos > 0 ? ((count / dados.totalProcedimentos) * 100)|number_format(1, ',', '.') : 0 }}%
+                                </td>
+                            </tr>
+                        {% else %}
+                            <tr><td colspan="3" class="py-4 text-center text-slate-400">Nenhum dado por dia no período.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Tabela por Mês -->
+        <div id="tabConceitoMes" class="tabela-agregada-painel hidden">
+            <div class="max-h-72 overflow-y-auto">
+                <table class="w-full text-left text-xs border-collapse">
+                    <thead class="sticky top-0 bg-slate-100 dark:bg-slate-950 font-bold uppercase text-slate-500">
+                        <tr>
+                            <th class="py-2.5 px-3">Mês / Ano</th>
+                            <th class="py-2.5 px-3 text-right">Volume de Atendimentos</th>
+                            <th class="py-2.5 px-3 text-right">Participação no Período</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                        {% for mesAno, count in dados.porMes %}
+                            <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                                <td class="py-2 px-3 font-mono font-bold text-slate-800 dark:text-slate-200">{{ mesAno }}</td>
+                                <td class="py-2 px-3 text-right font-mono font-black text-indigo-600 dark:text-indigo-400">{{ count }} exames</td>
+                                <td class="py-2 px-3 text-right font-mono text-slate-500">
+                                    {{ dados.totalProcedimentos > 0 ? ((count / dados.totalProcedimentos) * 100)|number_format(1, ',', '.') : 0 }}%
+                                </td>
+                            </tr>
+                        {% else %}
+                            <tr><td colspan="3" class="py-4 text-center text-slate-400">Nenhum dado mensal.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Tabela por Semestre -->
+        <div id="tabConceitoSemestre" class="tabela-agregada-painel hidden">
+            <div class="max-h-72 overflow-y-auto">
+                <table class="w-full text-left text-xs border-collapse">
+                    <thead class="sticky top-0 bg-slate-100 dark:bg-slate-950 font-bold uppercase text-slate-500">
+                        <tr>
+                            <th class="py-2.5 px-3">Semestre / Ano</th>
+                            <th class="py-2.5 px-3 text-right">Volume de Atendimentos</th>
+                            <th class="py-2.5 px-3 text-right">Participação no Período</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                        {% for sem, count in dados.porSemestre %}
+                            <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                                <td class="py-2 px-3 font-mono font-bold text-slate-800 dark:text-slate-200">{{ sem }}</td>
+                                <td class="py-2 px-3 text-right font-mono font-black text-emerald-600 dark:text-emerald-400">{{ count }} exames</td>
+                                <td class="py-2 px-3 text-right font-mono text-slate-500">
+                                    {{ dados.totalProcedimentos > 0 ? ((count / dados.totalProcedimentos) * 100)|number_format(1, ',', '.') : 0 }}%
+                                </td>
+                            </tr>
+                        {% else %}
+                            <tr><td colspan="3" class="py-4 text-center text-slate-400">Nenhum dado por semestre.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Tabela por Ano -->
+        <div id="tabConceitoAno" class="tabela-agregada-painel hidden">
+            <div class="max-h-72 overflow-y-auto">
+                <table class="w-full text-left text-xs border-collapse">
+                    <thead class="sticky top-0 bg-slate-100 dark:bg-slate-950 font-bold uppercase text-slate-500">
+                        <tr>
+                            <th class="py-2.5 px-3">Ano</th>
+                            <th class="py-2.5 px-3 text-right">Volume de Atendimentos</th>
+                            <th class="py-2.5 px-3 text-right">Participação no Período</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                        {% for anoVal, count in dados.porAno %}
+                            <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                                <td class="py-2 px-3 font-mono font-bold text-slate-800 dark:text-slate-200">{{ anoVal }}</td>
+                                <td class="py-2 px-3 text-right font-mono font-black text-amber-600 dark:text-amber-400">{{ count }} exames</td>
+                                <td class="py-2 px-3 text-right font-mono text-slate-500">
+                                    {{ dados.totalProcedimentos > 0 ? ((count / dados.totalProcedimentos) * 100)|number_format(1, ',', '.') : 0 }}%
+                                </td>
+                            </tr>
+                        {% else %}
+                            <tr><td colspan="3" class="py-4 text-center text-slate-400">Nenhum dado anual.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ranking de Procedimentos e Especialidades -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div class="bg-white/80 dark:bg-slate-900/80 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
             <h3 class="text-base font-bold text-slate-900 dark:text-white mb-4">Procedimentos & Exames Mais Frequentes</h3>
-            <div class="space-y-3 max-h-60 overflow-y-auto pr-2">
+            <div class="space-y-2.5 max-h-60 overflow-y-auto pr-2">
                 {% for proc, count in dados.porProcedimento %}
                     <div class="flex items-center justify-between p-2.5 bg-slate-50 dark:bg-slate-950/60 rounded-xl border border-slate-200/60 dark:border-slate-800">
                         <span class="text-xs font-bold text-slate-800 dark:text-slate-200">{{ proc }}</span>
                         <span class="text-xs font-mono font-black text-cyan-600 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-950 border border-cyan-200 dark:border-cyan-800 px-2 py-0.5 rounded-lg">{{ count }} exames</span>
                     </div>
                 {% else %}
-                    <p class="text-xs text-slate-400">Nenhum registro encontrado no período.</p>
+                    <p class="text-xs text-slate-400">Nenhum registro no período.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="bg-white/80 dark:bg-slate-900/80 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+            <h3 class="text-base font-bold text-slate-900 dark:text-white mb-4">Atendimentos por Especialidade</h3>
+            <div class="space-y-2.5 max-h-60 overflow-y-auto pr-2">
+                {% for esp, count in dados.porEspecialidade %}
+                    <div class="flex items-center justify-between p-2.5 bg-slate-50 dark:bg-slate-950/60 rounded-xl border border-slate-200/60 dark:border-slate-800">
+                        <span class="text-xs font-bold text-slate-800 dark:text-slate-200">{{ esp }}</span>
+                        <span class="text-xs font-mono font-black text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950 border border-indigo-200 dark:border-indigo-800 px-2 py-0.5 rounded-lg">{{ count }} consultas</span>
+                    </div>
+                {% else %}
+                    <p class="text-xs text-slate-400">Nenhum registro no período.</p>
                 {% endfor %}
             </div>
         </div>
     </div>
 
-    <!-- Tabela Consolidada de Agendamentos no Período -->
-    <div class="bg-white/80 dark:bg-slate-900/80 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-        <div class="flex items-center justify-between mb-4">
-            <h3 class="text-base font-bold text-slate-900 dark:text-white">Registros Analíticos do Período</h3>
-            <span class="text-xs font-semibold text-slate-500">{{ dados.agendamentos|length }} registros listados</span>
+    <!-- Registros Analíticos do Período (Paginados de 100 em 100) -->
+    <div class="bg-white/80 dark:bg-slate-900/80 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+                <h3 class="text-base font-bold text-slate-900 dark:text-white">Registros Analíticos do Período</h3>
+                <p class="text-xs text-slate-500">Lista completa com paginação de 100 em 100 registros por página</p>
+            </div>
+            <span class="text-xs font-semibold text-slate-500">Total de {{ dados.totalItems }} registros</span>
         </div>
 
         <div class="overflow-x-auto">
@@ -186,7 +337,7 @@
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
-                    {% for ag in dados.agendamentos %}
+                    {% for ag in dados.agendamentosPaginados %}
                         <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/40">
                             <td class="py-2.5 px-2 font-mono text-slate-700 dark:text-slate-300">
                                 {{ ag.dataHoraAgendada ? ag.dataHoraAgendada|date('d/m/Y H:i') : '--' }}
@@ -224,6 +375,38 @@
                 </tbody>
             </table>
         </div>
+
+        <!-- Paginação de 100 em 100 -->
+        {% if dados.totalPages > 1 %}
+            <div class="p-4 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+                <span class="text-slate-500">
+                    Mostrando página <strong>{{ dados.page }}</strong> de <strong>{{ dados.totalPages }}</strong> (100 itens por página)
+                </span>
+
+                <div class="flex items-center gap-1">
+                    {% if dados.page > 1 %}
+                        <a href="{{ path('app_admin_relatorio_procedimentos', app.request.query.all|merge({'page': dados.page - 1})) }}" class="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-lg transition">
+                            &laquo; Anterior
+                        </a>
+                    {% endif %}
+
+                    {% set startP = max(1, dados.page - 2) %}
+                    {% set endP = min(dados.totalPages, dados.page + 2) %}
+
+                    {% for p in startP..endP %}
+                        <a href="{{ path('app_admin_relatorio_procedimentos', app.request.query.all|merge({'page': p})) }}" class="px-3 py-1.5 font-bold rounded-lg transition {% if p == dados.page %}bg-cyan-600 text-white shadow-sm{% else %}bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700{% endif %}">
+                            {{ p }}
+                        </a>
+                    {% endfor %}
+
+                    {% if dados.page < dados.totalPages %}
+                        <a href="{{ path('app_admin_relatorio_procedimentos', app.request.query.all|merge({'page': dados.page + 1})) }}" class="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-lg transition">
+                            Próximo &raquo;
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        {% endif %}
     </div>
 </div>
 
@@ -237,5 +420,86 @@
             container.classList.add('hidden');
         }
     }
+
+    function mostrarTabelaAgregada(aba) {
+        document.querySelectorAll('.tabela-agregada-painel').forEach(el => el.classList.add('hidden'));
+        document.getElementById('tabConceito' + aba.charAt(0).toUpperCase() + aba.slice(1)).classList.remove('hidden');
+
+        ['Dia', 'Mes', 'Semestre', 'Ano'].forEach(item => {
+            const btn = document.getElementById('btnTab' + item);
+            if (item.toLowerCase() === aba) {
+                btn.className = "px-3 py-1.5 rounded-lg transition bg-white dark:bg-slate-800 text-cyan-600 dark:text-cyan-400 shadow-sm";
+            } else {
+                btn.className = "px-3 py-1.5 rounded-lg transition text-slate-600 dark:text-slate-400 hover:text-slate-900";
+            }
+        });
+    }
+
+    // Inicialização dos Gráficos Chart.js
+    document.addEventListener('DOMContentLoaded', function() {
+        // 1. Gráfico de Evolução Temporal (Linha)
+        const ctxLinha = document.getElementById('graficoEvolucaoTemporal');
+        if (ctxLinha) {
+            const diasLabels = {{ dados.porDia|keys|json_encode|raw }};
+            const diasData = {{ dados.porDia|values|json_encode|raw }};
+
+            new Chart(ctxLinha, {
+                type: 'line',
+                data: {
+                    labels: diasLabels,
+                    datasets: [{
+                        label: 'Atendimentos Realizados',
+                        data: diasData,
+                        borderColor: '#0891b2',
+                        backgroundColor: 'rgba(8, 145, 178, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 3,
+                        pointHoverRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: { grid: { display: false } },
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+        }
+
+        // 2. Gráfico de Rosca (Financiamento)
+        const ctxRosca = document.getElementById('graficoFinanciamentoRosca');
+        if (ctxRosca) {
+            new Chart(ctxRosca, {
+                type: 'doughnut',
+                data: {
+                    labels: ['SUS', 'Filantrópico', 'Particular/Convênio'],
+                    datasets: [{
+                        data: [
+                            {{ dados.financiamento.sus }},
+                            {{ dados.financiamento.filantropico }},
+                            {{ dados.financiamento.convenio }}
+                        ],
+                        backgroundColor: ['#10b981', '#6366f1', '#0284c7'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    },
+                    cutout: '70%'
+                }
+            });
+        }
+    });
 </script>
 {% endblock %}

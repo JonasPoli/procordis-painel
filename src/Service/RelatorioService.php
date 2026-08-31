@@ -70,6 +70,8 @@ class RelatorioService
         $porDia = [];
         $porSemana = [];
         $porMes = [];
+        $porSemestre = [];
+        $porAno = [];
         $porProcedimento = [];
         $porEspecialidade = [];
         $porMedico = [];
@@ -90,10 +92,17 @@ class RelatorioService
             $chaveDia = $dt->format('Y-m-d');
             $chaveSemana = 'Semana ' . $dt->format('W/Y');
             $chaveMes = $dt->format('m/Y');
+            
+            $numMes = (int) $dt->format('m');
+            $semestreNum = $numMes <= 6 ? 1 : 2;
+            $chaveSemestre = $semestreNum . 'º Semestre/' . $dt->format('Y');
+            $chaveAno = $dt->format('Y');
 
             $porDia[$chaveDia] = ($porDia[$chaveDia] ?? 0) + 1;
             $porSemana[$chaveSemana] = ($porSemana[$chaveSemana] ?? 0) + 1;
             $porMes[$chaveMes] = ($porMes[$chaveMes] ?? 0) + 1;
+            $porSemestre[$chaveSemestre] = ($porSemestre[$chaveSemestre] ?? 0) + 1;
+            $porAno[$chaveAno] = ($porAno[$chaveAno] ?? 0) + 1;
 
             $nomeProc = $ag->getProcedimentoNome() ?? 'Consulta / Procedimento Geral';
             $porProcedimento[$nomeProc] = ($porProcedimento[$nomeProc] ?? 0) + 1;
@@ -113,6 +122,8 @@ class RelatorioService
         // Ordenar dados por dia
         ksort($porDia);
         ksort($porMes);
+        ksort($porSemestre);
+        ksort($porAno);
 
         // Média por dia com atendimento
         $diasComAtendimento = count($porDia);
@@ -138,6 +149,8 @@ class RelatorioService
             'porDia' => $porDia,
             'porSemana' => $porSemana,
             'porMes' => $porMes,
+            'porSemestre' => $porSemestre,
+            'porAno' => $porAno,
             'porProcedimento' => $porProcedimento,
             'porEspecialidade' => $porEspecialidade,
             'porMedico' => $porMedico,

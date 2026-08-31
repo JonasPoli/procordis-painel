@@ -12,6 +12,7 @@
         {% block stylesheets %}
             <link rel="stylesheet" href="{{ asset('styles/app.css') }}">
         {% endblock %}
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
         <script>
             function applyTheme() {
                 const theme = localStorage.theme || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');

@@ -24,7 +24,22 @@ class RelatorioAdminController extends AbstractController
         $ano = $request->query->get('ano') ? (int) $request->query->get('ano') : (int) date('Y');
         $mes = $request->query->get('mes') ? (int) $request->query->get('mes') : (int) date('m');
 
+        $page = max(1, (int) $request->query->get('page', 1));
+        $limit = 100;
+
         $dados = $this->relatorioService->obterRelatorioProcedimentos($tipoPeriodo, $ano, $mes);
+
+        $todosAgendamentos = $dados['agendamentos'];
+        $totalItems = count($todosAgendamentos);
+        $totalPages = max(1, (int) ceil($totalItems / $limit));
+        $offset = ($page - 1) * $limit;
+
+        $agendamentosPaginados = array_slice($todosAgendamentos, $offset, $limit);
+        $dados['agendamentosPaginados'] = $agendamentosPaginados;
+        $dados['page'] = $page;
+        $dados['totalPages'] = $totalPages;
+        $dados['totalItems'] = $totalItems;
+        $dados['limit'] = $limit;
 
         return $this->render('admin/relatorio/procedimentos.html.twig', [
             'dados' => $dados,
@@ -42,10 +57,62 @@ class RelatorioAdminController extends AbstractController
 
         $response = new StreamedResponse(function () use ($dados) {
             $handle = fopen('php://output', 'w+');
-            // UTF-8 BOM para Excel abrir acentos corretamente
+            // UTF-8 BOM para Excel abrir acentos e caracteres especiais corretamente
             fputs($handle, "\xEF\xBB\xBF");
 
-            fputcsv($handle, ['ID', 'Data/Hora', 'Paciente', 'Procedimento / Exame', 'Tipo Atendimento', 'Convênio', 'Médico', 'Especialidade', 'Status'], ';');
+            // 1. Resumo Geral de Atendimentos
+            fputcsv($handle, ['=== RESUMO DE ATENDIMENTOS E FINANCIAMENTO ==='], ';');
+            fputcsv($handle, ['Métrica', 'Quantidade', 'Percentual'], ';');
+            fputcsv($handle, ['Total de Procedimentos / Exames', $dados['totalProcedimentos'], '100%'], ';');
+            fputcsv($handle, ['Atendimentos SUS', $dados['financiamento']['sus'], $dados['financiamento']['pctSus'] . '%'], ';');
+            fputcsv($handle, ['Atendimentos Filantrópicos', $dados['financiamento']['filantropico'], $dados['financiamento']['pctFilantropico'] . '%'], ';');
+            fputcsv($handle, ['Particular & Convênios', $dados['financiamento']['convenio'], $dados['financiamento']['pctConvenio'] . '%'], ';');
+            fputcsv($handle, ['Média Diária de Atendimentos', $dados['mediaDia'], '-'], ';');
+            fputcsv($handle, [], ';');
+
+            // 2. Evolução por Dia
+            fputcsv($handle, ['=== EVOLUÇÃO TEMPORAL POR DIA ==='], ';');
+            fputcsv($handle, ['Data', 'Total de Atendimentos'], ';');
+            foreach ($dados['porDia'] as $dia => $qtd) {
+                fputcsv($handle, [$dia, $qtd], ';');
+            }
+            fputcsv($handle, [], ';');
+
+            // 3. Evolução por Mês
+            fputcsv($handle, ['=== EVOLUÇÃO TEMPORAL POR MÊS ==='], ';');
+            fputcsv($handle, ['Mês/Ano', 'Total de Atendimentos'], ';');
+            foreach ($dados['porMes'] as $mesAno => $qtd) {
+                fputcsv($handle, [$mesAno, $qtd], ';');
+            }
+            fputcsv($handle, [], ';');
+
+            // 4. Evolução por Semestre
+            fputcsv($handle, ['=== EVOLUÇÃO TEMPORAL POR SEMESTRE ==='], ';');
+            fputcsv($handle, ['Semestre/Ano', 'Total de Atendimentos'], ';');
+            foreach ($dados['porSemestre'] as $semestre => $qtd) {
+                fputcsv($handle, [$semestre, $qtd], ';');
+            }
+            fputcsv($handle, [], ';');
+
+            // 5. Evolução por Ano
+            fputcsv($handle, ['=== EVOLUÇÃO TEMPORAL POR ANO ==='], ';');
+            fputcsv($handle, ['Ano', 'Total de Atendimentos'], ';');
+            foreach ($dados['porAno'] as $anoVal => $qtd) {
+                fputcsv($handle, [$anoVal, $qtd], ';');
+            }
+            fputcsv($handle, [], ';');
+
+            // 6. Ranking por Procedimento / Exame
+            fputcsv($handle, ['=== VOLUME POR PROCEDIMENTO E EXAME ==='], ';');
+            fputcsv($handle, ['Procedimento / Exame', 'Total de Atendimentos'], ';');
+            foreach ($dados['porProcedimento'] as $proc => $qtd) {
+                fputcsv($handle, [$proc, $qtd], ';');
+            }
+            fputcsv($handle, [], ';');
+
+            // 7. Registros Analíticos Completos
+            fputcsv($handle, ['=== REGISTROS ANALÍTICOS DETALHADOS ==='], ';');
+            fputcsv($handle, ['ID Agendamento', 'Data/Hora', 'Paciente', 'Procedimento / Exame', 'Tipo Atendimento', 'Convênio/Plano', 'Médico Responsável', 'Especialidade', 'Status Atendimento'], ';');
 
             foreach ($dados['agendamentos'] as $ag) {
                 fputcsv($handle, [
