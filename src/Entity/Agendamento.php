@@ -61,18 +61,8 @@ class Agendamento
     #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
     private ?\DateTimeInterface $horarioFimConsulta = null;
 
-    #[ORM\OneToMany(mappedBy: 'agendamento', targetEntity: AtendimentoEtapaHistorico::class, cascade: ['persist', 'remove'])]
-    private mixed $historicoEtapas;
-
-    public function __construct()
-    {
-        $this->historicoEtapas = new \Doctrine\Common\Collections\ArrayCollection();
-    }
-
-    public function getHistoricoEtapas(): mixed
-    {
-        return $this->historicoEtapas;
-    }
+    #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
+    private ?\DateTimeInterface $horarioSaida = null;
 
     /*
      Status possíveis:
