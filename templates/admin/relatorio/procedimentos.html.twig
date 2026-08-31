@@ -135,13 +135,27 @@
                 <p class="text-xs text-slate-500">Selecione abaixo quais exames deseja ligar ou desligar na visualização gráfica em linha ao longo dos meses</p>
             </div>
 
-            <div class="flex items-center gap-2">
-                <button type="button" onclick="marcarTodosProcedimentos(true)" class="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 font-bold rounded-lg text-[11px] transition">
-                    Ligar Todos
-                </button>
-                <button type="button" onclick="marcarTodosProcedimentos(false)" class="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 font-bold rounded-lg text-[11px] transition">
-                    Desligar Todos
-                </button>
+            <div class="flex items-center gap-3">
+                <div class="flex items-center gap-1 bg-slate-100 dark:bg-slate-950 p-1 rounded-xl text-xs font-bold">
+                    <span class="text-[10px] text-slate-400 px-1 uppercase">Agrupar gráfico:</span>
+                    <select id="seletorAgrupamentoComparativo" onchange="atualizarAgrupamentoGraficoComparativo(this.value)" class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 text-xs text-cyan-600 dark:text-cyan-400 font-bold focus:outline-none">
+                        <option value="dia">Por Dia</option>
+                        <option value="mes" selected>Por Mês</option>
+                        <option value="trimestre">Por Trimestre</option>
+                        <option value="quadrimestre">Por Quadrimestre</option>
+                        <option value="semestre">Por Semestre</option>
+                        <option value="ano">Por Ano</option>
+                    </select>
+                </div>
+
+                <div class="flex items-center gap-1">
+                    <button type="button" onclick="marcarTodosProcedimentos(true)" class="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 font-bold rounded-lg text-[11px] transition">
+                        Ligar Todos
+                    </button>
+                    <button type="button" onclick="marcarTodosProcedimentos(false)" class="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 font-bold rounded-lg text-[11px] transition">
+                        Desligar Todos
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -283,7 +297,7 @@
                         {% for dia, count in dados.porDia %}
                             <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40">
                                 <td class="py-2 px-3 font-mono font-bold text-slate-800 dark:text-slate-200">{{ dia|date('d/m/Y') }}</td>
-                                <td class="py-2 px-3 text-right font-mono font-black text-cyan-600 dark:text-cyan-400">{{ count }} exames</td>
+                                <td class="py-2 px-3 text-right font-mono font-black text-cyan-600 dark:text-cyan-400">{{ count }} procedimentos / exames</td>
                                 <td class="py-2 px-3 text-right font-mono text-slate-500">
                                     {{ dados.totalProcedimentos > 0 ? ((count / dados.totalProcedimentos) * 100)|number_format(1, ',', '.') : 0 }}%
                                 </td>
@@ -311,7 +325,7 @@
                         {% for mesAno, count in dados.porMes %}
                             <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40">
                                 <td class="py-2 px-3 font-mono font-bold text-slate-800 dark:text-slate-200">{{ mesAno }}</td>
-                                <td class="py-2 px-3 text-right font-mono font-black text-indigo-600 dark:text-indigo-400">{{ count }} exames</td>
+                                <td class="py-2 px-3 text-right font-mono font-black text-indigo-600 dark:text-indigo-400">{{ count }} procedimentos / exames</td>
                                 <td class="py-2 px-3 text-right font-mono text-slate-500">
                                     {{ dados.totalProcedimentos > 0 ? ((count / dados.totalProcedimentos) * 100)|number_format(1, ',', '.') : 0 }}%
                                 </td>
@@ -339,7 +353,7 @@
                         {% for tri, count in dados.porTrimestre %}
                             <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40">
                                 <td class="py-2 px-3 font-mono font-bold text-slate-800 dark:text-slate-200">{{ tri }}</td>
-                                <td class="py-2 px-3 text-right font-mono font-black text-sky-600 dark:text-sky-400">{{ count }} exames</td>
+                                <td class="py-2 px-3 text-right font-mono font-black text-sky-600 dark:text-sky-400">{{ count }} procedimentos / exames</td>
                                 <td class="py-2 px-3 text-right font-mono text-slate-500">
                                     {{ dados.totalProcedimentos > 0 ? ((count / dados.totalProcedimentos) * 100)|number_format(1, ',', '.') : 0 }}%
                                 </td>
@@ -367,7 +381,7 @@
                         {% for quadri, count in dados.porQuadrimestre %}
                             <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40">
                                 <td class="py-2 px-3 font-mono font-bold text-slate-800 dark:text-slate-200">{{ quadri }}</td>
-                                <td class="py-2 px-3 text-right font-mono font-black text-purple-600 dark:text-purple-400">{{ count }} exames</td>
+                                <td class="py-2 px-3 text-right font-mono font-black text-purple-600 dark:text-purple-400">{{ count }} procedimentos / exames</td>
                                 <td class="py-2 px-3 text-right font-mono text-slate-500">
                                     {{ dados.totalProcedimentos > 0 ? ((count / dados.totalProcedimentos) * 100)|number_format(1, ',', '.') : 0 }}%
                                 </td>
@@ -395,7 +409,7 @@
                         {% for sem, count in dados.porSemestre %}
                             <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40">
                                 <td class="py-2 px-3 font-mono font-bold text-slate-800 dark:text-slate-200">{{ sem }}</td>
-                                <td class="py-2 px-3 text-right font-mono font-black text-emerald-600 dark:text-emerald-400">{{ count }} exames</td>
+                                <td class="py-2 px-3 text-right font-mono font-black text-emerald-600 dark:text-emerald-400">{{ count }} procedimentos / exames</td>
                                 <td class="py-2 px-3 text-right font-mono text-slate-500">
                                     {{ dados.totalProcedimentos > 0 ? ((count / dados.totalProcedimentos) * 100)|number_format(1, ',', '.') : 0 }}%
                                 </td>
@@ -423,7 +437,7 @@
                         {% for anoVal, count in dados.porAno %}
                             <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40">
                                 <td class="py-2 px-3 font-mono font-bold text-slate-800 dark:text-slate-200">{{ anoVal }}</td>
-                                <td class="py-2 px-3 text-right font-mono font-black text-amber-600 dark:text-amber-400">{{ count }} exames</td>
+                                <td class="py-2 px-3 text-right font-mono font-black text-amber-600 dark:text-amber-400">{{ count }} procedimentos / exames</td>
                                 <td class="py-2 px-3 text-right font-mono text-slate-500">
                                     {{ dados.totalProcedimentos > 0 ? ((count / dados.totalProcedimentos) * 100)|number_format(1, ',', '.') : 0 }}%
                                 </td>
@@ -652,6 +666,21 @@
             btnEl.classList.add('opacity-40', 'line-through');
             btnEl.classList.remove('active-chip');
         }
+    }
+
+    function atualizarAgrupamentoGraficoComparativo(modalidade) {
+        if (!meuGraficoComparativo) return;
+        const config = mapasAgrupamentos[modalidade] || mapasAgrupamentos.mes;
+        meuGraficoComparativo.data.labels = config.labels;
+
+        rawDatasetsProcedimentos.forEach((ds, idx) => {
+            if (meuGraficoComparativo.data.datasets[idx]) {
+                const arrVal = ds.series && ds.series[modalidade] ? ds.series[modalidade] : ds.data;
+                meuGraficoComparativo.data.datasets[idx].data = arrVal;
+            }
+        });
+
+        meuGraficoComparativo.update();
     }
 
     function marcarTodosProcedimentos(visivel) {

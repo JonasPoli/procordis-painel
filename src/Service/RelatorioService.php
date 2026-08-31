@@ -151,10 +151,22 @@ class RelatorioService
             $nomeProc = $item['procedimentoNome'] ?? 'Consulta / Procedimento Geral';
             $porProcedimento[$nomeProc] = ($porProcedimento[$nomeProc] ?? 0) + 1;
 
-            if (!isset($porProcedimentoMes[$nomeProc])) {
-                $porProcedimentoMes[$nomeProc] = [];
+            if (!isset($porProcedimentoIntervalo[$nomeProc])) {
+                $porProcedimentoIntervalo[$nomeProc] = [
+                    'dia' => [],
+                    'mes' => [],
+                    'trimestre' => [],
+                    'quadrimestre' => [],
+                    'semestre' => [],
+                    'ano' => [],
+                ];
             }
-            $porProcedimentoMes[$nomeProc][$chaveMes] = ($porProcedimentoMes[$nomeProc][$chaveMes] ?? 0) + 1;
+            $porProcedimentoIntervalo[$nomeProc]['dia'][$chaveDia] = ($porProcedimentoIntervalo[$nomeProc]['dia'][$chaveDia] ?? 0) + 1;
+            $porProcedimentoIntervalo[$nomeProc]['mes'][$chaveMes] = ($porProcedimentoIntervalo[$nomeProc]['mes'][$chaveMes] ?? 0) + 1;
+            $porProcedimentoIntervalo[$nomeProc]['trimestre'][$chaveTrimestre] = ($porProcedimentoIntervalo[$nomeProc]['trimestre'][$chaveTrimestre] ?? 0) + 1;
+            $porProcedimentoIntervalo[$nomeProc]['quadrimestre'][$chaveQuadrimestre] = ($porProcedimentoIntervalo[$nomeProc]['quadrimestre'][$chaveQuadrimestre] ?? 0) + 1;
+            $porProcedimentoIntervalo[$nomeProc]['semestre'][$chaveSemestre] = ($porProcedimentoIntervalo[$nomeProc]['semestre'][$chaveSemestre] ?? 0) + 1;
+            $porProcedimentoIntervalo[$nomeProc]['ano'][$chaveAno] = ($porProcedimentoIntervalo[$nomeProc]['ano'][$chaveAno] ?? 0) + 1;
 
             $espNome = $item['especialidadeNome'] ?? 'Sem Especialidade';
             $porEspecialidade[$espNome] = ($porEspecialidade[$espNome] ?? 0) + 1;
@@ -191,8 +203,16 @@ class RelatorioService
         $diasComAtendimento = count($porDia);
         $mediaDia = $diasComAtendimento > 0 ? round($totalProcedimentos / $diasComAtendimento, 1) : 0;
 
-        // Preparar datasets por procedimento alinhados aos meses
-        $mesesUnicos = array_keys($porMes);
+        // Preparar datasets por procedimento alinhados a todas as modalidades de tempo
+        $chavesTemporais = [
+            'dia' => array_keys($porDia),
+            'mes' => array_keys($porMes),
+            'trimestre' => array_keys($porTrimestre),
+            'quadrimestre' => array_keys($porQuadrimestre),
+            'semestre' => array_keys($porSemestre),
+            'ano' => array_keys($porAno),
+        ];
+
         $datasetsProcedimentos = [];
         $paletaCores = [
             '#0891b2', '#059669', '#6366f1', '#d97706', '#dc2626', 
@@ -202,16 +222,23 @@ class RelatorioService
         $i = 0;
 
         foreach ($porProcedimento as $procName => $totalCount) {
-            $serieData = [];
-            foreach ($mesesUnicos as $m) {
-                $serieData[] = $porProcedimentoMes[$procName][$m] ?? 0;
-            }
             $cor = $paletaCores[$i % count($paletaCores)];
+            
+            $seriesPorModalidade = [];
+            foreach ($chavesTemporais as $mod => $keys) {
+                $arrVals = [];
+                foreach ($keys as $k) {
+                    $arrVals[] = $porProcedimentoIntervalo[$procName][$mod][$k] ?? 0;
+                }
+                $seriesPorModalidade[$mod] = $arrVals;
+            }
+
             $datasetsProcedimentos[] = [
                 'nome' => $procName,
                 'total' => $totalCount,
                 'cor' => $cor,
-                'data' => $serieData,
+                'data' => $seriesPorModalidade['mes'], // retrocompatibilidade
+                'series' => $seriesPorModalidade,
             ];
             $i++;
         }
