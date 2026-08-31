@@ -53,7 +53,8 @@ class RelatorioAdminController extends AbstractController
     #[Route('/procedimentos/exportar-csv', name: 'procedimentos_csv', methods: ['GET'])]
     public function exportarProcedimentosCsv(Request $request): StreamedResponse
     {
-        $tipoPeriodo = $request->query->get('tipoPeriodo', 'ultimos_6_meses');
+        // Padrão 'sem_filtro' para extrair TODO o histórico de atendimentos realizados desde a fundação
+        $tipoPeriodo = $request->query->get('tipoPeriodo', 'sem_filtro');
         $ano = $request->query->get('ano') ? (int) $request->query->get('ano') : (int) date('Y');
         $mes = $request->query->get('mes') ? (int) $request->query->get('mes') : (int) date('m');
         $dataInicioCustom = $request->query->get('dataInicio');

@@ -15,10 +15,10 @@
         </div>
 
         <div class="flex flex-wrap items-center gap-2">
-            <a href="{{ path('app_admin_relatorio_procedimentos_csv', app.request.query.all) }}" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center gap-2 shadow-sm transition">
-                <sl-icon name="file-earmark-spreadsheet"></sl-icon> 1. Baixar Dados em CSV (Rápido)
+            <a href="{{ path('app_admin_relatorio_procedimentos_csv', {'tipoPeriodo': 'sem_filtro'}) }}" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center gap-2 shadow-sm transition">
+                <sl-icon name="file-earmark-spreadsheet"></sl-icon> 1. Baixar Base Completa em CSV (Todos os Atendimentos)
             </a>
-            <a href="{{ path('app_admin_relatorio_procedimentos_excel', app.request.query.all) }}" class="px-3.5 py-2 bg-green-700 hover:bg-green-800 text-white font-bold rounded-xl text-xs flex items-center gap-2 shadow-sm transition">
+            <a href="{{ path('app_admin_relatorio_procedimentos_excel') }}" class="px-3.5 py-2 bg-green-700 hover:bg-green-800 text-white font-bold rounded-xl text-xs flex items-center gap-2 shadow-sm transition">
                 <sl-icon name="file-earmark-excel"></sl-icon> 2. Baixar Modelo Excel (8 Abas com Fórmulas)
             </a>
         </div>
