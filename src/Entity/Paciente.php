@@ -33,7 +33,7 @@ class Paciente
     #[ORM\Column(length: 20, nullable: true)]
     private ?string $sexo = null;
 
-    #[ORM\Column(length: 100, nullable: true)]
+    #[ORM\Column(length: 255, nullable: true)]
     private ?string $celular = null;
 
     public function getId(): ?int

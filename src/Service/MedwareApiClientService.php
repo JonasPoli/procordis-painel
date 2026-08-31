@@ -225,13 +225,13 @@ class MedwareApiClientService
             }
 
             if (!empty($cpfPac)) {
-                $paciente->setCpf($cpfPac);
+                $paciente->setCpf(mb_substr($cpfPac, 0, 50));
             }
             if (!empty($pacienteData['telefone'])) {
-                $paciente->setCelular(trim($pacienteData['telefone']));
+                $paciente->setCelular(mb_substr(trim($pacienteData['telefone']), 0, 250));
             }
             if (!empty($pacienteData['sexo'])) {
-                $paciente->setSexo(trim($pacienteData['sexo']));
+                $paciente->setSexo(mb_substr(trim($pacienteData['sexo']), 0, 20));
             }
             if (!empty($pacienteData['dataNascimento'])) {
                 $dtNasc = $this->parseDateTime($pacienteData['dataNascimento']);
