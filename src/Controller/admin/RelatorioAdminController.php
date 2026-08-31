@@ -121,16 +121,21 @@ class RelatorioAdminController extends AbstractController
             fputcsv($handle, ['ID Agendamento', 'Data/Hora', 'Paciente', 'Procedimento / Exame', 'Tipo Atendimento', 'Convênio/Plano', 'Médico Responsável', 'Especialidade', 'Status Atendimento'], ';');
 
             foreach ($dados['agendamentos'] as $ag) {
+                $dtAg = $ag['dataHoraAgendada'] ?? $ag['createdAt'];
+                if (!$dtAg instanceof \DateTimeInterface) {
+                    $dtAg = new \DateTime($dtAg ?? 'now');
+                }
+
                 fputcsv($handle, [
-                    $ag->getId(),
-                    $ag->getDataHoraAgendada() ? $ag->getDataHoraAgendada()->format('d/m/Y H:i') : '',
-                    $ag->getPaciente() ? $ag->getPaciente()->getNomeCompleto() : 'Paciente',
-                    $ag->getProcedimentoNome() ?? 'Procedimento Geral',
-                    strtoupper($ag->getTipoAtendimento() ?? 'SUS'),
-                    $ag->getConvenioNome() ?? 'SUS',
-                    $ag->getMedico() ? $ag->getMedico()->getNome() : 'Não informado',
-                    $ag->getEspecialidade() ? $ag->getEspecialidade()->getNome() : 'Geral',
-                    strtoupper($ag->getStatus())
+                    $ag['id'],
+                    $dtAg->format('d/m/Y H:i'),
+                    $ag['pacienteNome'] ?? 'Paciente',
+                    $ag['procedimentoNome'] ?? 'Procedimento Geral',
+                    strtoupper($ag['tipoAtendimento'] ?? 'SUS'),
+                    $ag['convenioNome'] ?? 'SUS',
+                    $ag['medicoNome'] ?? 'Não informado',
+                    $ag['especialidadeNome'] ?? 'Geral',
+                    strtoupper($ag['status'] ?? 'AGENDADO')
                 ], ';');
             }
 

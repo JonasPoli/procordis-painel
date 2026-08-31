@@ -357,7 +357,7 @@
                                 {{ ag.dataHoraAgendada ? ag.dataHoraAgendada|date('d/m/Y H:i') : '--' }}
                             </td>
                             <td class="py-2.5 px-2 font-bold text-slate-900 dark:text-white">
-                                {{ ag.paciente ? ag.paciente.nomeCompleto : 'Paciente' }}
+                                {{ ag.pacienteNome|default('Paciente') }}
                             </td>
                             <td class="py-2.5 px-2 text-cyan-600 dark:text-cyan-400 font-medium">
                                 {{ ag.procedimentoNome ?? 'Procedimento Geral' }}
@@ -373,7 +373,7 @@
                                 {% endif %}
                             </td>
                             <td class="py-2.5 px-2 text-slate-700 dark:text-slate-300">
-                                {{ ag.medico ? ag.medico.nome : 'Não informado' }}
+                                {{ ag.medicoNome|default('Não informado') }}
                             </td>
                             <td class="py-2.5 px-2">
                                 <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
