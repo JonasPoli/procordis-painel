@@ -1,0 +1,98 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}Backup & Restauração do Sistema{% endblock %}
+
+{% block body %}
+<div class="space-y-6">
+    <!-- Cabeçalho -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white/80 dark:bg-slate-900/80 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm backdrop-blur">
+        <div>
+            <div class="flex items-center gap-2">
+                <sl-icon name="database-fill-down" class="text-cyan-500 text-2xl"></sl-icon>
+                <h1 class="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Central de Backup & Restauração</h1>
+            </div>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Gere cópias de segurança integrais do banco de dados (logins ADM, pacientes, médicos, consultas, anamneses e configurações) ou restaure a partir de um arquivo.</p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-3">
+            <a href="{{ path('app_admin_backup_download') }}" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center gap-2 shadow-md transition">
+                <sl-icon name="download"></sl-icon> Gerar & Baixar Backup Completo (.bak)
+            </a>
+        </div>
+    </div>
+
+    <!-- Seção de Importação / Restauração -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Card 1: Gerar Backup -->
+        <div class="bg-white/80 dark:bg-slate-900/80 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+            <div class="flex items-center gap-3">
+                <div class="h-10 w-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
+                    <sl-icon name="cloud-arrow-down" class="text-xl"></sl-icon>
+                </div>
+                <div>
+                    <h3 class="text-base font-bold text-slate-900 dark:text-white">Exportação Completa (Snapshot)</h3>
+                    <p class="text-xs text-slate-500">Empacota 100% das tabelas em formato comprimido seguro `.procordis.bak` com validação SHA-256.</p>
+                </div>
+            </div>
+
+            <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 text-xs space-y-2">
+                <p class="font-bold text-slate-700 dark:text-slate-300">Conteúdo do Pacote de Backup:</p>
+                <ul class="list-disc list-inside text-slate-500 space-y-1">
+                    <li>Logins Administrativos & Senhas Criptografadas (`User`)</li>
+                    <li>Configurações de Integração API Medware</li>
+                    <li>Pacientes, Médicos, Unidades & Especialidades</li>
+                    <li>Agendamentos, Procedimentos, Financiamento SUS/Convênio</li>
+                    <li>Fichas de Anamnese de Enfermagem & Sinais Vitais</li>
+                    <li>Senhas de Atendimento & Telão de Chamadas (TV)</li>
+                </ul>
+            </div>
+
+            <a href="{{ path('app_admin_backup_download') }}" class="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition shadow flex items-center justify-center gap-2">
+                <sl-icon name="download"></sl-icon> Baixar Snapshot do Sistema
+            </a>
+        </div>
+
+        <!-- Card 2: Restaurar Backup -->
+        <div class="bg-white/80 dark:bg-slate-900/80 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+            <div class="flex items-center gap-3">
+                <div class="h-10 w-10 rounded-xl bg-cyan-500/10 text-cyan-500 flex items-center justify-center">
+                    <sl-icon name="cloud-arrow-up" class="text-xl"></sl-icon>
+                </div>
+                <div>
+                    <h3 class="text-base font-bold text-slate-900 dark:text-white">Restauração / Importação</h3>
+                    <p class="text-xs text-slate-500">Envie um arquivo `.procordis.bak` para restaurar o sistema integralmente.</p>
+                </div>
+            </div>
+
+            <form method="POST" action="{{ path('app_admin_backup_restaurar') }}" enctype="multipart/form-data" class="space-y-4" onsubmit="return confirmarRestauracao()">
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Selecione o Arquivo de Backup (.bak)</label>
+                    <input type="file" name="backupFile" accept=".bak,.json,.zip" required class="w-full p-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl text-xs">
+                </div>
+
+                <div class="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-700 dark:text-amber-300 space-y-1">
+                    <p class="font-bold">Modo de Substituição do Banco:</p>
+                    <label class="flex items-center gap-2 mt-1">
+                        <input type="radio" name="modoLimpo" value="1" checked class="text-cyan-600 focus:ring-cyan-500">
+                        <span><strong>Restauração Limpa (Recomendado)</strong>: Substituição total e idêntica ao backup</span>
+                    </label>
+                    <label class="flex items-center gap-2">
+                        <input type="radio" name="modoLimpo" value="0" class="text-cyan-600 focus:ring-cyan-500">
+                        <span><strong>Restauração Incremental (Merge)</strong>: Mantém dados atuais e mescla registros</span>
+                    </label>
+                </div>
+
+                <button type="submit" class="w-full py-2.5 px-4 bg-cyan-600 hover:bg-cyan-700 text-white font-bold text-xs rounded-xl transition shadow flex items-center justify-center gap-2">
+                    <sl-icon name="upload"></sl-icon> Restaurar Sistema Agora
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function confirmarRestauracao() {
+        return confirm("ATENÇÃO: A restauração substituirá os dados atuais pelo conteúdo do arquivo de backup.\n\nDeseja realmente prosseguir?");
+    }
+</script>
+{% endblock %}

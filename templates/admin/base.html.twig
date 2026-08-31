@@ -104,6 +104,12 @@
                                 Central de Sincronismo
                             </a>
 
+                            {% set isBackup = app.current_route starts with 'app_admin_backup_' %}
+                            <a class='py-2 px-4 mx-4 mb-2 block rounded hover:shadow hover:from-white hover:to-white/60 hover:bg-gradient-to-r dark:hover:from-white/5 dark:hover:via-white/10 dark:hover:to-white/5 {% if isBackup %}shadow bg-gradient-to-r from-cyan-500/20 to-sky-500/20 font-bold text-cyan-400 border border-cyan-500/30{% endif %}' href="{{ path('app_admin_backup_index') }}">
+                                <sl-icon name="database-fill-down" class="mr-2 align-text-top text-emerald-400"></sl-icon>
+                                Backup & Restauração
+                            </a>
+
                             {% set isRelatoriosProc = app.current_route == 'app_admin_relatorio_procedimentos' %}
                             <a class='py-2 px-4 mx-4 mb-2 block rounded hover:shadow hover:from-white hover:to-white/60 hover:bg-gradient-to-r dark:hover:from-white/5 dark:hover:via-white/10 dark:hover:to-white/5 {% if isRelatoriosProc %}shadow bg-gradient-to-r from-cyan-500/20 to-sky-500/20 font-bold text-cyan-400 border border-cyan-500/30{% endif %}' href="{{ path('app_admin_relatorio_procedimentos') }}">
                                 <sl-icon name="bar-chart" class="mr-2 align-text-top text-cyan-400"></sl-icon>
