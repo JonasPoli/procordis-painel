@@ -449,12 +449,17 @@ class MedwareApiClientService
         $config->setUltimoSyncEm(new \DateTime());
         $this->em->flush();
 
-        return [
+        $res = [
             'total' => count($items),
             'novos' => $novos,
             'atualizados' => $atualizados,
             'timestamp' => (new \DateTime())->format('Y-m-d H:i:s')
         ];
+
+        // Liberar objetos hidratados do Doctrine UnitOfWork para evitar acúmulo de RAM em syncs históricos volumosos
+        $this->em->clear();
+
+        return $res;
     }
 
     /**
