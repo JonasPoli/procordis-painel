@@ -30,7 +30,7 @@
                 </span>
                 <h1 class="text-2xl font-black tracking-tight text-slate-900 dark:text-white">Relatório Estratégico de Procedimentos & Atendimentos</h1>
             </div>
-            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Dashboard analítico completo com volumetria, produtividade médica, perfil demográfico, convênios e eficiência operacional.</p>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Dashboard analítico completo com volumetria, pessoas atendidas, tempos de espera e execução, produtividade médica, perfil demográfico e convênios.</p>
         </div>
 
         <div class="flex flex-wrap items-center gap-2">
@@ -107,8 +107,8 @@
         </form>
     </div>
 
-    <!-- 1. Grid de Indicadores Estratégicos (8 Cards de KPIs Macro) -->
-    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
+    <!-- 1. Grid de Indicadores Estratégicos (9 Cards de KPIs Macro) -->
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-9 gap-3">
         <!-- Total de Procedimentos -->
         <div class="bg-white/80 dark:bg-slate-900/80 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
             <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Atendimentos</span>
@@ -116,11 +116,18 @@
             <span class="text-[10px] text-cyan-600 font-semibold truncate block mt-0.5">{{ dados.rotuloPeriodo }}</span>
         </div>
 
+        <!-- Pessoas Únicas Atendidas -->
+        <div class="bg-white/80 dark:bg-slate-900/80 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Pessoas Atendidas</span>
+            <p class="text-xl font-black text-emerald-600 dark:text-emerald-400 mt-1">{{ dados.totalPessoasUnicas }}</p>
+            <span class="text-[10px] font-bold text-emerald-500 bg-emerald-500/10 px-1.5 py-0.5 rounded-md inline-block mt-0.5">{{ dados.mediaProcedimentosPorPessoa }} exames/pessoa</span>
+        </div>
+
         <!-- Pacientes SUS -->
         <div class="bg-white/80 dark:bg-slate-900/80 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
             <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Mix SUS</span>
-            <p class="text-xl font-black text-emerald-600 dark:text-emerald-400 mt-1">{{ dados.financiamento.sus }}</p>
-            <span class="text-[10px] font-bold text-emerald-500 bg-emerald-500/10 px-1.5 py-0.5 rounded-md inline-block mt-0.5">{{ dados.financiamento.pctSus }}% do mix</span>
+            <p class="text-xl font-black text-teal-600 dark:text-teal-400 mt-1">{{ dados.financiamento.sus }}</p>
+            <span class="text-[10px] font-bold text-teal-500 bg-teal-500/10 px-1.5 py-0.5 rounded-md inline-block mt-0.5">{{ dados.financiamento.pctSus }}% do mix</span>
         </div>
 
         <!-- Convênios & Particular -->
@@ -140,7 +147,7 @@
         <!-- Eficiência / Conclusão -->
         <div class="bg-white/80 dark:bg-slate-900/80 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
             <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Taxa Conclusão</span>
-            <p class="text-xl font-black text-teal-600 dark:text-teal-400 mt-1">{{ (100 - dados.eficiencia.taxaCancelamentoGeral)|number_format(1, ',', '.') }}%</p>
+            <p class="text-xl font-black text-cyan-600 dark:text-cyan-400 mt-1">{{ (100 - dados.eficiencia.taxaCancelamentoGeral)|number_format(1, ',', '.') }}%</p>
             <span class="text-[10px] text-slate-500 block truncate mt-0.5">atendimentos realizados</span>
         </div>
 
@@ -151,27 +158,162 @@
             <span class="text-[10px] text-rose-500 bg-rose-500/10 px-1.5 py-0.5 rounded-md inline-block mt-0.5">{{ dados.eficiencia.totalCancelados }} cancelados</span>
         </div>
 
-        <!-- Taxa de Encaixes -->
-        <div class="bg-white/80 dark:bg-slate-900/80 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
-            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Taxa Encaixes</span>
-            <p class="text-xl font-black text-amber-600 dark:text-amber-400 mt-1">{{ dados.eficiencia.taxaEncaixes }}%</p>
-            <span class="text-[10px] text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded-md inline-block mt-0.5">{{ dados.eficiencia.countEncaixes }} encaixes</span>
-        </div>
-
         <!-- Tempo Médio de Espera -->
         <div class="bg-white/80 dark:bg-slate-900/80 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
-            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Tempo Espera</span>
-            <p class="text-xl font-black text-purple-600 dark:text-purple-400 mt-1">{{ dados.eficiencia.tempoMedioEsperaMin }}<span class="text-xs font-normal"> min</span></p>
-            <span class="text-[10px] text-slate-500 block truncate mt-0.5">chegada até consulta</span>
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Média Espera</span>
+            <p class="text-xl font-black text-amber-600 dark:text-amber-400 mt-1">{{ dados.eficiencia.tempoMedioEsperaMin }}<span class="text-xs font-normal"> min</span></p>
+            <span class="text-[10px] text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded-md inline-block mt-0.5">chegada até início</span>
+        </div>
+
+        <!-- Tempo Médio de Atendimento / Execução -->
+        <div class="bg-white/80 dark:bg-slate-900/80 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Média Execução</span>
+            <p class="text-xl font-black text-purple-600 dark:text-purple-400 mt-1">{{ dados.eficiencia.tempoMedioExecucaoMin }}<span class="text-xs font-normal"> min</span></p>
+            <span class="text-[10px] text-purple-500 bg-purple-500/10 px-1.5 py-0.5 rounded-md inline-block mt-0.5">início até término</span>
         </div>
     </div>
 
-    <!-- 2. Gráfico Inteligente de Comparação por Procedimentos (Linhas Individuais com Liga/Desliga) -->
+    <!-- 2. MÓDULO DE TEMPOS: Espera e Execução por Procedimento -->
+    <div class="bg-white/80 dark:bg-slate-900/80 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
+            <div>
+                <h3 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <sl-icon name="stopwatch" class="text-amber-500"></sl-icon> 
+                    Eficiência Clínica: Tempos de Espera e Execução por Procedimento
+                </h3>
+                <p class="text-xs text-slate-500">Acompanhe a evolução histórica dos tempos de espera (chegada até consulta) e tempo de execução/duração de cada exame ao longo dos dias, meses e anos</p>
+            </div>
+
+            <!-- Controles do Módulo de Tempos -->
+            <div class="flex flex-wrap items-center gap-2">
+                <!-- Seletor de Procedimento -->
+                <select id="seletorProcedimentoTempos" onchange="atualizarGraficoTempos()" class="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-2.5 py-1 text-xs text-slate-800 dark:text-slate-200 font-bold focus:outline-none focus:ring-2 focus:ring-amber-500 max-w-xs truncate">
+                    <option value="__geral__" selected>🩺 Todos os Procedimentos (Média Global)</option>
+                    {% for proc in dados.datasetsProcedimentos %}
+                        <option value="{{ proc.nome }}">{{ proc.nome }}</option>
+                    {% endfor %}
+                </select>
+
+                <!-- Seletor de Métrica de Tempo -->
+                <div class="inline-flex p-0.5 bg-slate-100 dark:bg-slate-950 rounded-xl text-xs font-semibold">
+                    <button type="button" id="btnMetricaTempoAmbos" onclick="alterarMetricaTempo('ambos')" class="px-2.5 py-1 rounded-lg transition bg-white dark:bg-slate-800 text-amber-600 dark:text-amber-400 shadow-xs">Espera vs Execução</button>
+                    <button type="button" id="btnMetricaTempoEspera" onclick="alterarMetricaTempo('espera')" class="px-2.5 py-1 rounded-lg transition text-slate-600 dark:text-slate-400 hover:text-slate-900">Só Espera</button>
+                    <button type="button" id="btnMetricaTempoExecucao" onclick="alterarMetricaTempo('execucao')" class="px-2.5 py-1 rounded-lg transition text-slate-600 dark:text-slate-400 hover:text-slate-900">Só Execução</button>
+                    <button type="button" id="btnMetricaTempoTotal" onclick="alterarMetricaTempo('total')" class="px-2.5 py-1 rounded-lg transition text-slate-600 dark:text-slate-400 hover:text-slate-900">Total na Clínica</button>
+                </div>
+
+                <!-- Tipo de Visualização (Barras Agrupadas / Linha / Área) -->
+                <div class="inline-flex p-0.5 bg-slate-100 dark:bg-slate-950 rounded-xl text-xs font-semibold">
+                    <button type="button" id="btnTipoTempoBarra" onclick="alterarTipoGraficoTempo('bar')" title="Barras Comparativas" class="px-2 py-1 rounded-lg transition bg-white dark:bg-slate-800 text-amber-600 dark:text-amber-400 shadow-xs">
+                        <sl-icon name="bar-chart-line"></sl-icon>
+                    </button>
+                    <button type="button" id="btnTipoTempoLinha" onclick="alterarTipoGraficoTempo('line')" title="Linhas Suaves" class="px-2 py-1 rounded-lg transition text-slate-600 dark:text-slate-400 hover:text-slate-900">
+                        <sl-icon name="activity"></sl-icon>
+                    </button>
+                    <button type="button" id="btnTipoTempoArea" onclick="alterarTipoGraficoTempo('area')" title="Área Preenchida" class="px-2 py-1 rounded-lg transition text-slate-600 dark:text-slate-400 hover:text-slate-900">
+                        <sl-icon name="water"></sl-icon>
+                    </button>
+                </div>
+
+                <!-- Seletor de Resolução Temporal -->
+                <select id="seletorAgrupamentoTempo" onchange="alterarAgrupamentoTempo(this.value)" class="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-2.5 py-1 text-xs text-slate-800 dark:text-slate-200 font-bold focus:outline-none focus:ring-2 focus:ring-amber-500">
+                    <option value="dia">Por Dia</option>
+                    <option value="mes" selected>Por Mês</option>
+                    <option value="trimestre">Por Trimestre</option>
+                    <option value="quadrimestre">Por Quadrimestre</option>
+                    <option value="semestre">Por Semestre</option>
+                    <option value="ano">Por Ano</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Mini Painel de Estatísticas de Tempo do Procedimento / Exame Ativo -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div class="bg-amber-50/60 dark:bg-slate-950/60 p-3 rounded-xl border border-amber-200/60 dark:border-slate-800 flex items-center justify-between">
+                <div>
+                    <span class="text-[10px] uppercase font-bold text-amber-700 dark:text-amber-400 block tracking-wider">⏳ Tempo Médio de Espera</span>
+                    <span id="statTempoEsperaValor" class="text-lg font-black text-amber-600 dark:text-amber-400">{{ dados.eficiencia.tempoMedioEsperaMin }} min</span>
+                    <span class="text-[10px] text-slate-500 block">Tempo entre chegada e recepção até início</span>
+                </div>
+                <div class="p-2 bg-amber-500/10 text-amber-600 rounded-xl">
+                    <sl-icon name="hourglass-split" class="text-xl"></sl-icon>
+                </div>
+            </div>
+
+            <div class="bg-purple-50/60 dark:bg-slate-950/60 p-3 rounded-xl border border-purple-200/60 dark:border-slate-800 flex items-center justify-between">
+                <div>
+                    <span class="text-[10px] uppercase font-bold text-purple-700 dark:text-purple-400 block tracking-wider">🩺 Tempo Médio de Execução</span>
+                    <span id="statTempoExecucaoValor" class="text-lg font-black text-purple-600 dark:text-purple-400">{{ dados.eficiencia.tempoMedioExecucaoMin }} min</span>
+                    <span class="text-[10px] text-slate-500 block">Duração do exame / consulta no consultório</span>
+                </div>
+                <div class="p-2 bg-purple-500/10 text-purple-600 rounded-xl">
+                    <sl-icon name="heart-pulse" class="text-xl"></sl-icon>
+                </div>
+            </div>
+
+            <div class="bg-cyan-50/60 dark:bg-slate-950/60 p-3 rounded-xl border border-cyan-200/60 dark:border-slate-800 flex items-center justify-between">
+                <div>
+                    <span class="text-[10px] uppercase font-bold text-cyan-700 dark:text-cyan-400 block tracking-wider">⏱️ Tempo Total na Clínica</span>
+                    <span id="statTempoTotalValor" class="text-lg font-black text-cyan-600 dark:text-cyan-400">{{ dados.eficiencia.tempoMedioPermanenciaMin }} min</span>
+                    <span class="text-[10px] text-slate-500 block">Permanência total (espera + atendimento)</span>
+                </div>
+                <div class="p-2 bg-cyan-500/10 text-cyan-600 rounded-xl">
+                    <sl-icon name="clock-history" class="text-xl"></sl-icon>
+                </div>
+            </div>
+        </div>
+
+        <!-- Grid: Gráfico de Evolução de Tempos + Tabela Analítica Comparativa -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Gráfico de Tempos -->
+            <div class="lg:col-span-2 bg-slate-50/50 dark:bg-slate-950/40 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
+                <div class="h-72 w-full">
+                    <canvas id="graficoTemposEvolucao"></canvas>
+                </div>
+            </div>
+
+            <!-- Tabela Comparativa de Tempos por Exame / Procedimento -->
+            <div class="bg-slate-50/50 dark:bg-slate-950/40 p-4 rounded-xl border border-slate-100 dark:border-slate-800 flex flex-col justify-between space-y-3">
+                <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
+                    <span class="text-xs font-bold text-slate-800 dark:text-slate-200">Média por Procedimento</span>
+                    <input type="text" id="filtroTabelaTemposInput" onkeyup="filtrarTabelaTempos()" placeholder="Filtrar..." class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-2 py-0.5 text-[11px] w-28 focus:outline-none">
+                </div>
+
+                <div class="max-h-60 overflow-y-auto custom-scrollbar">
+                    <table class="w-full text-left text-xs border-collapse">
+                        <thead class="sticky top-0 bg-slate-200/80 dark:bg-slate-900 text-[10px] uppercase font-bold text-slate-500">
+                            <tr>
+                                <th class="py-1.5 px-2">Procedimento</th>
+                                <th class="py-1.5 px-1 text-right">Espera</th>
+                                <th class="py-1.5 px-1 text-right">Exec.</th>
+                                <th class="py-1.5 px-2 text-right">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody id="corpoTabelaTempos" class="divide-y divide-slate-200/60 dark:divide-slate-800 text-[11px]">
+                            {% for tp in dados.tabelaTemposProcedimentos %}
+                                <tr class="item-tempo-linha hover:bg-white dark:hover:bg-slate-800/60 cursor-pointer" onclick="selecionarProcedimentoNoGrafico('{{ tp.nome|e('js') }}')">
+                                    <td class="py-1.5 px-2 font-medium text-slate-800 dark:text-slate-200 item-tempo-nome truncate max-w-[120px]" title="{{ tp.nome }}">{{ tp.nome }}</td>
+                                    <td class="py-1.5 px-1 text-right font-mono text-amber-600 font-bold">{{ tp.mediaEsperaMin }}m</td>
+                                    <td class="py-1.5 px-1 text-right font-mono text-purple-600 font-bold">{{ tp.mediaExecucaoMin }}m</td>
+                                    <td class="py-1.5 px-2 text-right font-mono text-cyan-600 font-bold">{{ tp.mediaPermanenciaMin }}m</td>
+                                </tr>
+                            {% else %}
+                                <tr><td colspan="4" class="py-3 text-center text-slate-400">Nenhum dado temporal.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <p class="text-[10px] text-slate-400 text-center">Clique em qualquer exame da lista para visualizá-lo no gráfico</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Gráfico Inteligente de Comparação por Procedimentos (Linhas Individuais com Liga/Desliga) -->
     <div class="bg-white/80 dark:bg-slate-900/80 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
             <div>
                 <h3 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                    <sl-icon name="sliders" class="text-cyan-500"></sl-icon> Gráfico Inteligente: Comparativo por Procedimento / Exame
+                    <sl-icon name="sliders" class="text-cyan-500"></sl-icon> Gráfico Inteligente: Comparativo Volumétrico por Exame
                 </h3>
                 <p class="text-xs text-slate-500">Selecione abaixo quais exames deseja ligar ou desligar na visualização gráfica em linha</p>
             </div>
@@ -220,7 +362,7 @@
         </div>
     </div>
 
-    <!-- 3. Gráficos de Evolução e Composição -->
+    <!-- 4. Gráficos de Evolução Geral (Atendimentos & Pessoas Atendidas) e Composição -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- Gráfico de Evolução Temporal Interativo com Multi-Métricas e Agrupamentos -->
         <div class="lg:col-span-2 bg-white/80 dark:bg-slate-900/80 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
@@ -228,18 +370,20 @@
                 <div>
                     <h3 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
                         <sl-icon name="graph-up-arrow" class="text-cyan-600 dark:text-cyan-400"></sl-icon>
-                        Evolução Temporal Estratégica
+                        Evolução Temporal: Atendimentos & Pessoas Atendidas
                     </h3>
-                    <p class="text-xs text-slate-500 dark:text-slate-400">Análise de tendências, segmentação por financiamento e status</p>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Volume de exames, contagem de pacientes únicos, segmentação por convênio e status</p>
                 </div>
                 
                 <!-- Controles do Gráfico -->
                 <div class="flex flex-wrap items-center gap-2">
                     <!-- Seletor de Métrica/Camada -->
                     <div class="inline-flex p-0.5 bg-slate-100 dark:bg-slate-950 rounded-xl text-xs font-semibold">
-                        <button type="button" id="btnMetricaTotal" onclick="alterarMetricaEvolucao('total')" class="px-2.5 py-1 rounded-lg transition bg-white dark:bg-slate-800 text-cyan-600 dark:text-cyan-400 shadow-xs">Total</button>
+                        <button type="button" id="btnMetricaTotal" onclick="alterarMetricaEvolucao('total')" class="px-2.5 py-1 rounded-lg transition bg-white dark:bg-slate-800 text-cyan-600 dark:text-cyan-400 shadow-xs">Total Atendimentos</button>
+                        <button type="button" id="btnMetricaPessoas" onclick="alterarMetricaEvolucao('pessoas')" class="px-2.5 py-1 rounded-lg transition text-slate-600 dark:text-slate-400 hover:text-slate-900">👥 Pessoas Atendidas</button>
+                        <button type="button" id="btnMetricaComparativoPessoas" onclick="alterarMetricaEvolucao('comparativo_pessoas')" class="px-2.5 py-1 rounded-lg transition text-slate-600 dark:text-slate-400 hover:text-slate-900">Exames x Pessoas</button>
                         <button type="button" id="btnMetricaFinanciamento" onclick="alterarMetricaEvolucao('financiamento')" class="px-2.5 py-1 rounded-lg transition text-slate-600 dark:text-slate-400 hover:text-slate-900">SUS x Convênios</button>
-                        <button type="button" id="btnMetricaStatus" onclick="alterarMetricaEvolucao('status')" class="px-2.5 py-1 rounded-lg transition text-slate-600 dark:text-slate-400 hover:text-slate-900">Concluídos x Cancelados</button>
+                        <button type="button" id="btnMetricaStatus" onclick="alterarMetricaEvolucao('status')" class="px-2.5 py-1 rounded-lg transition text-slate-600 dark:text-slate-400 hover:text-slate-900">Status</button>
                     </div>
 
                     <!-- Tipo de Gráfico (Linha / Barra / Área) -->
@@ -324,7 +468,7 @@
         </div>
     </div>
 
-    <!-- 4. Painel de Produtividade Médica & Distribuição por Especialidade -->
+    <!-- 5. Painel de Produtividade Médica & Distribuição por Especialidade -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- Tabela de Produtividade Médica com Filtro Rápido -->
         <div class="lg:col-span-2 bg-white/80 dark:bg-slate-900/80 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
@@ -386,7 +530,7 @@
         </div>
     </div>
 
-    <!-- 5. Painel de Padrões de Fluxo: Dias da Semana & Horários de Pico -->
+    <!-- 6. Painel de Padrões de Fluxo: Dias da Semana & Horários de Pico -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <!-- Distribuição por Dia da Semana -->
         <div class="bg-white/80 dark:bg-slate-900/80 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
@@ -419,7 +563,7 @@
         </div>
     </div>
 
-    <!-- 6. Painel de Demografia & Perfil Clínico e Operadoras -->
+    <!-- 7. Painel de Demografia & Perfil Clínico e Operadoras -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- Perfil por Gênero (Rosca) -->
         <div class="bg-white/80 dark:bg-slate-900/80 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
@@ -475,14 +619,14 @@
         </div>
     </div>
 
-    <!-- 7. Tabelas Planilhadas por Intervalo (Dia / Mês / Trimestre / Quadrimestre / Semestre / Ano) -->
+    <!-- 8. Tabelas Planilhadas por Intervalo (Dia / Mês / Trimestre / Quadrimestre / Semestre / Ano) -->
     <div class="bg-white/80 dark:bg-slate-900/80 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
             <div>
                 <h3 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
                     <sl-icon name="table" class="text-cyan-600"></sl-icon> Tabelas Planilhadas por Intervalo Temporal
                 </h3>
-                <p class="text-xs text-slate-500">Visão estatística agregada de procedimentos & exames por Dia, Mês, Trimestre, Quadrimestre, Semestre e Ano</p>
+                <p class="text-xs text-slate-500">Visão estatística agregada de atendimentos, pacientes únicos e média por Dia, Mês, Trimestre, Quadrimestre, Semestre e Ano</p>
             </div>
 
             <!-- Abas de Navegação das Tabelas -->
@@ -500,24 +644,31 @@
         <div id="tabConceitoDia" class="tabela-agregada-painel hidden">
             <div class="max-h-72 overflow-y-auto custom-scrollbar">
                 <table class="w-full text-left text-xs border-collapse">
-                    <thead class="sticky top-0 bg-slate-100 dark:bg-slate-950 font-bold uppercase text-slate-500">
+                    <thead class="sticky top-0 bg-slate-100 dark:bg-slate-950 font-bold uppercase text-slate-500 text-[10px]">
                         <tr>
                             <th class="py-2.5 px-3">Data</th>
-                            <th class="py-2.5 px-3 text-right">Volume de Atendimentos</th>
-                            <th class="py-2.5 px-3 text-right">Participação no Período</th>
+                            <th class="py-2.5 px-3 text-right">Pessoas Atendidas</th>
+                            <th class="py-2.5 px-3 text-right">Volume Atendimentos</th>
+                            <th class="py-2.5 px-3 text-right">Exames / Pessoa</th>
+                            <th class="py-2.5 px-3 text-right">Participação %</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
                         {% for dia, count in dados.porDia %}
+                            {% set qtdPessoas = dados.porPessoasDia[dia]|default(count) %}
                             <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40">
                                 <td class="py-2 px-3 font-mono font-bold text-slate-800 dark:text-slate-200">{{ dia|date('d/m/Y') }}</td>
-                                <td class="py-2 px-3 text-right font-mono font-black text-cyan-600 dark:text-cyan-400">{{ count }} atendimentos</td>
+                                <td class="py-2 px-3 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">{{ qtdPessoas }} pessoas</td>
+                                <td class="py-2 px-3 text-right font-mono font-black text-cyan-600 dark:text-cyan-400">{{ count }} exames</td>
+                                <td class="py-2 px-3 text-right font-mono text-slate-600 dark:text-slate-300">
+                                    {{ qtdPessoas > 0 ? (count / qtdPessoas)|number_format(2, ',', '.') : '-' }}
+                                </td>
                                 <td class="py-2 px-3 text-right font-mono text-slate-500">
                                     {{ dados.totalProcedimentos > 0 ? ((count / dados.totalProcedimentos) * 100)|number_format(1, ',', '.') : 0 }}%
                                 </td>
                             </tr>
                         {% else %}
-                            <tr><td colspan="3" class="py-4 text-center text-slate-400">Nenhum dado por dia no período.</td></tr>
+                            <tr><td colspan="5" class="py-4 text-center text-slate-400">Nenhum dado por dia no período.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
@@ -528,24 +679,31 @@
         <div id="tabConceitoMes" class="tabela-agregada-painel">
             <div class="max-h-72 overflow-y-auto custom-scrollbar">
                 <table class="w-full text-left text-xs border-collapse">
-                    <thead class="sticky top-0 bg-slate-100 dark:bg-slate-950 font-bold uppercase text-slate-500">
+                    <thead class="sticky top-0 bg-slate-100 dark:bg-slate-950 font-bold uppercase text-slate-500 text-[10px]">
                         <tr>
                             <th class="py-2.5 px-3">Mês / Ano</th>
-                            <th class="py-2.5 px-3 text-right">Volume de Atendimentos</th>
-                            <th class="py-2.5 px-3 text-right">Participação no Período</th>
+                            <th class="py-2.5 px-3 text-right">Pessoas Atendidas</th>
+                            <th class="py-2.5 px-3 text-right">Volume Atendimentos</th>
+                            <th class="py-2.5 px-3 text-right">Exames / Pessoa</th>
+                            <th class="py-2.5 px-3 text-right">Participação %</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
                         {% for mesAno, count in dados.porMes %}
+                            {% set qtdPessoas = dados.porPessoasMes[mesAno]|default(count) %}
                             <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40">
                                 <td class="py-2 px-3 font-mono font-bold text-slate-800 dark:text-slate-200">{{ mesAno }}</td>
-                                <td class="py-2 px-3 text-right font-mono font-black text-indigo-600 dark:text-indigo-400">{{ count }} atendimentos</td>
+                                <td class="py-2 px-3 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">{{ qtdPessoas }} pessoas</td>
+                                <td class="py-2 px-3 text-right font-mono font-black text-indigo-600 dark:text-indigo-400">{{ count }} exames</td>
+                                <td class="py-2 px-3 text-right font-mono text-slate-600 dark:text-slate-300">
+                                    {{ qtdPessoas > 0 ? (count / qtdPessoas)|number_format(2, ',', '.') : '-' }}
+                                </td>
                                 <td class="py-2 px-3 text-right font-mono text-slate-500">
                                     {{ dados.totalProcedimentos > 0 ? ((count / dados.totalProcedimentos) * 100)|number_format(1, ',', '.') : 0 }}%
                                 </td>
                             </tr>
                         {% else %}
-                            <tr><td colspan="3" class="py-4 text-center text-slate-400">Nenhum dado mensal.</td></tr>
+                            <tr><td colspan="5" class="py-4 text-center text-slate-400">Nenhum dado mensal.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
@@ -556,24 +714,31 @@
         <div id="tabConceitoTrimestre" class="tabela-agregada-painel hidden">
             <div class="max-h-72 overflow-y-auto custom-scrollbar">
                 <table class="w-full text-left text-xs border-collapse">
-                    <thead class="sticky top-0 bg-slate-100 dark:bg-slate-950 font-bold uppercase text-slate-500">
+                    <thead class="sticky top-0 bg-slate-100 dark:bg-slate-950 font-bold uppercase text-slate-500 text-[10px]">
                         <tr>
                             <th class="py-2.5 px-3">Trimestre / Ano</th>
-                            <th class="py-2.5 px-3 text-right">Volume de Atendimentos</th>
-                            <th class="py-2.5 px-3 text-right">Participação no Período</th>
+                            <th class="py-2.5 px-3 text-right">Pessoas Atendidas</th>
+                            <th class="py-2.5 px-3 text-right">Volume Atendimentos</th>
+                            <th class="py-2.5 px-3 text-right">Exames / Pessoa</th>
+                            <th class="py-2.5 px-3 text-right">Participação %</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
                         {% for tri, count in dados.porTrimestre %}
+                            {% set qtdPessoas = dados.porPessoasTrimestre[tri]|default(count) %}
                             <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40">
                                 <td class="py-2 px-3 font-mono font-bold text-slate-800 dark:text-slate-200">{{ tri }}</td>
-                                <td class="py-2 px-3 text-right font-mono font-black text-sky-600 dark:text-sky-400">{{ count }} atendimentos</td>
+                                <td class="py-2 px-3 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">{{ qtdPessoas }} pessoas</td>
+                                <td class="py-2 px-3 text-right font-mono font-black text-sky-600 dark:text-sky-400">{{ count }} exames</td>
+                                <td class="py-2 px-3 text-right font-mono text-slate-600 dark:text-slate-300">
+                                    {{ qtdPessoas > 0 ? (count / qtdPessoas)|number_format(2, ',', '.') : '-' }}
+                                </td>
                                 <td class="py-2 px-3 text-right font-mono text-slate-500">
                                     {{ dados.totalProcedimentos > 0 ? ((count / dados.totalProcedimentos) * 100)|number_format(1, ',', '.') : 0 }}%
                                 </td>
                             </tr>
                         {% else %}
-                            <tr><td colspan="3" class="py-4 text-center text-slate-400">Nenhum dado por trimestre.</td></tr>
+                            <tr><td colspan="5" class="py-4 text-center text-slate-400">Nenhum dado por trimestre.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
@@ -584,24 +749,31 @@
         <div id="tabConceitoQuadrimestre" class="tabela-agregada-painel hidden">
             <div class="max-h-72 overflow-y-auto custom-scrollbar">
                 <table class="w-full text-left text-xs border-collapse">
-                    <thead class="sticky top-0 bg-slate-100 dark:bg-slate-950 font-bold uppercase text-slate-500">
+                    <thead class="sticky top-0 bg-slate-100 dark:bg-slate-950 font-bold uppercase text-slate-500 text-[10px]">
                         <tr>
                             <th class="py-2.5 px-3">Quadrimestre / Ano</th>
-                            <th class="py-2.5 px-3 text-right">Volume de Atendimentos</th>
-                            <th class="py-2.5 px-3 text-right">Participação no Período</th>
+                            <th class="py-2.5 px-3 text-right">Pessoas Atendidas</th>
+                            <th class="py-2.5 px-3 text-right">Volume Atendimentos</th>
+                            <th class="py-2.5 px-3 text-right">Exames / Pessoa</th>
+                            <th class="py-2.5 px-3 text-right">Participação %</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
                         {% for quadri, count in dados.porQuadrimestre %}
+                            {% set qtdPessoas = dados.porPessoasQuadrimestre[quadri]|default(count) %}
                             <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40">
                                 <td class="py-2 px-3 font-mono font-bold text-slate-800 dark:text-slate-200">{{ quadri }}</td>
-                                <td class="py-2 px-3 text-right font-mono font-black text-purple-600 dark:text-purple-400">{{ count }} atendimentos</td>
+                                <td class="py-2 px-3 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">{{ qtdPessoas }} pessoas</td>
+                                <td class="py-2 px-3 text-right font-mono font-black text-purple-600 dark:text-purple-400">{{ count }} exames</td>
+                                <td class="py-2 px-3 text-right font-mono text-slate-600 dark:text-slate-300">
+                                    {{ qtdPessoas > 0 ? (count / qtdPessoas)|number_format(2, ',', '.') : '-' }}
+                                </td>
                                 <td class="py-2 px-3 text-right font-mono text-slate-500">
                                     {{ dados.totalProcedimentos > 0 ? ((count / dados.totalProcedimentos) * 100)|number_format(1, ',', '.') : 0 }}%
                                 </td>
                             </tr>
                         {% else %}
-                            <tr><td colspan="3" class="py-4 text-center text-slate-400">Nenhum dado por quadrimestre.</td></tr>
+                            <tr><td colspan="5" class="py-4 text-center text-slate-400">Nenhum dado por quadrimestre.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
@@ -612,24 +784,31 @@
         <div id="tabConceitoSemestre" class="tabela-agregada-painel hidden">
             <div class="max-h-72 overflow-y-auto custom-scrollbar">
                 <table class="w-full text-left text-xs border-collapse">
-                    <thead class="sticky top-0 bg-slate-100 dark:bg-slate-950 font-bold uppercase text-slate-500">
+                    <thead class="sticky top-0 bg-slate-100 dark:bg-slate-950 font-bold uppercase text-slate-500 text-[10px]">
                         <tr>
                             <th class="py-2.5 px-3">Semestre / Ano</th>
-                            <th class="py-2.5 px-3 text-right">Volume de Atendimentos</th>
-                            <th class="py-2.5 px-3 text-right">Participação no Período</th>
+                            <th class="py-2.5 px-3 text-right">Pessoas Atendidas</th>
+                            <th class="py-2.5 px-3 text-right">Volume Atendimentos</th>
+                            <th class="py-2.5 px-3 text-right">Exames / Pessoa</th>
+                            <th class="py-2.5 px-3 text-right">Participação %</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
                         {% for sem, count in dados.porSemestre %}
+                            {% set qtdPessoas = dados.porPessoasSemestre[sem]|default(count) %}
                             <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40">
                                 <td class="py-2 px-3 font-mono font-bold text-slate-800 dark:text-slate-200">{{ sem }}</td>
-                                <td class="py-2 px-3 text-right font-mono font-black text-emerald-600 dark:text-emerald-400">{{ count }} atendimentos</td>
+                                <td class="py-2 px-3 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">{{ qtdPessoas }} pessoas</td>
+                                <td class="py-2 px-3 text-right font-mono font-black text-emerald-600 dark:text-emerald-400">{{ count }} exames</td>
+                                <td class="py-2 px-3 text-right font-mono text-slate-600 dark:text-slate-300">
+                                    {{ qtdPessoas > 0 ? (count / qtdPessoas)|number_format(2, ',', '.') : '-' }}
+                                </td>
                                 <td class="py-2 px-3 text-right font-mono text-slate-500">
                                     {{ dados.totalProcedimentos > 0 ? ((count / dados.totalProcedimentos) * 100)|number_format(1, ',', '.') : 0 }}%
                                 </td>
                             </tr>
                         {% else %}
-                            <tr><td colspan="3" class="py-4 text-center text-slate-400">Nenhum dado por semestre.</td></tr>
+                            <tr><td colspan="5" class="py-4 text-center text-slate-400">Nenhum dado por semestre.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
@@ -640,24 +819,31 @@
         <div id="tabConceitoAno" class="tabela-agregada-painel hidden">
             <div class="max-h-72 overflow-y-auto custom-scrollbar">
                 <table class="w-full text-left text-xs border-collapse">
-                    <thead class="sticky top-0 bg-slate-100 dark:bg-slate-950 font-bold uppercase text-slate-500">
+                    <thead class="sticky top-0 bg-slate-100 dark:bg-slate-950 font-bold uppercase text-slate-500 text-[10px]">
                         <tr>
                             <th class="py-2.5 px-3">Ano</th>
-                            <th class="py-2.5 px-3 text-right">Volume de Atendimentos</th>
-                            <th class="py-2.5 px-3 text-right">Participação no Período</th>
+                            <th class="py-2.5 px-3 text-right">Pessoas Atendidas</th>
+                            <th class="py-2.5 px-3 text-right">Volume Atendimentos</th>
+                            <th class="py-2.5 px-3 text-right">Exames / Pessoa</th>
+                            <th class="py-2.5 px-3 text-right">Participação %</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
                         {% for anoVal, count in dados.porAno %}
+                            {% set qtdPessoas = dados.porPessoasAno[anoVal]|default(count) %}
                             <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40">
                                 <td class="py-2 px-3 font-mono font-bold text-slate-800 dark:text-slate-200">{{ anoVal }}</td>
-                                <td class="py-2 px-3 text-right font-mono font-black text-amber-600 dark:text-amber-400">{{ count }} atendimentos</td>
+                                <td class="py-2 px-3 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">{{ qtdPessoas }} pessoas</td>
+                                <td class="py-2 px-3 text-right font-mono font-black text-amber-600 dark:text-amber-400">{{ count }} exames</td>
+                                <td class="py-2 px-3 text-right font-mono text-slate-600 dark:text-slate-300">
+                                    {{ qtdPessoas > 0 ? (count / qtdPessoas)|number_format(2, ',', '.') : '-' }}
+                                </td>
                                 <td class="py-2 px-3 text-right font-mono text-slate-500">
                                     {{ dados.totalProcedimentos > 0 ? ((count / dados.totalProcedimentos) * 100)|number_format(1, ',', '.') : 0 }}%
                                 </td>
                             </tr>
                         {% else %}
-                            <tr><td colspan="3" class="py-4 text-center text-slate-400">Nenhum dado anual.</td></tr>
+                            <tr><td colspan="5" class="py-4 text-center text-slate-400">Nenhum dado anual.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
@@ -717,7 +903,20 @@
         });
     }
 
-    // Mapa de dados para troca dinâmica do agrupamento do Gráfico
+    function filtrarTabelaTempos() {
+        const query = document.getElementById('filtroTabelaTemposInput').value.toLowerCase();
+        const rows = document.querySelectorAll('.item-tempo-linha');
+        rows.forEach(r => {
+            const nome = r.querySelector('.item-tempo-nome')?.textContent.toLowerCase() || '';
+            if (nome.includes(query)) {
+                r.style.display = '';
+            } else {
+                r.style.display = 'none';
+            }
+        });
+    }
+
+    // Mapa de dados para troca dinâmica do agrupamento dos Gráficos
     const mapasAgrupamentos = {
         dia: {
             labels: {{ dados.porDiaKeys|json_encode|raw }},
@@ -747,16 +946,220 @@
 
     const seriesFinanciamento = {{ dados.seriesFinanciamento|json_encode|raw }};
     const seriesStatus = {{ dados.seriesStatus|json_encode|raw }};
+    const seriesPessoas = {{ dados.seriesPessoas|json_encode|raw }};
+    const seriesTemposGeral = {{ dados.seriesTemposGeral|json_encode|raw }};
+    const seriesTemposProcedimentos = {{ dados.seriesTemposProcedimentos|json_encode|raw }};
+    const tabelaTemposProcedimentos = {{ dados.tabelaTemposProcedimentos|json_encode|raw }};
 
     let meuGraficoComparativo = null;
     let meuGraficoEvolucao = null;
-    let metricaEvolucaoAtual = 'total';
+    let meuGraficoTempos = null;
+
+    // Estado do Módulo de Tempos
+    let metricaTempoAtual = 'ambos'; // ambos, espera, execucao, total
+    let tipoGraficoTempoAtual = 'bar'; // bar, line, area
+    let agrupamentoTempoAtual = 'mes'; // dia, mes, trimestre, quadrimestre, semestre, ano
+
+    // Estado da Evolução Geral
+    let metricaEvolucaoAtual = 'total'; // total, pessoas, comparativo_pessoas, financiamento, status
     let agrupamentoEvolucaoAtual = 'mes';
     let tipoGraficoEvolucaoAtual = 'line';
 
     const rawDatasetsProcedimentos = {{ dados.datasetsProcedimentos|json_encode|raw }};
     const mesesLabels = {{ dados.porMesKeys|json_encode|raw }};
 
+    // ==========================================
+    // MÓDULO DE TEMPOS DE ESPERA E EXECUÇÃO
+    // ==========================================
+    function obterDatasetsTempos() {
+        const procSel = document.getElementById('seletorProcedimentoTempos')?.value || '__geral__';
+        const isArea = tipoGraficoTempoAtual === 'area';
+        const isBar = tipoGraficoTempoAtual === 'bar';
+
+        let fonteDadosEspera = [];
+        let fonteDadosExec = [];
+        let fonteDadosTotal = [];
+
+        if (procSel === '__geral__') {
+            fonteDadosEspera = (seriesTemposGeral.espera && seriesTemposGeral.espera[agrupamentoTempoAtual]) || [];
+            fonteDadosExec = (seriesTemposGeral.execucao && seriesTemposGeral.execucao[agrupamentoTempoAtual]) || [];
+            fonteDadosTotal = (seriesTemposGeral.total && seriesTemposGeral.total[agrupamentoTempoAtual]) || [];
+        } else {
+            const procData = seriesTemposProcedimentos[procSel] || {};
+            fonteDadosEspera = (procData.espera && procData.espera[agrupamentoTempoAtual]) || [];
+            fonteDadosExec = (procData.execucao && procData.execucao[agrupamentoTempoAtual]) || [];
+            fonteDadosTotal = (procData.total && procData.total[agrupamentoTempoAtual]) || [];
+        }
+
+        const datasets = [];
+
+        if (metricaTempoAtual === 'ambos' || metricaTempoAtual === 'espera') {
+            datasets.push({
+                label: 'Tempo Médio de Espera (min)',
+                data: fonteDadosEspera,
+                borderColor: '#d97706',
+                backgroundColor: isBar ? '#d97706' : (isArea ? 'rgba(217, 119, 6, 0.25)' : 'rgba(217, 119, 6, 0.05)'),
+                fill: isArea,
+                tension: 0.35,
+                borderWidth: 2.5,
+                borderRadius: isBar ? 5 : 0,
+                pointRadius: isBar ? 0 : 3,
+                pointHoverRadius: isBar ? 0 : 6
+            });
+        }
+
+        if (metricaTempoAtual === 'ambos' || metricaTempoAtual === 'execucao') {
+            datasets.push({
+                label: 'Tempo Médio de Execução / Atendimento (min)',
+                data: fonteDadosExec,
+                borderColor: '#9333ea',
+                backgroundColor: isBar ? '#9333ea' : (isArea ? 'rgba(147, 51, 234, 0.25)' : 'rgba(147, 51, 234, 0.05)'),
+                fill: isArea,
+                tension: 0.35,
+                borderWidth: 2.5,
+                borderRadius: isBar ? 5 : 0,
+                pointRadius: isBar ? 0 : 3,
+                pointHoverRadius: isBar ? 0 : 6
+            });
+        }
+
+        if (metricaTempoAtual === 'total') {
+            datasets.push({
+                label: 'Tempo Total na Clínica (Permanência em min)',
+                data: fonteDadosTotal,
+                borderColor: '#0891b2',
+                backgroundColor: isBar ? '#0891b2' : (isArea ? 'rgba(8, 145, 178, 0.25)' : 'rgba(8, 145, 178, 0.05)'),
+                fill: isArea,
+                tension: 0.35,
+                borderWidth: 2.5,
+                borderRadius: isBar ? 5 : 0,
+                pointRadius: isBar ? 0 : 3,
+                pointHoverRadius: isBar ? 0 : 6
+            });
+        }
+
+        return datasets;
+    }
+
+    function renderizarGraficoTempos() {
+        const ctxTempos = document.getElementById('graficoTemposEvolucao');
+        if (!ctxTempos) return;
+
+        const config = mapasAgrupamentos[agrupamentoTempoAtual] || mapasAgrupamentos.mes;
+        const chartType = tipoGraficoTempoAtual === 'bar' ? 'bar' : 'line';
+
+        // Atualizar mini KPIs do procedimento ativo
+        const procSel = document.getElementById('seletorProcedimentoTempos')?.value || '__geral__';
+        if (procSel === '__geral__') {
+            document.getElementById('statTempoEsperaValor').textContent = '{{ dados.eficiencia.tempoMedioEsperaMin }} min';
+            document.getElementById('statTempoExecucaoValor').textContent = '{{ dados.eficiencia.tempoMedioExecucaoMin }} min';
+            document.getElementById('statTempoTotalValor').textContent = '{{ dados.eficiencia.tempoMedioPermanenciaMin }} min';
+        } else {
+            const item = tabelaTemposProcedimentos.find(t => t.nome === procSel);
+            if (item) {
+                document.getElementById('statTempoEsperaValor').textContent = item.mediaEsperaMin + ' min';
+                document.getElementById('statTempoExecucaoValor').textContent = item.mediaExecucaoMin + ' min';
+                document.getElementById('statTempoTotalValor').textContent = item.mediaPermanenciaMin + ' min';
+            }
+        }
+
+        if (meuGraficoTempos) {
+            meuGraficoTempos.destroy();
+        }
+
+        meuGraficoTempos = new Chart(ctxTempos, {
+            type: chartType,
+            data: {
+                labels: config.labels,
+                datasets: obterDatasetsTempos()
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: {
+                            boxWidth: 12,
+                            font: { size: 11, weight: 'bold' }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': ' + context.parsed.y + ' minutos';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: { grid: { display: false } },
+                    y: {
+                        beginAtZero: true,
+                        title: { display: true, text: 'Minutos', font: { size: 10, weight: 'bold' } },
+                        grid: { color: 'rgba(150, 150, 150, 0.08)' }
+                    }
+                }
+            }
+        });
+    }
+
+    function atualizarGraficoTempos() {
+        renderizarGraficoTempos();
+    }
+
+    function selecionarProcedimentoNoGrafico(nomeProcedimento) {
+        const sel = document.getElementById('seletorProcedimentoTempos');
+        if (sel) {
+            sel.value = nomeProcedimento;
+            atualizarGraficoTempos();
+        }
+    }
+
+    function alterarMetricaTempo(metrica) {
+        metricaTempoAtual = metrica;
+        ['Ambos', 'Espera', 'Execucao', 'Total'].forEach(m => {
+            const btn = document.getElementById('btnMetricaTempo' + m);
+            if (btn) {
+                if (m.toLowerCase() === metrica) {
+                    btn.className = "px-2.5 py-1 rounded-lg transition bg-white dark:bg-slate-800 text-amber-600 dark:text-amber-400 shadow-xs";
+                } else {
+                    btn.className = "px-2.5 py-1 rounded-lg transition text-slate-600 dark:text-slate-400 hover:text-slate-900";
+                }
+            }
+        });
+        renderizarGraficoTempos();
+    }
+
+    function alterarTipoGraficoTempo(tipo) {
+        tipoGraficoTempoAtual = tipo;
+        const tipos = { bar: 'btnTipoTempoBarra', line: 'btnTipoTempoLinha', area: 'btnTipoTempoArea' };
+        Object.keys(tipos).forEach(t => {
+            const btn = document.getElementById(tipos[t]);
+            if (btn) {
+                if (t === tipo) {
+                    btn.className = "px-2 py-1 rounded-lg transition bg-white dark:bg-slate-800 text-amber-600 dark:text-amber-400 shadow-xs";
+                } else {
+                    btn.className = "px-2 py-1 rounded-lg transition text-slate-600 dark:text-slate-400 hover:text-slate-900";
+                }
+            }
+        });
+        renderizarGraficoTempos();
+    }
+
+    function alterarAgrupamentoTempo(agrupamento) {
+        agrupamentoTempoAtual = agrupamento;
+        renderizarGraficoTempos();
+    }
+
+    // ==========================================
+    // MÓDULO COMPARATIVO POR PROCEDIMENTO (CHIPS)
+    // ==========================================
     function toggleLinhaProcedimento(index, btnEl) {
         if (!meuGraficoComparativo) return;
         const isHidden = !meuGraficoComparativo.isDatasetVisible(index);
@@ -805,12 +1208,55 @@
         meuGraficoComparativo.update();
     }
 
-    // Gerador dinâmico de datasets para a Evolução Temporal Estratégica
+    // ==========================================
+    // MÓDULO DE EVOLUÇÃO TEMPORAL GERAL & PESSOAS
+    // ==========================================
     function obterDatasetsEvolucao() {
         const isArea = tipoGraficoEvolucaoAtual === 'area';
         const isBar = tipoGraficoEvolucaoAtual === 'bar';
+        const config = mapasAgrupamentos[agrupamentoEvolucaoAtual] || mapasAgrupamentos.mes;
 
-        if (metricaEvolucaoAtual === 'financiamento') {
+        if (metricaEvolucaoAtual === 'pessoas') {
+            return [{
+                label: 'Pessoas Atendidas (Pacientes Únicos)',
+                data: (seriesPessoas && seriesPessoas[agrupamentoEvolucaoAtual]) || [],
+                borderColor: '#10b981',
+                backgroundColor: isBar ? '#10b981' : (isArea ? 'rgba(16, 185, 129, 0.25)' : 'rgba(16, 185, 129, 0.05)'),
+                borderWidth: 3,
+                fill: isArea,
+                tension: 0.35,
+                borderRadius: isBar ? 6 : 0,
+                pointRadius: isBar ? 0 : 3,
+                pointHoverRadius: isBar ? 0 : 6
+            }];
+        } else if (metricaEvolucaoAtual === 'comparativo_pessoas') {
+            return [
+                {
+                    label: 'Volume de Atendimentos / Exames',
+                    data: config.data,
+                    borderColor: '#0891b2',
+                    backgroundColor: isBar ? '#0891b2' : (isArea ? 'rgba(8, 145, 178, 0.25)' : 'rgba(8, 145, 178, 0.05)'),
+                    borderWidth: 2.5,
+                    fill: isArea,
+                    tension: 0.35,
+                    borderRadius: isBar ? 6 : 0,
+                    pointRadius: isBar ? 0 : 3,
+                    pointHoverRadius: isBar ? 0 : 6
+                },
+                {
+                    label: 'Pessoas Atendidas (Pacientes Únicos)',
+                    data: (seriesPessoas && seriesPessoas[agrupamentoEvolucaoAtual]) || [],
+                    borderColor: '#10b981',
+                    backgroundColor: isBar ? '#10b981' : (isArea ? 'rgba(16, 185, 129, 0.25)' : 'rgba(16, 185, 129, 0.05)'),
+                    borderWidth: 2.5,
+                    fill: isArea,
+                    tension: 0.35,
+                    borderRadius: isBar ? 6 : 0,
+                    pointRadius: isBar ? 0 : 3,
+                    pointHoverRadius: isBar ? 0 : 6
+                }
+            ];
+        } else if (metricaEvolucaoAtual === 'financiamento') {
             return [
                 {
                     label: 'SUS',
@@ -890,8 +1336,7 @@
             ];
         }
 
-        // Padrão: Total
-        const config = mapasAgrupamentos[agrupamentoEvolucaoAtual] || mapasAgrupamentos.mes;
+        // Padrão: Total Atendimentos
         return [{
             label: 'Total de Atendimentos',
             data: config.data,
@@ -912,7 +1357,7 @@
 
         const config = mapasAgrupamentos[agrupamentoEvolucaoAtual] || mapasAgrupamentos.mes;
         const chartType = tipoGraficoEvolucaoAtual === 'bar' ? 'bar' : 'line';
-        const showLegend = metricaEvolucaoAtual !== 'total';
+        const showLegend = metricaEvolucaoAtual !== 'total' && metricaEvolucaoAtual !== 'pessoas';
 
         if (meuGraficoEvolucao) {
             meuGraficoEvolucao.destroy();
@@ -959,23 +1404,29 @@
     function alterarMetricaEvolucao(metrica) {
         metricaEvolucaoAtual = metrica;
         
-        ['Total', 'Financiamento', 'Status'].forEach(m => {
-            const btn = document.getElementById('btnMetrica' + m);
+        const metricas = {
+            total: 'btnMetricaTotal',
+            pessoas: 'btnMetricaPessoas',
+            comparativo_pessoas: 'btnMetricaComparativoPessoas',
+            financiamento: 'btnMetricaFinanciamento',
+            status: 'btnMetricaStatus'
+        };
+
+        Object.keys(metricas).forEach(m => {
+            const btn = document.getElementById(metricas[m]);
             if (btn) {
-                if (m.toLowerCase() === metrica) {
+                if (m === metrica) {
                     btn.className = "px-2.5 py-1 rounded-lg transition bg-white dark:bg-slate-800 text-cyan-600 dark:text-cyan-400 shadow-xs";
                 } else {
                     btn.className = "px-2.5 py-1 rounded-lg transition text-slate-600 dark:text-slate-400 hover:text-slate-900";
                 }
             }
         });
-
         renderizarGraficoEvolucao();
     }
 
     function alterarTipoGraficoEvolucao(tipo) {
         tipoGraficoEvolucaoAtual = tipo;
-
         const tipos = { line: 'btnTipoLinha', bar: 'btnTipoBarra', area: 'btnTipoArea' };
         Object.keys(tipos).forEach(t => {
             const btn = document.getElementById(tipos[t]);
@@ -987,7 +1438,6 @@
                 }
             }
         });
-
         renderizarGraficoEvolucao();
     }
 
@@ -998,7 +1448,10 @@
 
     // Inicialização de Todos os Gráficos
     document.addEventListener('DOMContentLoaded', function() {
-        // 0. Gráfico Inteligente Comparativo por Procedimento
+        // 0. Gráfico Inteligente de Tempos de Espera e Execução
+        renderizarGraficoTempos();
+
+        // 1. Gráfico Inteligente Comparativo por Procedimento (Chips)
         const ctxComparativo = document.getElementById('graficoComparativoProcedimentos');
         if (ctxComparativo) {
             const chartDatasets = rawDatasetsProcedimentos.map(ds => ({
@@ -1033,10 +1486,10 @@
             });
         }
 
-        // 1. Gráfico de Evolução Temporal Estratégica
+        // 2. Gráfico de Evolução Temporal Geral & Pessoas
         renderizarGraficoEvolucao();
 
-        // 2. Gráfico de Rosca (Financiamento)
+        // 3. Gráfico de Rosca (Financiamento)
         const ctxRosca = document.getElementById('graficoFinanciamentoRosca');
         if (ctxRosca) {
             new Chart(ctxRosca, {
@@ -1064,7 +1517,7 @@
             });
         }
 
-        // 3. Gráfico de Especialidades (Barras Horizontais)
+        // 4. Gráfico de Especialidades (Barras Horizontais)
         const ctxEsp = document.getElementById('graficoEspecialidadesBarra');
         if (ctxEsp) {
             const espObj = {{ dados.porEspecialidade|json_encode|raw }};
@@ -1095,7 +1548,7 @@
             });
         }
 
-        // 4. Gráfico Fluxo por Dia da Semana (Barras)
+        // 5. Gráfico Fluxo por Dia da Semana (Barras)
         const ctxDias = document.getElementById('graficoDiasSemanaBarra');
         if (ctxDias) {
             const diasObj = {{ dados.porDiaSemana|json_encode|raw }};
@@ -1122,7 +1575,7 @@
             });
         }
 
-        // 5. Gráfico Faixas Horárias (Área / Linha)
+        // 6. Gráfico Faixas Horárias (Área / Linha)
         const ctxHoras = document.getElementById('graficoFaixasHorariasArea');
         if (ctxHoras) {
             const horasObj = {{ dados.porFaixaHoraria|json_encode|raw }};
@@ -1153,7 +1606,7 @@
             });
         }
 
-        // 6. Gráfico Gênero (Rosca)
+        // 7. Gráfico Gênero (Rosca)
         const ctxGen = document.getElementById('graficoGeneroRosca');
         if (ctxGen) {
             const genObj = {{ dados.porGenero|json_encode|raw }};
@@ -1176,7 +1629,7 @@
             });
         }
 
-        // 7. Gráfico Faixa Etária (Barras)
+        // 8. Gráfico Faixa Etária (Barras)
         const ctxFx = document.getElementById('graficoFaixaEtariaBarra');
         if (ctxFx) {
             const fxObj = {{ dados.porFaixaEtaria|json_encode|raw }};
@@ -1203,7 +1656,7 @@
             });
         }
 
-        // 8. Gráfico Top Convênios (Barras Horizontais)
+        // 9. Gráfico Top Convênios (Barras Horizontais)
         const ctxConv = document.getElementById('graficoTopConveniosBarra');
         if (ctxConv) {
             const convObj = {{ dados.porConvenio|json_encode|raw }};

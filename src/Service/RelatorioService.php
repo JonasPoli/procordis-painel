@@ -97,6 +97,8 @@ class RelatorioService
             a.procedimentoNome,
             a.status,
             a.encaixe,
+            p.id as pacienteId,
+            p.cpf as pacienteCpf,
             p.nomeCompleto as pacienteNome,
             p.sexo as pacienteSexo,
             p.dataNascimento as pacienteNascimento,
@@ -114,6 +116,17 @@ class RelatorioService
         $countEncaixes = 0;
         $totalEsperaMinutos = 0;
         $countComEspera = 0;
+        $totalExecucaoMinutos = 0;
+        $countComExecucao = 0;
+
+        // Rastreamento de Pacientes / Pessoas Únicas por Período
+        $pacientesUnicosDia = [];
+        $pacientesUnicosMes = [];
+        $pacientesUnicosTrimestre = [];
+        $pacientesUnicosQuadrimestre = [];
+        $pacientesUnicosSemestre = [];
+        $pacientesUnicosAno = [];
+        $todosPacientesUnicosGeral = [];
 
         // Agrupamentos temporais e por entidade
         $porDia = [];
@@ -124,6 +137,9 @@ class RelatorioService
         $porSemestre = [];
         $porAno = [];
         $porProcedimento = [];
+        $porProcedimentoTempos = [];
+        $temposGeralTemporais = [];
+        $temposProcTemporais = [];
         $porEspecialidade = [];
         $porMedico = [];
         $detalhesMedicos = [];
@@ -231,6 +247,20 @@ class RelatorioService
             $porSemestre[$chaveSemestre] = ($porSemestre[$chaveSemestre] ?? 0) + 1;
             $porAno[$chaveAno] = ($porAno[$chaveAno] ?? 0) + 1;
 
+            // Rastrear Paciente Único (Pessoa Atendida)
+            $pacienteId = $item['pacienteId'] ?? null;
+            $pacienteCpf = $item['pacienteCpf'] ?? null;
+            $pacienteNome = $item['pacienteNome'] ?? 'desconhecido';
+            $chavePaciente = !empty($pacienteId) ? 'ID_'.$pacienteId : (!empty($pacienteCpf) ? 'CPF_'.$pacienteCpf : 'NAME_'.$pacienteNome);
+
+            $pacientesUnicosDia[$chaveDia][$chavePaciente] = true;
+            $pacientesUnicosMes[$chaveMes][$chavePaciente] = true;
+            $pacientesUnicosTrimestre[$chaveTrimestre][$chavePaciente] = true;
+            $pacientesUnicosQuadrimestre[$chaveQuadrimestre][$chavePaciente] = true;
+            $pacientesUnicosSemestre[$chaveSemestre][$chavePaciente] = true;
+            $pacientesUnicosAno[$chaveAno][$chavePaciente] = true;
+            $todosPacientesUnicosGeral[$chavePaciente] = true;
+
             // Dia da semana e Hora
             $numDiaSemana = (int) $dt->format('N');
             $nomeDiaSemana = $diasSemanaNomes[$numDiaSemana] ?? 'Outro';
@@ -272,14 +302,76 @@ class RelatorioService
                 $porFaixaEtaria['Não informada']++;
             }
 
-            // Tempo de Espera
-            $chegada = $item['horarioChegada'] ?? null;
-            $inicioConsulta = $item['horarioInicioConsulta'] ?? $item['horarioSaida'] ?? $item['horarioFimConsulta'] ?? null;
+            // 1. Tempo de Espera (minutos)
+            $chegada = $item['horarioChegada'] ?? $item['dataHoraAgendada'] ?? null;
+            $inicioConsulta = $item['horarioInicioConsulta'] ?? null;
+            $esperaMin = null;
             if ($chegada instanceof \DateTimeInterface && $inicioConsulta instanceof \DateTimeInterface) {
                 $diffSec = $inicioConsulta->getTimestamp() - $chegada->getTimestamp();
-                if ($diffSec > 0 && $diffSec < 43200) { // menos de 12 horas
-                    $totalEsperaMinutos += ($diffSec / 60);
+                if ($diffSec >= 0 && $diffSec < 43200) { // menos de 12 horas
+                    $esperaMin = round($diffSec / 60, 1);
+                    $totalEsperaMinutos += $esperaMin;
                     $countComEspera++;
+                }
+            }
+
+            // 2. Tempo de Execução / Atendimento (minutos)
+            $fimConsulta = $item['horarioFimConsulta'] ?? $item['horarioSaida'] ?? null;
+            $execucaoMin = null;
+            if ($inicioConsulta instanceof \DateTimeInterface && $fimConsulta instanceof \DateTimeInterface) {
+                $diffExecSec = $fimConsulta->getTimestamp() - $inicioConsulta->getTimestamp();
+                if ($diffExecSec > 0 && $diffExecSec < 28800) { // menos de 8 horas
+                    $execucaoMin = round($diffExecSec / 60, 1);
+                    $totalExecucaoMinutos += $execucaoMin;
+                    $countComExecucao++;
+                }
+            }
+
+            $nomeProc = $item['procedimentoNome'] ?? 'Consulta / Procedimento Geral';
+            $porProcedimento[$nomeProc] = ($porProcedimento[$nomeProc] ?? 0) + 1;
+
+            // Acumular tempos consolidados por procedimento
+            if (!isset($porProcedimentoTempos[$nomeProc])) {
+                $porProcedimentoTempos[$nomeProc] = ['somaEspera' => 0, 'countEspera' => 0, 'somaExec' => 0, 'countExec' => 0];
+            }
+            if ($esperaMin !== null) {
+                $porProcedimentoTempos[$nomeProc]['somaEspera'] += $esperaMin;
+                $porProcedimentoTempos[$nomeProc]['countEspera']++;
+            }
+            if ($execucaoMin !== null) {
+                $porProcedimentoTempos[$nomeProc]['somaExec'] += $execucaoMin;
+                $porProcedimentoTempos[$nomeProc]['countExec']++;
+            }
+
+            // Acumular tempos nas modalidades temporais
+            $modalidadesChaves = [
+                'dia' => $chaveDia,
+                'mes' => $chaveMes,
+                'trimestre' => $chaveTrimestre,
+                'quadrimestre' => $chaveQuadrimestre,
+                'semestre' => $chaveSemestre,
+                'ano' => $chaveAno,
+            ];
+
+            foreach ($modalidadesChaves as $mod => $k) {
+                if (!isset($temposGeralTemporais[$mod][$k])) {
+                    $temposGeralTemporais[$mod][$k] = ['somaEspera' => 0, 'countEspera' => 0, 'somaExec' => 0, 'countExec' => 0];
+                }
+                if (!isset($temposProcTemporais[$nomeProc][$mod][$k])) {
+                    $temposProcTemporais[$nomeProc][$mod][$k] = ['somaEspera' => 0, 'countEspera' => 0, 'somaExec' => 0, 'countExec' => 0];
+                }
+
+                if ($esperaMin !== null) {
+                    $temposGeralTemporais[$mod][$k]['somaEspera'] += $esperaMin;
+                    $temposGeralTemporais[$mod][$k]['countEspera']++;
+                    $temposProcTemporais[$nomeProc][$mod][$k]['somaEspera'] += $esperaMin;
+                    $temposProcTemporais[$nomeProc][$mod][$k]['countEspera']++;
+                }
+                if ($execucaoMin !== null) {
+                    $temposGeralTemporais[$mod][$k]['somaExec'] += $execucaoMin;
+                    $temposGeralTemporais[$mod][$k]['countExec']++;
+                    $temposProcTemporais[$nomeProc][$mod][$k]['somaExec'] += $execucaoMin;
+                    $temposProcTemporais[$nomeProc][$mod][$k]['countExec']++;
                 }
             }
 
@@ -290,9 +382,6 @@ class RelatorioService
             $porFinanciamentoIntervalo[$finKey]['quadrimestre'][$chaveQuadrimestre] = ($porFinanciamentoIntervalo[$finKey]['quadrimestre'][$chaveQuadrimestre] ?? 0) + 1;
             $porFinanciamentoIntervalo[$finKey]['semestre'][$chaveSemestre] = ($porFinanciamentoIntervalo[$finKey]['semestre'][$chaveSemestre] ?? 0) + 1;
             $porFinanciamentoIntervalo[$finKey]['ano'][$chaveAno] = ($porFinanciamentoIntervalo[$finKey]['ano'][$chaveAno] ?? 0) + 1;
-
-            $nomeProc = $item['procedimentoNome'] ?? 'Consulta / Procedimento Geral';
-            $porProcedimento[$nomeProc] = ($porProcedimento[$nomeProc] ?? 0) + 1;
 
             if (!isset($porProcedimentoIntervalo[$nomeProc])) {
                 $porProcedimentoIntervalo[$nomeProc] = [
@@ -379,7 +468,10 @@ class RelatorioService
         
         $totalCancelados = ($porStatus['CANCELADO'] ?? 0) + ($porStatus['FALTOU'] ?? 0) + ($porStatus['DESMARCADO'] ?? 0);
         $taxaCancelamentoGeral = $totalProcedimentos > 0 ? round(($totalCancelados / $totalProcedimentos) * 100, 1) : 0;
+        
         $tempoMedioEsperaMin = $countComEspera > 0 ? round($totalEsperaMinutos / $countComEspera, 1) : 0;
+        $tempoMedioExecucaoMin = $countComExecucao > 0 ? round($totalExecucaoMinutos / $countComExecucao, 1) : 0;
+        $tempoMedioPermanenciaMin = round($tempoMedioEsperaMin + $tempoMedioExecucaoMin, 1);
 
         // Ordenar dados
         ksort($porDia);
@@ -405,6 +497,130 @@ class RelatorioService
             'semestre' => array_keys($porSemestre),
             'ano' => array_keys($porAno),
         ];
+
+        // Pessoas Atendidas (Pacientes Únicos) por Intervalo
+        $porPessoasDia = [];
+        foreach ($porDia as $k => $v) {
+            $porPessoasDia[$k] = count($pacientesUnicosDia[$k] ?? []);
+        }
+
+        $porPessoasMes = [];
+        foreach ($porMes as $k => $v) {
+            $porPessoasMes[$k] = count($pacientesUnicosMes[$k] ?? []);
+        }
+
+        $porPessoasTrimestre = [];
+        foreach ($porTrimestre as $k => $v) {
+            $porPessoasTrimestre[$k] = count($pacientesUnicosTrimestre[$k] ?? []);
+        }
+
+        $porPessoasQuadrimestre = [];
+        foreach ($porQuadrimestre as $k => $v) {
+            $porPessoasQuadrimestre[$k] = count($pacientesUnicosQuadrimestre[$k] ?? []);
+        }
+
+        $porPessoasSemestre = [];
+        foreach ($porSemestre as $k => $v) {
+            $porPessoasSemestre[$k] = count($pacientesUnicosSemestre[$k] ?? []);
+        }
+
+        $porPessoasAno = [];
+        foreach ($porAno as $k => $v) {
+            $porPessoasAno[$k] = count($pacientesUnicosAno[$k] ?? []);
+        }
+
+        $seriesPessoas = [
+            'dia' => array_values($porPessoasDia),
+            'mes' => array_values($porPessoasMes),
+            'trimestre' => array_values($porPessoasTrimestre),
+            'quadrimestre' => array_values($porPessoasQuadrimestre),
+            'semestre' => array_values($porPessoasSemestre),
+            'ano' => array_values($porPessoasAno),
+        ];
+
+        $totalPessoasUnicas = count($todosPacientesUnicosGeral);
+        $mediaProcedimentosPorPessoa = $totalPessoasUnicas > 0 ? round($totalProcedimentos / $totalPessoasUnicas, 2) : 0;
+
+        // Séries de Tempos Geral (Espera e Execução) por Intervalo
+        $seriesTemposGeral = [
+            'espera' => [],
+            'execucao' => [],
+            'total' => [],
+        ];
+        foreach ($chavesTemporais as $mod => $keys) {
+            $arrEsp = [];
+            $arrExec = [];
+            $arrTot = [];
+            foreach ($keys as $k) {
+                $cEsp = $temposGeralTemporais[$mod][$k]['countEspera'] ?? 0;
+                $sEsp = $temposGeralTemporais[$mod][$k]['somaEspera'] ?? 0;
+                $mEsp = $cEsp > 0 ? round($sEsp / $cEsp, 1) : 0;
+
+                $cExec = $temposGeralTemporais[$mod][$k]['countExec'] ?? 0;
+                $sExec = $temposGeralTemporais[$mod][$k]['somaExec'] ?? 0;
+                $mExec = $cExec > 0 ? round($sExec / $cExec, 1) : 0;
+
+                $arrEsp[] = $mEsp;
+                $arrExec[] = $mExec;
+                $arrTot[] = round($mEsp + $mExec, 1);
+            }
+            $seriesTemposGeral['espera'][$mod] = $arrEsp;
+            $seriesTemposGeral['execucao'][$mod] = $arrExec;
+            $seriesTemposGeral['total'][$mod] = $arrTot;
+        }
+
+        // Séries de Tempos Individuais por Procedimento por Intervalo
+        $seriesTemposProcedimentos = [];
+        foreach ($porProcedimento as $procName => $count) {
+            $seriesTemposProcedimentos[$procName] = [
+                'espera' => [],
+                'execucao' => [],
+                'total' => [],
+            ];
+            foreach ($chavesTemporais as $mod => $keys) {
+                $arrEsp = [];
+                $arrExec = [];
+                $arrTot = [];
+                foreach ($keys as $k) {
+                    $cEsp = $temposProcTemporais[$procName][$mod][$k]['countEspera'] ?? 0;
+                    $sEsp = $temposProcTemporais[$procName][$mod][$k]['somaEspera'] ?? 0;
+                    $mEsp = $cEsp > 0 ? round($sEsp / $cEsp, 1) : 0;
+
+                    $cExec = $temposProcTemporais[$procName][$mod][$k]['countExec'] ?? 0;
+                    $sExec = $temposProcTemporais[$procName][$mod][$k]['somaExec'] ?? 0;
+                    $mExec = $cExec > 0 ? round($sExec / $cExec, 1) : 0;
+
+                    $arrEsp[] = $mEsp;
+                    $arrExec[] = $mExec;
+                    $arrTot[] = round($mEsp + $mExec, 1);
+                }
+                $seriesTemposProcedimentos[$procName]['espera'][$mod] = $arrEsp;
+                $seriesTemposProcedimentos[$procName]['execucao'][$mod] = $arrExec;
+                $seriesTemposProcedimentos[$procName]['total'][$mod] = $arrTot;
+            }
+        }
+
+        // Tabela consolidada de tempos por procedimento
+        $tabelaTemposProcedimentos = [];
+        foreach ($porProcedimento as $procName => $count) {
+            $sEsp = $porProcedimentoTempos[$procName]['somaEspera'] ?? 0;
+            $cEsp = $porProcedimentoTempos[$procName]['countEspera'] ?? 0;
+            $mediaEsp = $cEsp > 0 ? round($sEsp / $cEsp, 1) : 0;
+
+            $sExec = $porProcedimentoTempos[$procName]['somaExec'] ?? 0;
+            $cExec = $porProcedimentoTempos[$procName]['countExec'] ?? 0;
+            $mediaExec = $cExec > 0 ? round($sExec / $cExec, 1) : 0;
+
+            $tabelaTemposProcedimentos[] = [
+                'nome' => $procName,
+                'totalAtendimentos' => $count,
+                'mediaEsperaMin' => $mediaEsp,
+                'mediaExecucaoMin' => $mediaExec,
+                'mediaPermanenciaMin' => round($mediaEsp + $mediaExec, 1),
+                'medicoesEspera' => $cEsp,
+                'medicoesExec' => $cExec,
+            ];
+        }
 
         // Séries de Financiamento por Intervalo
         $seriesFinanciamento = [];
@@ -506,7 +722,12 @@ class RelatorioService
                 'totalCancelados' => $totalCancelados,
                 'taxaCancelamentoGeral' => $taxaCancelamentoGeral,
                 'tempoMedioEsperaMin' => $tempoMedioEsperaMin,
+                'tempoMedioExecucaoMin' => $tempoMedioExecucaoMin,
+                'tempoMedioPermanenciaMin' => $tempoMedioPermanenciaMin,
             ],
+            'seriesTemposGeral' => $seriesTemposGeral,
+            'seriesTemposProcedimentos' => $seriesTemposProcedimentos,
+            'tabelaTemposProcedimentos' => $tabelaTemposProcedimentos,
             'detalhesMedicos' => $detalhesMedicos,
             'porConvenio' => $porConvenio,
             'porGenero' => $porGenero,
@@ -522,6 +743,15 @@ class RelatorioService
             ],
             'seriesFinanciamento' => $seriesFinanciamento,
             'seriesStatus' => $seriesStatus,
+            'seriesPessoas' => $seriesPessoas,
+            'totalPessoasUnicas' => $totalPessoasUnicas,
+            'mediaProcedimentosPorPessoa' => $mediaProcedimentosPorPessoa,
+            'porPessoasDia' => $porPessoasDia,
+            'porPessoasMes' => $porPessoasMes,
+            'porPessoasTrimestre' => $porPessoasTrimestre,
+            'porPessoasQuadrimestre' => $porPessoasQuadrimestre,
+            'porPessoasSemestre' => $porPessoasSemestre,
+            'porPessoasAno' => $porPessoasAno,
             'mediaDia' => $mediaDia,
             'porDia' => $porDia,
             'porDiaKeys' => array_keys($porDia),
