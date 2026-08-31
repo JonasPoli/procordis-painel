@@ -17,12 +17,28 @@
 
     <!-- Painel de Controle de Período -->
     <div class="bg-white/80 dark:bg-slate-900/80 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-        <h3 class="text-base font-bold text-slate-900 dark:text-white">Configurar Período de Re-Sincronização Profunda</h3>
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 dark:border-slate-800 pb-3">
+            <div>
+                <h3 class="text-base font-bold text-slate-900 dark:text-white">Configurar Período de Re-Sincronização Profunda</h3>
+                <p class="text-xs text-slate-500">Defina o intervalo ou detecte a primeira data histórica registrada na API do Medware.</p>
+            </div>
+            
+            <button type="button" id="btnDetectarData" onclick="detectarPrimeiraDataApi()" class="py-1.5 px-3 bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 font-bold text-xs rounded-xl border border-indigo-500/30 transition flex items-center gap-1.5">
+                <sl-icon name="search"></sl-icon> Detectar Primeira Data na API Medware
+            </button>
+        </div>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-                <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Data Inicial</label>
-                <input type="date" id="inputDataInicio" value="{{ "now"|date_modify("-6 months")|date("Y-m-d") }}" class="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-sm font-medium">
+                <div class="flex justify-between items-center mb-1">
+                    <label class="block text-xs font-bold uppercase text-slate-500">Data Inicial</label>
+                    {% if menorDataBancoFormatada %}
+                        <button type="button" onclick="usarMenorDataBanco('{{ menorDataBanco }}')" class="text-[10px] text-cyan-600 dark:text-cyan-400 font-bold underline hover:text-cyan-500">
+                            Banco local: {{ menorDataBancoFormatada }}
+                        </button>
+                    {% endif %}
+                </div>
+                <input type="date" id="inputDataInicio" value="{{ menorDataBanco|default("now"|date_modify("-6 months")|date("Y-m-d")) }}" class="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-sm font-medium">
             </div>
             <div>
                 <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Data Final</label>
@@ -298,6 +314,37 @@
         const btn = document.getElementById('btnIniciarSync');
         btn.disabled = false;
         btn.innerHTML = `<sl-icon name="check-lg"></sl-icon> Processamento Concluído (Rodar Novamente)`;
+    }
+
+    function usarMenorDataBanco(dataIso) {
+        if (dataIso) {
+            document.getElementById('inputDataInicio').value = dataIso;
+        }
+    }
+
+    async function detectarPrimeiraDataApi() {
+        const btn = document.getElementById('btnDetectarData');
+        const txtOriginal = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = `<sl-icon name="arrow-repeat" class="animate-spin mr-1"></sl-icon> Sondando API Medware...`;
+
+        try {
+            const res = await fetch('/admin/sincronizacao/detectar-primeira-data');
+            const data = await res.json();
+
+            if (data.sucesso && data.primeiraData) {
+                document.getElementById('inputDataInicio').value = data.primeiraData;
+                alert(`Primeira data registrada encontrada na API Medware: ${data.primeiraDataFormatada} (Ano ${data.ano} com ${data.totalNoAno} registros). A Data Inicial foi preenchida automaticamente!`);
+            } else {
+                alert(data.mensagem || 'Não foi possível encontrar registros em anos anteriores.');
+            }
+        } catch (e) {
+            console.error(e);
+            alert('Falha ao comunicar com a API para detectar a primeira data.');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = txtOriginal;
+        }
     }
 
     function logConsole(msg) {

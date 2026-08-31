@@ -9,18 +9,33 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
+use App\Repository\AgendamentoRepository;
+
 #[Route('/admin/sincronizacao', name: 'app_admin_sincronizacao_')]
 class SincronizacaoAdminController extends AbstractController
 {
     public function __construct(
-        private MedwareApiClientService $medwareClient
+        private MedwareApiClientService $medwareClient,
+        private AgendamentoRepository $agendamentoRepo
     ) {
     }
 
     #[Route('', name: 'index', methods: ['GET'])]
     public function index(): Response
     {
-        return $this->render('admin/sincronizacao/index.html.twig');
+        $menorDataBanco = $this->agendamentoRepo->obterMenorDataBanco();
+
+        return $this->render('admin/sincronizacao/index.html.twig', [
+            'menorDataBanco' => $menorDataBanco ? $menorDataBanco->format('Y-m-d') : null,
+            'menorDataBancoFormatada' => $menorDataBanco ? $menorDataBanco->format('d/m/Y') : null,
+        ]);
+    }
+
+    #[Route('/detectar-primeira-data', name: 'detectar_primeira_data', methods: ['GET'])]
+    public function detectarPrimeiraData(): JsonResponse
+    {
+        $res = $this->medwareClient->descobrirPrimeiraDataApi();
+        return new JsonResponse($res);
     }
 
     #[Route('/iniciar', name: 'iniciar', methods: ['POST'])]

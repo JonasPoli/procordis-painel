@@ -399,6 +399,52 @@ class MedwareApiClientService
         ];
     }
 
+    /**
+     * Sonda retroativamente a API Medware em saltos anuais para descobrir qual a primeira data registrada no sistema antigo.
+     */
+    public function descobrirPrimeiraDataApi(): array
+    {
+        $hoje = new \DateTime();
+        $anoAtual = (int) $hoje->format('Y');
+
+        // Testar anos retroativos de trás para frente (até 25 anos atrás)
+        for ($ano = $anoAtual - 25; $ano <= $anoAtual; $ano++) {
+            $dtInicio = new \DateTime("{$ano}-01-01");
+            $dtFim = new \DateTime("{$ano}-12-31");
+
+            $items = $this->listarAgendamentos($dtInicio, $dtFim);
+            if (!empty($items)) {
+                // Achamos o primeiro ano com registros! Agora refinar para achar o dia/mês exato
+                $primeiroItem = $items[0];
+                $dtPrimeiro = $this->parseDateTime($primeiroItem['dataHoraAgendada'] ?? null) ?? $dtInicio;
+
+                foreach ($items as $it) {
+                    $dtCandidate = $this->parseDateTime($it['dataHoraAgendada'] ?? null);
+                    if ($dtCandidate && $dtCandidate < $dtPrimeiro) {
+                        $dtPrimeiro = $dtCandidate;
+                    }
+                }
+
+                return [
+                    'sucesso' => true,
+                    'primeiraData' => $dtPrimeiro->format('Y-m-d'),
+                    'primeiraDataFormatada' => $dtPrimeiro->format('d/m/Y'),
+                    'ano' => $ano,
+                    'totalNoAno' => count($items)
+                ];
+            }
+        }
+
+        // Se não achou em nenhum ano antigo, retorna 1 ano atrás por padrão
+        $dtFallback = (clone $hoje)->modify('-1 year');
+        return [
+            'sucesso' => false,
+            'primeiraData' => $dtFallback->format('Y-m-d'),
+            'primeiraDataFormatada' => $dtFallback->format('d/m/Y'),
+            'mensagem' => 'Nenhum registro encontrado em anos anteriores na API Medware. Retornando padrão de 1 ano atrás.'
+        ];
+    }
+
     private function parseDateTime(?string $dateStr): ?\DateTime
     {
         if (empty($dateStr) || trim($dateStr) === '') {
