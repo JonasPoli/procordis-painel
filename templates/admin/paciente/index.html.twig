@@ -5,15 +5,28 @@
 {% block body %}
 <div class="max-w-7xl mx-auto space-y-6">
     <sl-card class="w-full">
-        <div slot="header" class="flex items-center justify-between">
+        <div slot="header" class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div class="flex items-center gap-3">
                 <sl-icon name="people" class="text-3xl text-sky-500"></sl-icon>
                 <div>
                     <h2 class="text-xl font-bold dark:text-white">Cadastro de Pacientes</h2>
-                    <p class="text-xs text-slate-500 dark:text-slate-400">Listagem de pacientes cadastrados com anonimização LGPD para exibição pública</p>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Consulte os prontuários completos e dados cadastrais dos pacientes</p>
                 </div>
             </div>
         </div>
+
+        <!-- Formulário de Pesquisa de Pacientes -->
+        <form method="GET" action="{{ path('app_admin_paciente_index') }}" class="p-3 bg-slate-50 dark:bg-slate-900/60 rounded-xl border border-slate-200 dark:border-slate-800 flex gap-2 mb-4">
+            <input type="text" name="busca" value="{{ busca }}" placeholder="Pesquisar por Nome Completo, CPF, Celular ou Código..." class="flex-1 p-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg text-xs">
+            <button type="submit" class="py-2 px-4 bg-cyan-600 hover:bg-cyan-700 text-white font-bold rounded-lg text-xs transition flex items-center gap-1.5">
+                <sl-icon name="search"></sl-icon> Buscar
+            </button>
+            {% if busca %}
+                <a href="{{ path('app_admin_paciente_index') }}" class="py-2 px-3 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold rounded-lg text-xs transition">
+                    Limpar
+                </a>
+            {% endif %}
+        </form>
 
         <div class="overflow-x-auto">
             <table class="w-full text-left text-sm border-collapse">
@@ -24,6 +37,7 @@
                         <th class="py-3 px-4">Nome Exibição (LGPD)</th>
                         <th class="py-3 px-4">CPF</th>
                         <th class="py-3 px-4">Celular</th>
+                        <th class="py-3 px-4 text-right">Prontuário</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100 dark:divide-slate-800/60">
@@ -34,10 +48,16 @@
                             <td class="py-3 px-4 font-bold text-cyan-500">{{ p.nomeExibicao }}</td>
                             <td class="py-3 px-4 font-mono text-xs text-slate-500">{{ p.cpf ?? '***.***.***-**' }}</td>
                             <td class="py-3 px-4 font-mono text-xs text-slate-500">{{ p.celular ?? '(81) 9****-****' }}</td>
+                            <td class="py-3 px-4 text-right">
+                                <sl-button size="small" variant="primary" href="{{ path('app_admin_paciente_prontuario', {id: p.id}) }}">
+                                    <sl-icon slot="prefix" name="journal-medical"></sl-icon>
+                                    Abrir Prontuário
+                                </sl-button>
+                            </td>
                         </tr>
                     {% else %}
                         <tr>
-                            <td colspan="5" class="text-center py-8 text-slate-400">Nenhum paciente cadastrado.</td>
+                            <td colspan="6" class="text-center py-8 text-slate-400">Nenhum paciente encontrado.</td>
                         </tr>
                     {% endfor %}
                 </tbody>

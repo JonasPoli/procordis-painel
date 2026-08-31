@@ -1,0 +1,136 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}Prontuário de {{ paciente.nomeCompleto }}{% endblock %}
+
+{% block body %}
+<div class="max-w-7xl mx-auto space-y-6">
+    <!-- Cabeçalho do Prontuário -->
+    <div class="bg-white/80 dark:bg-slate-900/80 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm backdrop-blur flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div class="flex items-center gap-4">
+            <div class="h-14 w-14 rounded-2xl bg-cyan-500/10 text-cyan-500 flex items-center justify-center font-bold text-2xl border border-cyan-500/20">
+                {{ paciente.nomeCompleto|slice(0, 1)|upper }}
+            </div>
+            <div>
+                <div class="flex items-center gap-2">
+                    <h1 class="text-2xl font-black text-slate-900 dark:text-white">{{ paciente.nomeCompleto }}</h1>
+                    <sl-badge variant="primary" pill class="font-mono text-xs">{{ paciente.codigoExterno }}</sl-badge>
+                </div>
+                <div class="flex flex-wrap items-center gap-4 text-xs text-slate-500 mt-1">
+                    <span><strong>CPF:</strong> {{ paciente.cpf|default('Não informado') }}</span>
+                    <span>•</span>
+                    <span><strong>Data de Nascimento:</strong> {{ paciente.dataNascimento ? paciente.dataNascimento|date('d/m/Y') : 'Não informada' }}</span>
+                    <span>•</span>
+                    <span><strong>Celular:</strong> {{ paciente.celular|default('Não informado') }}</span>
+                </div>
+            </div>
+        </div>
+
+        <a href="{{ path('app_admin_paciente_index') }}" class="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold rounded-xl text-xs transition flex items-center gap-1.5 self-start md:self-auto">
+            <sl-icon name="arrow-left"></sl-icon> Voltar aos Pacientes
+        </a>
+    </div>
+
+    <!-- Linha do Tempo de Atendimentos & Exames -->
+    <div class="space-y-4">
+        <h3 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <sl-icon name="journal-medical" class="text-cyan-500"></sl-icon> Histórico Clínico de Atendimentos & Exames ({{ agendamentos|length }})
+        </h3>
+
+        {% for a in agendamentos %}
+            <div class="bg-white/80 dark:bg-slate-900/80 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 dark:border-slate-800 pb-3">
+                    <div class="flex items-center gap-3">
+                        <div class="h-9 w-9 rounded-xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center font-bold">
+                            <sl-icon name="calendar-check"></sl-icon>
+                        </div>
+                        <div>
+                            <span class="text-xs font-mono font-bold text-indigo-400">Atendimento {{ a.codigoAgendamento }}</span>
+                            <h4 class="text-base font-bold dark:text-white">{{ a.procedimentoNome }}</h4>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs font-mono text-slate-500">
+                            {{ a.dataHoraAgendada ? a.dataHoraAgendada|date('d/m/Y H:i') : '--/--/----' }}
+                        </span>
+                        {% if a.tipoAtendimento == 'sus' %}
+                            <sl-badge variant="success" size="small">SUS</sl-badge>
+                        {% elseif a.tipoAtendimento == 'filantropico' %}
+                            <sl-badge variant="neutral" size="small">Filantrópico</sl-badge>
+                        {% else %}
+                            <sl-badge variant="primary" size="small">{{ a.convenioNome|default('Particular/Convênio') }}</sl-badge>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Detalhes do Médico & Local -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                    <div>
+                        <span class="block text-slate-400 font-bold uppercase text-[10px]">Médico Responsável</span>
+                        <p class="font-semibold text-slate-800 dark:text-slate-200">{{ a.medico ? a.medico.nome : 'Médico Plantonista' }}</p>
+                        {% if a.medico and a.medico.crm %}
+                            <p class="text-[10px] font-mono text-slate-400">{{ a.medico.crm }}</p>
+                        {% endif %}
+                    </div>
+
+                    <div>
+                        <span class="block text-slate-400 font-bold uppercase text-[10px]">Especialidade / Setor</span>
+                        <p class="font-semibold text-slate-800 dark:text-slate-200">{{ a.especialidade ? a.especialidade.nome : 'Clínica Geral' }}</p>
+                    </div>
+
+                    <div>
+                        <span class="block text-slate-400 font-bold uppercase text-[10px]">Status do Atendimento</span>
+                        <sl-badge variant="neutral" pill>{{ a.status|upper }}</sl-badge>
+                    </div>
+                </div>
+
+                <!-- Anamneses e Sinais Vitais do Atendimento -->
+                {% set etapasComAnamnese = [] %}
+                {% for et in a.etapasHistorico %}
+                    {% if et.pressaoArterial or et.queixaPrincipal or et.classificacaoRisco %}
+                        {% set etapasComAnamnese = etapasComAnamnese|merge([et]) %}
+                    {% endif %}
+                {% endfor %}
+
+                {% if etapasComAnamnese|length > 0 %}
+                    <div class="mt-3 p-4 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 space-y-3">
+                        <span class="text-xs font-bold uppercase tracking-wider text-cyan-500 flex items-center gap-1.5">
+                            <sl-icon name="heart-pulse"></sl-icon> Ficha de Anamnese & Triagem de Enfermagem
+                        </span>
+
+                        {% for et in etapasComAnamnese %}
+                            <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs border-b border-slate-200 dark:border-slate-800/60 pb-2 last:border-none last:pb-0">
+                                <div>
+                                    <span class="text-[10px] text-slate-400 font-bold uppercase block">Pressão Arterial</span>
+                                    <span class="font-bold text-slate-800 dark:text-slate-200">{{ et.pressaoArterial|default('--/--') }} mmHg</span>
+                                </div>
+                                <div>
+                                    <span class="text-[10px] text-slate-400 font-bold uppercase block">Freq. Cardíaca</span>
+                                    <span class="font-bold text-slate-800 dark:text-slate-200">{{ et.frequenciaCardiaca|default('--') }} bpm</span>
+                                </div>
+                                <div>
+                                    <span class="text-[10px] text-slate-400 font-bold uppercase block">Peso</span>
+                                    <span class="font-bold text-slate-800 dark:text-slate-200">{{ et.peso|default('--') }} kg</span>
+                                </div>
+                                <div>
+                                    <span class="text-[10px] text-slate-400 font-bold uppercase block">Classificação Risco</span>
+                                    <span class="font-bold text-rose-500 dark:text-rose-400">{{ et.classificacaoRisco|default('Normal')|upper }}</span>
+                                </div>
+                                {% if et.queixaPrincipal %}
+                                    <div class="col-span-full mt-1 text-slate-600 dark:text-slate-300">
+                                        <strong>Queixa Principal:</strong> "{{ et.queixaPrincipal }}"
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+        {% else %}
+            <div class="bg-white/80 dark:bg-slate-900/80 p-8 rounded-2xl border border-slate-200 dark:border-slate-800 text-center text-slate-400">
+                Nenhum atendimento ou exame histórico encontrado para este paciente.
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
