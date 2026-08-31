@@ -38,10 +38,22 @@
 
     <!-- Card de Progresso & Métricas em Tempo Real (Escondido inicialmente) -->
     <div id="cardProgresso" class="hidden bg-white/80 dark:bg-slate-900/80 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 dark:border-slate-800 pb-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
             <div>
                 <span class="text-xs font-bold uppercase tracking-wider text-cyan-500">Status do Processamento</span>
-                <h3 id="txtStatusHeader" class="text-xl font-black text-slate-900 dark:text-white">Processando Lotes...</h3>
+                <h3 id="txtStatusHeader" class="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
+                    <sl-spinner class="text-cyan-500 text-lg"></sl-spinner> Processando Lotes Dia a Dia...
+                </h3>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <button type="button" id="btnPausarSync" onclick="pausarOuRetomarSincronizacao()" class="py-2 px-3.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl transition shadow flex items-center gap-1.5">
+                    <sl-icon name="pause-fill"></sl-icon> <span id="txtBtnPausar">Pausar</span>
+                </button>
+
+                <button type="button" id="btnPararSync" onclick="pararSincronizacao()" class="py-2 px-3.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl transition shadow flex items-center gap-1.5">
+                    <sl-icon name="stop-fill"></sl-icon> Interromper / Parar
+                </button>
             </div>
 
             <div class="flex items-center gap-4 bg-slate-50 dark:bg-slate-950/80 px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-800">
@@ -101,6 +113,8 @@
     let totalAtualizados = 0;
     let timerInterval = null;
     let tempoInicio = null;
+    let isPausado = false;
+    let isInterrompido = false;
 
     async function iniciarSincronizacao() {
         const dataInicio = document.getElementById('inputDataInicio').value;
@@ -109,6 +123,12 @@
 
         btn.disabled = true;
         btn.innerHTML = `<sl-icon name="arrow-repeat" class="animate-spin mr-2"></sl-icon> Inicializando...`;
+
+        isPausado = false;
+        isInterrompido = false;
+        document.getElementById('txtBtnPausar').innerText = 'Pausar';
+        document.getElementById('btnPausarSync').classList.remove('bg-emerald-600', 'hover:bg-emerald-700');
+        document.getElementById('btnPausarSync').classList.add('bg-amber-600', 'hover:bg-amber-700');
 
         try {
             const formData = new FormData();
@@ -131,7 +151,8 @@
                 tempoInicio = Date.now();
 
                 document.getElementById('cardProgresso').classList.remove('hidden');
-                document.getElementById('consoleLog').innerHTML = `<p class="text-emerald-400">[INÍCIO] Sessão de sincronização iniciada com ${totalDias} dia(s) a processar.</p>`;
+                document.getElementById('txtStatusHeader').innerHTML = `<sl-spinner class="text-cyan-500 text-lg"></sl-spinner> Processando Lotes Dia a Dia...`;
+                document.getElementById('consoleLog').innerHTML = `<p class="text-emerald-400">[INÍCIO] Sessão de sincronização em lote (Post API) iniciada com ${totalDias} dia(s) a processar.</p>`;
 
                 iniciarTimerTempo();
                 processarProximoLote();
@@ -147,14 +168,55 @@
         }
     }
 
+    function pausarOuRetomarSincronizacao() {
+        if (isInterrompido) return;
+
+        isPausado = !isPausado;
+        const btnPausar = document.getElementById('btnPausarSync');
+        const txtBtn = document.getElementById('txtBtnPausar');
+
+        if (isPausado) {
+            txtBtn.innerText = 'Retomar';
+            btnPausar.classList.remove('bg-amber-600', 'hover:bg-amber-700');
+            btnPausar.classList.add('bg-emerald-600', 'hover:bg-emerald-700');
+            logConsole(`<span class="text-amber-400 font-bold">[PAUSA] Sincronização pausada pelo usuário.</span>`);
+            document.getElementById('txtStatusHeader').innerHTML = `<sl-icon name="pause-circle-fill" class="text-amber-500 text-xl"></sl-icon> Processamento Pausado`;
+        } else {
+            txtBtn.innerText = 'Pausar';
+            btnPausar.classList.remove('bg-emerald-600', 'hover:bg-emerald-700');
+            btnPausar.classList.add('bg-amber-600', 'hover:bg-amber-700');
+            logConsole(`<span class="text-cyan-400 font-bold">[RETOMADA] Sincronização retomada...</span>`);
+            document.getElementById('txtStatusHeader').innerHTML = `<sl-spinner class="text-cyan-500 text-lg"></sl-spinner> Processando Lotes Dia a Dia...`;
+            processarProximoLote();
+        }
+    }
+
+    function pararSincronizacao() {
+        if (confirm('Deseja realmente interromper o processo de sincronização atual?')) {
+            isInterrompido = true;
+            if (timerInterval) clearInterval(timerInterval);
+
+            logConsole(`<span class="text-rose-400 font-bold">[INTERRUPÇÃO] Processamento interrompido pelo usuário. Total parcial: ${totalProcessados} registros.</span>`);
+            document.getElementById('txtStatusHeader').innerHTML = `<sl-icon name="x-circle-fill" class="text-rose-500 text-xl"></sl-icon> Processamento Interrompido`;
+            document.getElementById('txtTempoRestante').innerText = "Interrompido";
+
+            const btn = document.getElementById('btnIniciarSync');
+            btn.disabled = false;
+            btn.innerHTML = `<sl-icon name="play-fill"></sl-icon> Iniciar Nova Sincronização`;
+        }
+    }
+
     async function processarProximoLote() {
+        if (isInterrompido) return;
+        if (isPausado) return;
+
         if (indexAtual >= totalDias) {
             finalizarSincronizacao();
             return;
         }
 
         const diaAtual = listaDias[indexAtual];
-        logConsole(`[PROCESSO] Sincronizando lote do dia ${diaAtual}...`);
+        logConsole(`[PROCESSO] Requisitando POST dia <strong class="text-white">${diaAtual}</strong> via API local...`);
 
         try {
             const formData = new FormData();
@@ -171,19 +233,28 @@
                 totalNovos += data.novos;
                 totalAtualizados += data.atualizados;
 
-                logConsole(`<span class="text-emerald-400">[OK] ${diaAtual}:</span> ${data.total} itens (${data.novos} novos, ${data.atualizados} mantidos/atualizados)`);
+                let detalheMsg = `<span class="text-emerald-400">[OK DIA ${diaAtual}]:</span> ${data.total} registro(s) obtido(s)`;
+                if (data.novos > 0) {
+                    detalheMsg += ` | <strong class="text-emerald-400">+${data.novos} NOVO(S)</strong>`;
+                }
+                if (data.atualizados > 0) {
+                    detalheMsg += ` | <strong class="text-sky-400">~${data.atualizados} ATUALIZADO(S)/MANTIDO(S)</strong>`;
+                }
+                logConsole(detalheMsg);
             } else {
-                logConsole(`<span class="text-rose-400">[ERRO] ${diaAtual}:</span> ${data.erro || 'Falha na resposta'}`);
+                logConsole(`<span class="text-rose-400">[ERRO DIA ${diaAtual}]:</span> ${data.erro || 'Falha na resposta'}`);
             }
         } catch (e) {
-            logConsole(`<span class="text-rose-400">[EXCEÇÃO] ${diaAtual}:</span> ${e.message}`);
+            logConsole(`<span class="text-rose-400">[EXCEÇÃO DIA ${diaAtual}]:</span> ${e.message}`);
         }
 
         indexAtual++;
         atualizarInterface();
 
-        // Próximo lote
-        setTimeout(processarProximoLote, 200);
+        // Próximo lote após pequeno delay para manter interface fluida e permitir stop/pause
+        if (!isPausado && !isInterrompido) {
+            setTimeout(processarProximoLote, 250);
+        }
     }
 
     function atualizarInterface() {
