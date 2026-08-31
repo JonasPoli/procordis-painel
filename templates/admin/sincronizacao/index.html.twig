@@ -1,0 +1,246 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}Central Gerencial de Sincronismo Profundo{% endblock %}
+
+{% block body %}
+<div class="space-y-6">
+    <!-- Cabeçalho -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white/80 dark:bg-slate-900/80 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm backdrop-blur">
+        <div>
+            <div class="flex items-center gap-2">
+                <sl-icon name="arrow-repeat" class="text-cyan-500 text-2xl animate-spin" style="animation-duration: 4s;"></sl-icon>
+                <h1 class="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Central Gerencial de Sincronismo</h1>
+            </div>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Re-sincronização profunda e verificação continuada anti-duplicação de todos os dados do sistema Medware.</p>
+        </div>
+    </div>
+
+    <!-- Painel de Controle de Período -->
+    <div class="bg-white/80 dark:bg-slate-900/80 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+        <h3 class="text-base font-bold text-slate-900 dark:text-white">Configurar Período de Re-Sincronização Profunda</h3>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+                <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Data Inicial</label>
+                <input type="date" id="inputDataInicio" value="{{ "now"|date_modify("-6 months")|date("Y-m-d") }}" class="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-sm font-medium">
+            </div>
+            <div>
+                <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Data Final</label>
+                <input type="date" id="inputDataFim" value="{{ "now"|date("Y-m-d") }}" class="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-sm font-medium">
+            </div>
+            <div class="flex items-end">
+                <button type="button" id="btnIniciarSync" onclick="iniciarSincronizacao()" class="w-full py-2.5 px-4 bg-cyan-600 hover:bg-cyan-700 text-white font-bold text-sm rounded-xl transition shadow-md flex items-center justify-center gap-2">
+                    <sl-icon name="play-fill"></sl-icon> Iniciar Re-Sincronização Geral
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Card de Progresso & Métricas em Tempo Real (Escondido inicialmente) -->
+    <div id="cardProgresso" class="hidden bg-white/80 dark:bg-slate-900/80 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 dark:border-slate-800 pb-4">
+            <div>
+                <span class="text-xs font-bold uppercase tracking-wider text-cyan-500">Status do Processamento</span>
+                <h3 id="txtStatusHeader" class="text-xl font-black text-slate-900 dark:text-white">Processando Lotes...</h3>
+            </div>
+
+            <div class="flex items-center gap-4 bg-slate-50 dark:bg-slate-950/80 px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-800">
+                <div>
+                    <span class="text-[10px] uppercase font-bold text-slate-400">Tempo Decorrido</span>
+                    <p id="txtTempoDecorrido" class="font-mono font-bold text-sm text-slate-800 dark:text-slate-200">00:00:00</p>
+                </div>
+                <div class="h-6 w-px bg-slate-300 dark:bg-slate-800"></div>
+                <div>
+                    <span class="text-[10px] uppercase font-bold text-cyan-500">Estimativa Restante (ETA)</span>
+                    <p id="txtTempoRestante" class="font-mono font-black text-sm text-cyan-600 dark:text-cyan-400">Calculando...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Barra de Progresso Shoelace -->
+        <div class="space-y-2">
+            <div class="flex justify-between text-xs font-bold">
+                <span id="txtPorcentagem" class="text-cyan-600 dark:text-cyan-400">0% Concluído</span>
+                <span id="txtDiasContador" class="text-slate-500">0 / 0 Dias</span>
+            </div>
+            <sl-progress-bar id="barProgresso" value="0"></sl-progress-bar>
+        </div>
+
+        <!-- Cards Indicadores da Sessão de Sync -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800">
+                <span class="text-xs font-bold text-slate-400 uppercase">Total Registros Medware</span>
+                <p id="txtTotalProcessados" class="text-xl font-black text-slate-900 dark:text-white mt-1">0</p>
+            </div>
+            <div class="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+                <span class="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase">Novos Cadastrados</span>
+                <p id="txtTotalNovos" class="text-xl font-black text-emerald-600 dark:text-emerald-400 mt-1">0</p>
+            </div>
+            <div class="p-3.5 rounded-xl bg-sky-500/10 border border-sky-500/20">
+                <span class="text-xs font-bold text-sky-600 dark:text-sky-400 uppercase">Atualizados / Mantidos</span>
+                <p id="txtTotalAtualizados" class="text-xl font-black text-sky-600 dark:text-sky-400 mt-1">0</p>
+            </div>
+        </div>
+
+        <!-- Console Log de Execução ao Vivo -->
+        <div>
+            <label class="block text-xs font-bold uppercase text-slate-400 mb-2">Console de Sincronização ao Vivo</label>
+            <div id="consoleLog" class="h-44 bg-slate-950 text-slate-300 font-mono text-xs p-3 rounded-xl overflow-y-auto space-y-1 border border-slate-800">
+                <p class="text-slate-500">[Aguardando início do processo...]</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let listaDias = [];
+    let indexAtual = 0;
+    let totalDias = 0;
+    let totalProcessados = 0;
+    let totalNovos = 0;
+    let totalAtualizados = 0;
+    let timerInterval = null;
+    let tempoInicio = null;
+
+    async function iniciarSincronizacao() {
+        const dataInicio = document.getElementById('inputDataInicio').value;
+        const dataFim = document.getElementById('inputDataFim').value;
+        const btn = document.getElementById('btnIniciarSync');
+
+        btn.disabled = true;
+        btn.innerHTML = `<sl-icon name="arrow-repeat" class="animate-spin mr-2"></sl-icon> Inicializando...`;
+
+        try {
+            const formData = new FormData();
+            formData.append('dataInicio', dataInicio);
+            formData.append('dataFim', dataFim);
+
+            const res = await fetch('/admin/sincronizacao/iniciar', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await res.json();
+            if (data.sucesso && data.dias.length > 0) {
+                listaDias = data.dias;
+                totalDias = data.dias.length;
+                indexAtual = 0;
+                totalProcessados = 0;
+                totalNovos = 0;
+                totalAtualizados = 0;
+                tempoInicio = Date.now();
+
+                document.getElementById('cardProgresso').classList.remove('hidden');
+                document.getElementById('consoleLog').innerHTML = `<p class="text-emerald-400">[INÍCIO] Sessão de sincronização iniciada com ${totalDias} dia(s) a processar.</p>`;
+
+                iniciarTimerTempo();
+                processarProximoLote();
+            } else {
+                alert('Nenhum dia encontrado no período informado.');
+                btn.disabled = false;
+                btn.innerHTML = `<sl-icon name="play-fill"></sl-icon> Iniciar Re-Sincronização Geral`;
+            }
+        } catch (e) {
+            console.error(e);
+            alert('Erro ao iniciar sincronização.');
+            btn.disabled = false;
+        }
+    }
+
+    async function processarProximoLote() {
+        if (indexAtual >= totalDias) {
+            finalizarSincronizacao();
+            return;
+        }
+
+        const diaAtual = listaDias[indexAtual];
+        logConsole(`[PROCESSO] Sincronizando lote do dia ${diaAtual}...`);
+
+        try {
+            const formData = new FormData();
+            formData.append('dia', diaAtual);
+
+            const res = await fetch('/admin/sincronizacao/processar-lote', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await res.json();
+            if (data.sucesso) {
+                totalProcessados += data.total;
+                totalNovos += data.novos;
+                totalAtualizados += data.atualizados;
+
+                logConsole(`<span class="text-emerald-400">[OK] ${diaAtual}:</span> ${data.total} itens (${data.novos} novos, ${data.atualizados} mantidos/atualizados)`);
+            } else {
+                logConsole(`<span class="text-rose-400">[ERRO] ${diaAtual}:</span> ${data.erro || 'Falha na resposta'}`);
+            }
+        } catch (e) {
+            logConsole(`<span class="text-rose-400">[EXCEÇÃO] ${diaAtual}:</span> ${e.message}`);
+        }
+
+        indexAtual++;
+        atualizarInterface();
+
+        // Próximo lote
+        setTimeout(processarProximoLote, 200);
+    }
+
+    function atualizarInterface() {
+        const pct = Math.round((indexAtual / totalDias) * 100);
+        document.getElementById('barProgresso').setAttribute('value', pct);
+        document.getElementById('txtPorcentagem').innerText = `${pct}% Concluído`;
+        document.getElementById('txtDiasContador').innerText = `${indexAtual} / ${totalDias} Dias`;
+
+        document.getElementById('txtTotalProcessados').innerText = totalProcessados;
+        document.getElementById('txtTotalNovos').innerText = totalNovos;
+        document.getElementById('txtTotalAtualizados').innerText = totalAtualizados;
+
+        // Recalcular ETA
+        if (indexAtual > 0 && tempoInicio) {
+            const msDecorrido = Date.now() - tempoInicio;
+            const msPorLote = msDecorrido / indexAtual;
+            const lotesRestantes = totalDias - indexAtual;
+            const msRestante = lotesRestantes * msPorLote;
+            document.getElementById('txtTempoRestante').innerText = formatarMs(msRestante);
+        }
+    }
+
+    function iniciarTimerTempo() {
+        if (timerInterval) clearInterval(timerInterval);
+        timerInterval = setInterval(() => {
+            if (tempoInicio) {
+                const msDecorrido = Date.now() - tempoInicio;
+                document.getElementById('txtTempoDecorrido').innerText = formatarMs(msDecorrido);
+            }
+        }, 1000);
+    }
+
+    function finalizarSincronizacao() {
+        if (timerInterval) clearInterval(timerInterval);
+        document.getElementById('txtStatusHeader').innerText = "Sincronização Profunda Concluída!";
+        document.getElementById('txtStatusHeader').classList.add('text-emerald-500');
+        document.getElementById('txtTempoRestante').innerText = "Concluído (0s)";
+
+        logConsole(`<p class="text-cyan-400 font-bold mt-2">[SUCESSO] Re-sincronização finalizada! Total de ${totalProcessados} registros verificados e atualizados no banco local.</p>`);
+
+        const btn = document.getElementById('btnIniciarSync');
+        btn.disabled = false;
+        btn.innerHTML = `<sl-icon name="check-lg"></sl-icon> Processamento Concluído (Rodar Novamente)`;
+    }
+
+    function logConsole(msg) {
+        const consoleEl = document.getElementById('consoleLog');
+        consoleEl.innerHTML += `<div>${msg}</div>`;
+        consoleEl.scrollTop = consoleEl.scrollHeight;
+    }
+
+    function formatarMs(ms) {
+        const segTotal = Math.floor(ms / 1000);
+        const h = Math.floor(segTotal / 3600);
+        const m = Math.floor((segTotal % 3600) / 60);
+        const s = segTotal % 60;
+        return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+</script>
+{% endblock %}

@@ -280,9 +280,16 @@ class MedwareApiClientService
                 }
             }
 
-            // 3. Procedimento
+            // 3. Procedimento & Convênio/Plano
             $procData = $item['procedimentoPlanoOperadora'] ?? [];
             $procNome = trim($procData['descricaoProcedimento'] ?? 'Consulta / Exame');
+            $convenioNome = trim($procData['descricaoPlanoOperadora'] ?? $procData['descricaoOperadora'] ?? 'SUS - Sistema Único de Saúde');
+            $tipoAt = 'sus';
+            if (str_contains(mb_strtolower($convenioNome), 'filantrop')) {
+                $tipoAt = 'filantropico';
+            } elseif (!str_contains(mb_strtolower($convenioNome), 'sus')) {
+                $tipoAt = 'convenio';
+            }
 
             // 4. Agendamento
             $agendamento = $this->agendamentoRepo->findOneBy(['codigoAgendamento' => $codAgendamento]);
@@ -303,6 +310,8 @@ class MedwareApiClientService
                 $agendamento->setEspecialidade($medico->getEspecialidade());
             }
             $agendamento->setProcedimentoNome($procNome);
+            $agendamento->setConvenioNome($convenioNome);
+            $agendamento->setTipoAtendimento($tipoAt);
             $agendamento->setEncaixe((bool) ($item['encaixe'] ?? 0));
 
             // Horários
