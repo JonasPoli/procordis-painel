@@ -217,28 +217,66 @@ class BackupRestoreService
             $count = 0;
 
             if (!empty($rows) && is_array($rows)) {
-                foreach ($rows as $row) {
-                    if (is_array($row)) {
-                        if (isset($row['roles']) && is_array($row['roles'])) {
-                            $row['roles'] = json_encode($row['roles']);
+                $chunks = array_chunk($rows, 300);
+                unset($rows);
+
+                foreach ($chunks as $chunk) {
+                    if (empty($chunk)) continue;
+                    $firstRow = reset($chunk);
+                    $columns = array_keys($firstRow);
+                    $quotedCols = array_map(fn($col) => "`{$col}`", $columns);
+
+                    $placeholders = [];
+                    $params = [];
+
+                    foreach ($chunk as $row) {
+                        $rowPlaceholders = [];
+                        foreach ($columns as $col) {
+                            $val = $row[$col] ?? null;
+                            if (is_array($val)) {
+                                $val = json_encode($val, JSON_UNESCAPED_UNICODE);
+                            }
+                            $rowPlaceholders[] = '?';
+                            $params[] = $val;
                         }
-                        
-                        try {
-                            $conn->insert("`{$tableName}`", $row);
-                            $count++;
-                        } catch (\Throwable $e) {
-                            if (!$modoLimpo && isset($row['id'])) {
-                                $idVal = $row['id'];
-                                unset($row['id']);
-                                try {
-                                    $conn->update("`{$tableName}`", $row, ['id' => $idVal]);
-                                    $count++;
-                                } catch (\Throwable $e2) {
+                        $placeholders[] = '(' . implode(',', $rowPlaceholders) . ')';
+                    }
+
+                    $sql = "INSERT INTO `{$tableName}` (" . implode(',', $quotedCols) . ") VALUES " . implode(',', $placeholders);
+
+                    if (!$modoLimpo) {
+                        $updates = array_map(fn($col) => "`{$col}` = VALUES(`{$col}`)", $columns);
+                        $sql .= " ON DUPLICATE KEY UPDATE " . implode(',', $updates);
+                    }
+
+                    try {
+                        $conn->executeStatement($sql, $params);
+                        $count += count($chunk);
+                    } catch (\Throwable $e) {
+                        // Fallback linha a linha caso lote tenha incompatibilidade
+                        foreach ($chunk as $singleRow) {
+                            try {
+                                if (isset($singleRow['roles']) && is_array($singleRow['roles'])) {
+                                    $singleRow['roles'] = json_encode($singleRow['roles']);
+                                }
+                                $conn->insert("`{$tableName}`", $singleRow);
+                                $count++;
+                            } catch (\Throwable $e2) {
+                                if (!$modoLimpo && isset($singleRow['id'])) {
+                                    $idVal = $singleRow['id'];
+                                    unset($singleRow['id']);
+                                    try {
+                                        $conn->update("`{$tableName}`", $singleRow, ['id' => $idVal]);
+                                        $count++;
+                                    } catch (\Throwable $e3) {
+                                    }
                                 }
                             }
                         }
                     }
+                    unset($chunk, $params, $placeholders);
                 }
+                unset($chunks);
             }
 
             $totais[$aliasKey] = $count;
