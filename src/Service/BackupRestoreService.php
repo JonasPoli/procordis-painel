@@ -64,14 +64,29 @@ class BackupRestoreService
             $caminhoSaida = sys_get_temp_dir() . '/procordis_backup_' . $hoje->format('Ymd_His') . '.procordis.bak';
         }
 
-        $zip = new ZipArchive();
-        if ($zip->open($caminhoSaida, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
-            throw new \RuntimeException("Não foi possível criar o arquivo ZIP de backup em: {$caminhoSaida}");
+        // 1. Tentar criar como ZIP se a extensão ZipArchive estiver disponível
+        if (class_exists('ZipArchive')) {
+            try {
+                $zip = new ZipArchive();
+                if ($zip->open($caminhoSaida, ZipArchive::CREATE | ZipArchive::OVERWRITE) === true) {
+                    $zip->addFromString('backup_data.json', $jsonStr);
+                    $zip->close();
+                    return $caminhoSaida;
+                }
+            } catch (\Throwable $e) {
+                // Fallback para compressão zlib/gzencode
+            }
         }
 
-        $zip->addFromString('backup_data.json', $jsonStr);
-        $zip->close();
+        // 2. Fallback robusto nativo (gzencode / zlib core)
+        if (function_exists('gzencode')) {
+            $gzData = gzencode($jsonStr, 9);
+            file_put_contents($caminhoSaida, $gzData);
+            return $caminhoSaida;
+        }
 
+        // 3. Fallback texto puro
+        file_put_contents($caminhoSaida, $jsonStr);
         return $caminhoSaida;
     }
 
@@ -84,21 +99,42 @@ class BackupRestoreService
             throw new \InvalidArgumentException("Arquivo de backup não encontrado.");
         }
 
-        $zip = new ZipArchive();
-        if ($zip->open($caminhoArquivo) !== true) {
-            throw new \RuntimeException("Arquivo de backup inválido ou corrompido (falha na descompactação ZIP).");
+        $rawConteudo = file_get_contents($caminhoArquivo);
+        $jsonStr = null;
+
+        // 1. Tenta descompactar como ZIP
+        if (class_exists('ZipArchive')) {
+            try {
+                $zip = new ZipArchive();
+                if ($zip->open($caminhoArquivo) === true) {
+                    $jsonStr = $zip->getFromName('backup_data.json');
+                    $zip->close();
+                }
+            } catch (\Throwable $e) {
+                // Segue para fallback
+            }
         }
 
-        $jsonStr = $zip->getFromName('backup_data.json');
-        $zip->close();
+        // 2. Tenta descompactar como GZ / zlib
+        if (!$jsonStr && function_exists('gzdecode')) {
+            $decomp = @gzdecode($rawConteudo);
+            if ($decomp !== false) {
+                $jsonStr = $decomp;
+            }
+        }
+
+        // 3. Tenta como JSON direto
+        if (!$jsonStr) {
+            $jsonStr = $rawConteudo;
+        }
 
         if (!$jsonStr) {
-            throw new \RuntimeException("Arquivo de backup sem conteúdo interno 'backup_data.json'.");
+            throw new \RuntimeException("Arquivo de backup sem conteúdo interno legível.");
         }
 
         $dados = json_decode($jsonStr, true);
         if (!$dados || !isset($dados['tabelas'])) {
-            throw new \RuntimeException("Estrutura do arquivo de backup incompatível.");
+            throw new \RuntimeException("Estrutura do arquivo de backup incompatível ou corrompida.");
         }
 
         $tabelas = $dados['tabelas'];

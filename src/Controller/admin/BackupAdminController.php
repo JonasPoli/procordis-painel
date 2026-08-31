@@ -32,12 +32,17 @@ class BackupAdminController extends AbstractController
             $caminhoArquivo = $this->backupService->gerarBackup();
             $nomeDownload = 'procordis_backup_total_' . date('Ymd_His') . '.procordis.bak';
 
-            $response = new BinaryFileResponse($caminhoArquivo);
-            $response->setContentDisposition(
-                ResponseHeaderBag::DISPOSITION_ATTACHMENT,
-                $nomeDownload
-            );
-            $response->deleteFileAfterSend(true);
+            if (!file_exists($caminhoArquivo)) {
+                throw new \RuntimeException("Arquivo de backup não encontrado no disco.");
+            }
+
+            $conteudo = file_get_contents($caminhoArquivo);
+            @unlink($caminhoArquivo);
+
+            $response = new Response($conteudo);
+            $response->headers->set('Content-Type', 'application/octet-stream');
+            $response->headers->set('Content-Disposition', 'attachment; filename="' . $nomeDownload . '"');
+            $response->headers->set('Content-Length', (string) strlen($conteudo));
 
             return $response;
         } catch (\Throwable $e) {

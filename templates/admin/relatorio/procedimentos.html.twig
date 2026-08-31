@@ -1624,21 +1624,22 @@
         // 3. Gráfico de Produtividade Médica (Concluídos vs Cancelados)
         const ctxMed = document.getElementById('graficoProdutividadeMedicaBarra');
         if (ctxMed) {
-            const medicosData = {{ dados.detalhesMedicos|slice(0, 8)|json_encode|raw }};
+            const rawMedicos = {{ dados.detalhesMedicos|json_encode|raw }};
+            const medicosData = (Array.isArray(rawMedicos) ? rawMedicos : Object.values(rawMedicos || {})).slice(0, 8);
             new Chart(ctxMed, {
                 type: 'bar',
                 data: {
-                    labels: medicosData.map(m => m.nome.length > 18 ? m.nome.substring(0, 18) + '...' : m.nome),
+                    labels: medicosData.map(m => (m.nome && m.nome.length > 18) ? m.nome.substring(0, 18) + '...' : (m.nome || 'Médico')),
                     datasets: [
                         {
                             label: 'Concluídos',
-                            data: medicosData.map(m => m.finalizados),
+                            data: medicosData.map(m => m.finalizados || 0),
                             backgroundColor: '#10b981',
                             borderRadius: 5
                         },
                         {
                             label: 'Cancelados / Faltas',
-                            data: medicosData.map(m => m.cancelados),
+                            data: medicosData.map(m => m.cancelados || 0),
                             backgroundColor: '#ef4444',
                             borderRadius: 5
                         }
