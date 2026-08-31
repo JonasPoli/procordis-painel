@@ -96,7 +96,7 @@ class BackupAdminController extends AbstractController
     }
 
     #[Route('/diagnostico-api', name: 'diagnostico_api', methods: ['GET'])]
-    public function diagnosticoApi(): JsonResponse
+    public function diagnosticoApi(): Response
     {
         @ini_set('display_errors', '0');
         while (ob_get_level() > 0) {
@@ -105,13 +105,20 @@ class BackupAdminController extends AbstractController
 
         try {
             $diag = $this->backupService->diagnosticarAmbiente();
-            return new JsonResponse($diag);
+            $json = json_encode($diag, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE | JSON_PARTIAL_OUTPUT_ON_ERROR);
+            return new Response($json ?: '{"sucesso":false,"erro":"Falha na serialização JSON"}', 200, [
+                'Content-Type' => 'application/json; charset=utf-8'
+            ]);
         } catch (\Throwable $e) {
-            return new JsonResponse([
+            $erroArray = [
                 'sucesso' => false,
-                'erro' => $e->getMessage() . " em " . $e->getFile() . ":" . $e->getLine(),
-                'trace' => $e->getTraceAsString(),
-            ], 200);
+                'erro' => mb_convert_encoding($e->getMessage() . " em " . $e->getFile() . ":" . $e->getLine(), 'UTF-8', 'UTF-8'),
+                'trace' => mb_convert_encoding($e->getTraceAsString(), 'UTF-8', 'UTF-8'),
+            ];
+            $json = json_encode($erroArray, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+            return new Response($json ?: '{"sucesso":false,"erro":"Erro fatal"}', 200, [
+                'Content-Type' => 'application/json; charset=utf-8'
+            ]);
         }
     }
 

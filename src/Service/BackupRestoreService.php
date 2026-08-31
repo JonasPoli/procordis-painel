@@ -415,12 +415,13 @@ class BackupRestoreService
                     @fclose($fp);
 
                     if ($buffer !== '') {
+                        $buffer = mb_convert_encoding($buffer, 'UTF-8', 'UTF-8');
                         $linhas = explode("\n", $buffer);
                         foreach (array_reverse($linhas) as $l) {
                             $l = trim($l);
                             if ($l === '') continue;
                             if (stripos($l, 'CRITICAL') !== false || stripos($l, 'ERROR') !== false || stripos($l, 'Fatal') !== false || stripos($l, 'Exception') !== false) {
-                                $erros[] = substr($l, 0, 300);
+                                $erros[] = mb_substr($l, 0, 300, 'UTF-8');
                                 if (count($erros) >= 15) break 2;
                             }
                         }
