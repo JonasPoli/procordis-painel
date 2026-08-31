@@ -180,4 +180,20 @@ class AgendamentoRepository extends ServiceEntityRepository
 
         return $map;
     }
+
+    /**
+     * Retorna a menor (primeira) data de agendamento cadastrada no banco de dados local.
+     */
+    public function obterMenorDataBanco(): ?\DateTimeInterface
+    {
+        $res = $this->createQueryBuilder('a')
+            ->select('MIN(a.dataHoraAgendada)')
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        if ($res) {
+            return new \DateTime($res);
+        }
+        return null;
+    }
 }
