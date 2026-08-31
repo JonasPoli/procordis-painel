@@ -26,24 +26,9 @@ class RelatorioAdminController extends AbstractController
         $dataInicioCustom = $request->query->get('dataInicio');
         $dataFimCustom = $request->query->get('dataFim');
 
-        $page = max(1, (int) $request->query->get('page', 1));
-        $limit = 100;
-
         $dados = $this->relatorioService->obterRelatorioProcedimentos($tipoPeriodo, $ano, $mes, $dataInicioCustom, $dataFimCustom);
         $dados['dataInicioCustom'] = $dataInicioCustom;
         $dados['dataFimCustom'] = $dataFimCustom;
-
-        $todosAgendamentos = $dados['agendamentos'];
-        $totalItems = count($todosAgendamentos);
-        $totalPages = max(1, (int) ceil($totalItems / $limit));
-        $offset = ($page - 1) * $limit;
-
-        $agendamentosPaginados = array_slice($todosAgendamentos, $offset, $limit);
-        $dados['agendamentosPaginados'] = $agendamentosPaginados;
-        $dados['page'] = $page;
-        $dados['totalPages'] = $totalPages;
-        $dados['totalItems'] = $totalItems;
-        $dados['limit'] = $limit;
 
         return $this->render('admin/relatorio/procedimentos.html.twig', [
             'dados' => $dados,

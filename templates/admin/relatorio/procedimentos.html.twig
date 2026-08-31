@@ -1,17 +1,36 @@
 {% extends 'admin/base.html.twig' %}
 
-{% block title %}Relatório Consolidado de Procedimentos{% endblock %}
+{% block title %}Relatório Estratégico de Procedimentos & Atendimentos - Procordis Painel{% endblock %}
+
+{% block stylesheets %}
+{{ parent() }}
+<style>
+    .active-chip {
+        box-shadow: 0 0 0 2px rgba(8, 145, 178, 0.4);
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: rgba(150, 150, 150, 0.25);
+        border-radius: 4px;
+    }
+</style>
+{% endblock %}
 
 {% block body %}
 <div class="space-y-6">
-    <!-- Cabeçalho do Relatório -->
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white/80 dark:bg-slate-900/80 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm backdrop-blur">
+    <!-- Cabeçalho da Página e Ações de Exportação -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
             <div class="flex items-center gap-2">
-                <sl-icon name="bar-chart" class="text-cyan-500 text-2xl"></sl-icon>
-                <h1 class="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Relatório Consolidado de Procedimentos</h1>
+                <span class="p-2 bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 rounded-xl">
+                    <sl-icon name="clipboard2-data-fill" class="text-xl"></sl-icon>
+                </span>
+                <h1 class="text-2xl font-black tracking-tight text-slate-900 dark:text-white">Relatório Estratégico de Procedimentos & Atendimentos</h1>
             </div>
-            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Análise temporal da quantidade de exames e consultas por período, distribuição SUS/Filantrópico e agrupamentos.</p>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Dashboard analítico completo com volumetria, produtividade médica, perfil demográfico, convênios e eficiência operacional.</p>
         </div>
 
         <div class="flex flex-wrap items-center gap-2">
@@ -33,9 +52,9 @@
             <div>
                 <span class="font-bold text-slate-900 dark:text-white block">Como utilizar o Modelo Excel com Fórmulas Integradas:</span>
                 <span class="text-slate-600 dark:text-slate-300 text-[11px] leading-relaxed">
-                    <strong>Passo 1:</strong> Clique em <em>"1. Baixar Dados em CSV"</em> para extrair a base completa. <br class="hidden sm:inline">
-                    <strong>Passo 2:</strong> Baixe o <em>"2. Baixar Modelo Excel"</em> (abre instantaneamente). <br class="hidden sm:inline">
-                    <strong>Passo 3:</strong> Abra o CSV, copie os registros e cole na aba <code>procedimentos</code> da planilha Excel. Todas as 7 abas analíticas (Evolução por Ano, Produtividade Médica, Convênios, Status, Horários de Pico, Demografia e KPIs) atualizarão sozinhas em tempo real!
+                    <strong>Passo 1:</strong> Clique em <em>"1. Baixar Base Completa em CSV"</em> para extrair todos os atendimentos. <br class="hidden sm:inline">
+                    <strong>Passo 2:</strong> Baixe o <em>"2. Baixar Modelo Excel"</em> (abre instantaneamente com 8 abas de dashboards). <br class="hidden sm:inline">
+                    <strong>Passo 3:</strong> Abra o CSV, copie os registros e cole na aba <code>procedimentos</code> do Excel. Todas as 7 abas analíticas atualizarão sozinhas em tempo real!
                 </span>
             </div>
         </div>
@@ -88,71 +107,73 @@
         </form>
     </div>
 
-    <!-- Cards de Indicadores (KPIs) -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <!-- 1. Grid de Indicadores Estratégicos (8 Cards de KPIs Macro) -->
+    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
         <!-- Total de Procedimentos -->
-        <div class="bg-white/80 dark:bg-slate-900/80 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-            <div class="flex items-center justify-between">
-                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Procedimentos</span>
-                <div class="h-8 w-8 rounded-lg bg-cyan-500/10 text-cyan-500 flex items-center justify-center">
-                    <sl-icon name="layers-fill" class="text-lg"></sl-icon>
-                </div>
-            </div>
-            <p class="text-2xl font-black text-slate-900 dark:text-white mt-2">{{ dados.totalProcedimentos }}</p>
-            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">{{ dados.rotuloPeriodo }}</p>
+        <div class="bg-white/80 dark:bg-slate-900/80 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Atendimentos</span>
+            <p class="text-xl font-black text-slate-900 dark:text-white mt-1">{{ dados.totalProcedimentos }}</p>
+            <span class="text-[10px] text-cyan-600 font-semibold truncate block mt-0.5">{{ dados.rotuloPeriodo }}</span>
         </div>
 
-        <!-- Atendimentos SUS -->
-        <div class="bg-white/80 dark:bg-slate-900/80 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-            <div class="flex items-center justify-between">
-                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Pacientes SUS</span>
-                <div class="h-8 w-8 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
-                    <sl-icon name="heart-fill" class="text-lg"></sl-icon>
-                </div>
-            </div>
-            <div class="flex items-baseline gap-2 mt-2">
-                <span class="text-2xl font-black text-emerald-600 dark:text-emerald-400">{{ dados.financiamento.sus }}</span>
-                <span class="text-xs font-bold bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded-full">{{ dados.financiamento.pctSus }}%</span>
-            </div>
-            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Sistema Único de Saúde</p>
+        <!-- Pacientes SUS -->
+        <div class="bg-white/80 dark:bg-slate-900/80 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Mix SUS</span>
+            <p class="text-xl font-black text-emerald-600 dark:text-emerald-400 mt-1">{{ dados.financiamento.sus }}</p>
+            <span class="text-[10px] font-bold text-emerald-500 bg-emerald-500/10 px-1.5 py-0.5 rounded-md inline-block mt-0.5">{{ dados.financiamento.pctSus }}% do mix</span>
         </div>
 
-        <!-- Atendimentos Filantrópicos -->
-        <div class="bg-white/80 dark:bg-slate-900/80 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-            <div class="flex items-center justify-between">
-                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Filantrópicos</span>
-                <div class="h-8 w-8 rounded-lg bg-indigo-500/10 text-indigo-500 flex items-center justify-center">
-                    <sl-icon name="hand-thumbs-up-fill" class="text-lg"></sl-icon>
-                </div>
-            </div>
-            <div class="flex items-baseline gap-2 mt-2">
-                <span class="text-2xl font-black text-indigo-600 dark:text-indigo-400">{{ dados.financiamento.filantropico }}</span>
-                <span class="text-xs font-bold bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-full">{{ dados.financiamento.pctFilantropico }}%</span>
-            </div>
-            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Atendimento Isento Procordis</p>
+        <!-- Convênios & Particular -->
+        <div class="bg-white/80 dark:bg-slate-900/80 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Convênios / Planos</span>
+            <p class="text-xl font-black text-sky-600 dark:text-sky-400 mt-1">{{ dados.financiamento.convenio }}</p>
+            <span class="text-[10px] font-bold text-sky-500 bg-sky-500/10 px-1.5 py-0.5 rounded-md inline-block mt-0.5">{{ dados.financiamento.pctConvenio }}% do mix</span>
         </div>
 
-        <!-- Média Diária -->
-        <div class="bg-white/80 dark:bg-slate-900/80 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-            <div class="flex items-center justify-between">
-                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Média Diária</span>
-                <div class="h-8 w-8 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center">
-                    <sl-icon name="speedometer" class="text-lg"></sl-icon>
-                </div>
-            </div>
-            <p class="text-2xl font-black text-slate-900 dark:text-white mt-2">{{ dados.mediaDia }}</p>
-            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Procedimentos / Dia Ativo</p>
+        <!-- Filantrópicos -->
+        <div class="bg-white/80 dark:bg-slate-900/80 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Filantropia</span>
+            <p class="text-xl font-black text-indigo-600 dark:text-indigo-400 mt-1">{{ dados.financiamento.filantropico }}</p>
+            <span class="text-[10px] font-bold text-indigo-500 bg-indigo-500/10 px-1.5 py-0.5 rounded-md inline-block mt-0.5">{{ dados.financiamento.pctFilantropico }}% do mix</span>
+        </div>
+
+        <!-- Eficiência / Conclusão -->
+        <div class="bg-white/80 dark:bg-slate-900/80 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Taxa Conclusão</span>
+            <p class="text-xl font-black text-teal-600 dark:text-teal-400 mt-1">{{ (100 - dados.eficiencia.taxaCancelamentoGeral)|number_format(1, ',', '.') }}%</p>
+            <span class="text-[10px] text-slate-500 block truncate mt-0.5">atendimentos realizados</span>
+        </div>
+
+        <!-- Taxa de Cancelamento / No-Show -->
+        <div class="bg-white/80 dark:bg-slate-900/80 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Taxa Cancelamento</span>
+            <p class="text-xl font-black text-rose-600 dark:text-rose-400 mt-1">{{ dados.eficiencia.taxaCancelamentoGeral }}%</p>
+            <span class="text-[10px] text-rose-500 bg-rose-500/10 px-1.5 py-0.5 rounded-md inline-block mt-0.5">{{ dados.eficiencia.totalCancelados }} cancelados</span>
+        </div>
+
+        <!-- Taxa de Encaixes -->
+        <div class="bg-white/80 dark:bg-slate-900/80 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Taxa Encaixes</span>
+            <p class="text-xl font-black text-amber-600 dark:text-amber-400 mt-1">{{ dados.eficiencia.taxaEncaixes }}%</p>
+            <span class="text-[10px] text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded-md inline-block mt-0.5">{{ dados.eficiencia.countEncaixes }} encaixes</span>
+        </div>
+
+        <!-- Tempo Médio de Espera -->
+        <div class="bg-white/80 dark:bg-slate-900/80 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Tempo Espera</span>
+            <p class="text-xl font-black text-purple-600 dark:text-purple-400 mt-1">{{ dados.eficiencia.tempoMedioEsperaMin }}<span class="text-xs font-normal"> min</span></p>
+            <span class="text-[10px] text-slate-500 block truncate mt-0.5">chegada até consulta</span>
         </div>
     </div>
 
-    <!-- Gráfico Inteligente de Comparação por Procedimentos (Linhas Individuais com Liga/Desliga) -->
+    <!-- 2. Gráfico Inteligente de Comparação por Procedimentos (Linhas Individuais com Liga/Desliga) -->
     <div class="bg-white/80 dark:bg-slate-900/80 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
             <div>
                 <h3 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
                     <sl-icon name="sliders" class="text-cyan-500"></sl-icon> Gráfico Inteligente: Comparativo por Procedimento / Exame
                 </h3>
-                <p class="text-xs text-slate-500">Selecione abaixo quais exames deseja ligar ou desligar na visualização gráfica em linha ao longo dos meses</p>
+                <p class="text-xs text-slate-500">Selecione abaixo quais exames deseja ligar ou desligar na visualização gráfica em linha</p>
             </div>
 
             <div class="flex items-center gap-3">
@@ -169,27 +190,27 @@
                 </div>
 
                 <div class="flex items-center gap-1">
-                    <button type="button" onclick="marcarTodosProcedimentos(true)" class="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 font-bold rounded-lg text-[11px] transition">
-                        Ligar Todos
+                    <button type="button" onclick="marcarTodosProcedimentos(true)" class="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition">
+                        Ativar Todos
                     </button>
-                    <button type="button" onclick="marcarTodosProcedimentos(false)" class="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 font-bold rounded-lg text-[11px] transition">
-                        Desligar Todos
+                    <button type="button" onclick="marcarTodosProcedimentos(false)" class="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition">
+                        Desativar Todos
                     </button>
                 </div>
             </div>
         </div>
 
-        <!-- Chips de Procedimentos para Ativar / Desativar Linhas -->
-        <div class="flex flex-wrap gap-2 max-h-36 overflow-y-auto p-1 bg-slate-50 dark:bg-slate-950/50 rounded-xl border border-slate-100 dark:border-slate-800" id="containerChipsProcedimentos">
-            {% for dataset in dados.datasetsProcedimentos %}
+        <!-- Chips interativos de procedimentos -->
+        <div class="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto custom-scrollbar p-1">
+            {% for idx, proc in dados.datasetsProcedimentos %}
                 <button type="button" 
-                        onclick="toggleLinhaProcedimento({{ loop.index0 }}, this)" 
-                        id="chipProc_{{ loop.index0 }}"
-                        class="px-2.5 py-1 rounded-lg font-bold text-xs flex items-center gap-1.5 transition border shadow-xs active-chip"
-                        style="background-color: {{ dataset.cor }}20; color: {{ dataset.cor }}; border-color: {{ dataset.cor }}40;">
-                    <span class="w-2.5 h-2.5 rounded-full inline-block" style="background-color: {{ dataset.cor }};"></span>
-                    <span class="truncate max-w-[200px]">{{ dataset.nome }}</span>
-                    <span class="opacity-70 font-mono text-[10px]">({{ dataset.total }})</span>
+                        id="chipProc_{{ idx }}" 
+                        onclick="toggleLinhaProcedimento({{ idx }}, this)" 
+                        class="px-2.5 py-1 rounded-xl text-xs font-bold border transition flex items-center gap-1.5 active-chip"
+                        style="background-color: {{ proc.cor }}15; border-color: {{ proc.cor }}; color: {{ proc.cor }};">
+                    <span class="w-2 h-2 rounded-full inline-block" style="background-color: {{ proc.cor }};"></span>
+                    <span>{{ proc.nome }}</span>
+                    <span class="opacity-70 text-[10px]">({{ proc.total }})</span>
                 </button>
             {% endfor %}
         </div>
@@ -199,20 +220,43 @@
         </div>
     </div>
 
-    <!-- Gráficos de Evolução e Composição -->
+    <!-- 3. Gráficos de Evolução e Composição -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- Gráfico de Evolução Temporal (Linha) com Agrupamento Dinâmico -->
+        <!-- Gráfico de Evolução Temporal Interativo com Multi-Métricas e Agrupamentos -->
         <div class="lg:col-span-2 bg-white/80 dark:bg-slate-900/80 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
                 <div>
-                    <h3 class="text-base font-bold text-slate-900 dark:text-white">Evolução Temporal Geral</h3>
-                    <p class="text-xs text-slate-500">Volume total de atendimentos agregados</p>
+                    <h3 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                        <sl-icon name="graph-up-arrow" class="text-cyan-600 dark:text-cyan-400"></sl-icon>
+                        Evolução Temporal Estratégica
+                    </h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Análise de tendências, segmentação por financiamento e status</p>
                 </div>
                 
-                <!-- Seletor de Agrupamento do Gráfico -->
-                <div class="flex items-center gap-1 bg-slate-100 dark:bg-slate-950 p-1 rounded-xl text-xs font-bold">
-                    <span class="text-[10px] text-slate-400 px-1 uppercase">Agrupar gráfico:</span>
-                    <select id="seletorAgrupamentoGrafico" onchange="atualizarGraficoEvolucao(this.value)" class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 text-xs text-cyan-600 dark:text-cyan-400 font-bold focus:outline-none">
+                <!-- Controles do Gráfico -->
+                <div class="flex flex-wrap items-center gap-2">
+                    <!-- Seletor de Métrica/Camada -->
+                    <div class="inline-flex p-0.5 bg-slate-100 dark:bg-slate-950 rounded-xl text-xs font-semibold">
+                        <button type="button" id="btnMetricaTotal" onclick="alterarMetricaEvolucao('total')" class="px-2.5 py-1 rounded-lg transition bg-white dark:bg-slate-800 text-cyan-600 dark:text-cyan-400 shadow-xs">Total</button>
+                        <button type="button" id="btnMetricaFinanciamento" onclick="alterarMetricaEvolucao('financiamento')" class="px-2.5 py-1 rounded-lg transition text-slate-600 dark:text-slate-400 hover:text-slate-900">SUS x Convênios</button>
+                        <button type="button" id="btnMetricaStatus" onclick="alterarMetricaEvolucao('status')" class="px-2.5 py-1 rounded-lg transition text-slate-600 dark:text-slate-400 hover:text-slate-900">Concluídos x Cancelados</button>
+                    </div>
+
+                    <!-- Tipo de Gráfico (Linha / Barra / Área) -->
+                    <div class="inline-flex p-0.5 bg-slate-100 dark:bg-slate-950 rounded-xl text-xs font-semibold">
+                        <button type="button" id="btnTipoLinha" onclick="alterarTipoGraficoEvolucao('line')" title="Linha Suave" class="px-2 py-1 rounded-lg transition bg-white dark:bg-slate-800 text-cyan-600 dark:text-cyan-400 shadow-xs">
+                            <sl-icon name="activity"></sl-icon>
+                        </button>
+                        <button type="button" id="btnTipoBarra" onclick="alterarTipoGraficoEvolucao('bar')" title="Barras" class="px-2 py-1 rounded-lg transition text-slate-600 dark:text-slate-400 hover:text-slate-900">
+                            <sl-icon name="bar-chart-line"></sl-icon>
+                        </button>
+                        <button type="button" id="btnTipoArea" onclick="alterarTipoGraficoEvolucao('area')" title="Área Preenchida" class="px-2 py-1 rounded-lg transition text-slate-600 dark:text-slate-400 hover:text-slate-900">
+                            <sl-icon name="water"></sl-icon>
+                        </button>
+                    </div>
+
+                    <!-- Seletor de Resolução Temporal -->
+                    <select id="seletorAgrupamentoGrafico" onchange="alterarAgrupamentoEvolucao(this.value)" class="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-2.5 py-1 text-xs text-slate-800 dark:text-slate-200 font-bold focus:outline-none focus:ring-2 focus:ring-cyan-500">
                         <option value="dia">Por Dia</option>
                         <option value="mes" selected>Por Mês</option>
                         <option value="trimestre">Por Trimestre</option>
@@ -223,7 +267,31 @@
                 </div>
             </div>
 
-            <div class="h-64 w-full">
+            <!-- Mini KPIs de Insights Estatísticos -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+                <div class="bg-slate-50/80 dark:bg-slate-950/60 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800">
+                    <span class="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">🏆 Pico no Período</span>
+                    <span class="text-sm font-black text-emerald-600 dark:text-emerald-400">{{ dados.insights.picoValor }}</span>
+                    <span class="text-[10px] text-slate-500 block truncate font-medium">em {{ dados.insights.picoPeriodo }}</span>
+                </div>
+                <div class="bg-slate-50/80 dark:bg-slate-950/60 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800">
+                    <span class="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">📉 Menor Volume</span>
+                    <span class="text-sm font-black text-amber-600 dark:text-amber-400">{{ dados.insights.minValor }}</span>
+                    <span class="text-[10px] text-slate-500 block truncate font-medium">em {{ dados.insights.minPeriodo }}</span>
+                </div>
+                <div class="bg-slate-50/80 dark:bg-slate-950/60 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800">
+                    <span class="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">📊 Média / Mês</span>
+                    <span class="text-sm font-black text-cyan-600 dark:text-cyan-400">{{ dados.insights.mediaPeriodoMes }}</span>
+                    <span class="text-[10px] text-slate-500 block font-medium">atendimentos</span>
+                </div>
+                <div class="bg-slate-50/80 dark:bg-slate-950/60 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800">
+                    <span class="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">⚡ Média Diária</span>
+                    <span class="text-sm font-black text-indigo-600 dark:text-indigo-400">{{ dados.mediaDia }}</span>
+                    <span class="text-[10px] text-slate-500 block font-medium">por dia útil</span>
+                </div>
+            </div>
+
+            <div class="h-64 w-full relative">
                 <canvas id="graficoEvolucaoTemporal"></canvas>
             </div>
         </div>
@@ -231,7 +299,9 @@
         <!-- Gráfico de Rosca (Financiamento) -->
         <div class="bg-white/80 dark:bg-slate-900/80 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
             <div class="mb-2">
-                <h3 class="text-base font-bold text-slate-900 dark:text-white">Composição de Convênios</h3>
+                <h3 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <sl-icon name="pie-chart-fill" class="text-cyan-500"></sl-icon> Composição de Convênios
+                </h3>
                 <p class="text-xs text-slate-500">Divisão SUS vs Filantropia vs Convênios</p>
             </div>
             <div class="h-56 w-full flex items-center justify-center">
@@ -254,40 +324,164 @@
         </div>
     </div>
 
-    <!-- Gráficos Adicionais: Top 10 Exames (Barras Horizontais) + Distribuição por Status (Pizza) -->
+    <!-- 4. Painel de Produtividade Médica & Distribuição por Especialidade -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- Top 10 Procedimentos e Exames Mais Realizados (Barras Horizontais) -->
-        <div class="lg:col-span-2 bg-white/80 dark:bg-slate-900/80 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-            <div class="mb-4">
-                <h3 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                    <sl-icon name="bar-chart-line" class="text-indigo-500"></sl-icon> Top Exames / Procedimentos Mais Demandados
-                </h3>
-                <p class="text-xs text-slate-500">Ranking dos 10 procedimentos com maior volume de realizações no período</p>
+        <!-- Tabela de Produtividade Médica com Filtro Rápido -->
+        <div class="lg:col-span-2 bg-white/80 dark:bg-slate-900/80 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
+                <div>
+                    <h3 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                        <sl-icon name="person-badge" class="text-indigo-600"></sl-icon> Produtividade Médica & Escalas
+                    </h3>
+                    <p class="text-xs text-slate-500">Volume de atendimentos, conclusão de consultas e taxa de absenteísmo por profissional</p>
+                </div>
+                <div class="relative">
+                    <input type="text" id="filtroMedicosInput" onkeyup="filtrarTabelaMedicos()" placeholder="Buscar médico ou especialidade..." class="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 w-full sm:w-60">
+                </div>
             </div>
-            <div class="h-64 w-full">
-                <canvas id="graficoTopProcedimentos"></canvas>
+
+            <div class="max-h-72 overflow-y-auto custom-scrollbar">
+                <table id="tabelaMedicosCorpo" class="w-full text-left text-xs border-collapse">
+                    <thead class="sticky top-0 bg-slate-100 dark:bg-slate-950 font-bold uppercase text-slate-500 text-[10px]">
+                        <tr>
+                            <th class="py-2.5 px-3">Médico</th>
+                            <th class="py-2.5 px-2">Especialidade</th>
+                            <th class="py-2.5 px-2 text-right">Total</th>
+                            <th class="py-2.5 px-2 text-right">Concluídos</th>
+                            <th class="py-2.5 px-2 text-right">Cancelados</th>
+                            <th class="py-2.5 px-2 text-right">No-Show %</th>
+                            <th class="py-2.5 px-3 text-right">Mix %</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                        {% for med in dados.detalhesMedicos %}
+                            <tr class="medico-row hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                                <td class="py-2 px-3 font-bold text-slate-900 dark:text-white medico-nome">{{ med.nome }}</td>
+                                <td class="py-2 px-2 text-slate-500 medico-esp">{{ med.especialidade }}</td>
+                                <td class="py-2 px-2 text-right font-black font-mono text-indigo-600 dark:text-indigo-400">{{ med.total }}</td>
+                                <td class="py-2 px-2 text-right font-mono text-emerald-600">{{ med.finalizados }}</td>
+                                <td class="py-2 px-2 text-right font-mono text-rose-500">{{ med.cancelados }}</td>
+                                <td class="py-2 px-2 text-right font-mono text-slate-500">{{ med.taxaCancelamento }}%</td>
+                                <td class="py-2 px-3 text-right font-mono font-bold text-slate-700 dark:text-slate-300">{{ med.pctTotal }}%</td>
+                            </tr>
+                        {% else %}
+                            <tr><td colspan="7" class="py-4 text-center text-slate-400">Nenhum médico com atendimento registrado no período.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
         </div>
 
-        <!-- Distribuição por Status de Atendimento (Pizza) -->
+        <!-- Gráfico de Especialidades e Top Exames -->
         <div class="bg-white/80 dark:bg-slate-900/80 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
-            <div class="mb-2">
+            <div class="mb-3">
                 <h3 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                    <sl-icon name="pie-chart" class="text-emerald-500"></sl-icon> Status dos Agendamentos
+                    <sl-icon name="award" class="text-amber-500"></sl-icon> Demandas por Especialidade
                 </h3>
-                <p class="text-xs text-slate-500">Distribuição entre Agendados, Finalizados, Faltas e Cancelados</p>
+                <p class="text-xs text-slate-500">Volume consolidado por área clínica</p>
             </div>
-            <div class="h-56 w-full flex items-center justify-center">
-                <canvas id="graficoStatusPizza"></canvas>
+            <div class="h-64 w-full">
+                <canvas id="graficoEspecialidadesBarra"></canvas>
             </div>
         </div>
     </div>
 
-    <!-- Tabelas Planilhadas por Intervalo (Dia / Mês / Trimestre / Quadrimestre / Semestre / Ano) -->
+    <!-- 5. Painel de Padrões de Fluxo: Dias da Semana & Horários de Pico -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Distribuição por Dia da Semana -->
+        <div class="bg-white/80 dark:bg-slate-900/80 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+            <div class="flex items-center justify-between mb-3 border-b border-slate-100 dark:border-slate-800 pb-2">
+                <div>
+                    <h3 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                        <sl-icon name="calendar-week" class="text-purple-600"></sl-icon> Fluxo por Dia da Semana
+                    </h3>
+                    <p class="text-xs text-slate-500">Padrão de comparecimento e volume de atendimentos</p>
+                </div>
+            </div>
+            <div class="h-60 w-full">
+                <canvas id="graficoDiasSemanaBarra"></canvas>
+            </div>
+        </div>
+
+        <!-- Distribuição por Faixa Horária (Gargalos e Pico) -->
+        <div class="bg-white/80 dark:bg-slate-900/80 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+            <div class="flex items-center justify-between mb-3 border-b border-slate-100 dark:border-slate-800 pb-2">
+                <div>
+                    <h3 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                        <sl-icon name="clock" class="text-rose-500"></sl-icon> Distribuição por Faixa Horária (Horários de Pico)
+                    </h3>
+                    <p class="text-xs text-slate-500">Concentração de atendimentos entre 06h e 20h para dimensionamento de equipe</p>
+                </div>
+            </div>
+            <div class="h-60 w-full">
+                <canvas id="graficoFaixasHorariasArea"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- 6. Painel de Demografia & Perfil Clínico e Operadoras -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Perfil por Gênero (Rosca) -->
+        <div class="bg-white/80 dark:bg-slate-900/80 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+            <div class="mb-2">
+                <h3 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <sl-icon name="gender-ambiguous" class="text-pink-500"></sl-icon> Perfil por Gênero
+                </h3>
+                <p class="text-xs text-slate-500">Distribuição entre pacientes atendidos</p>
+            </div>
+            <div class="h-52 w-full flex items-center justify-center">
+                <canvas id="graficoGeneroRosca"></canvas>
+            </div>
+            <div class="grid grid-cols-3 gap-1 text-center pt-3 border-t border-slate-100 dark:border-slate-800 text-[10px]">
+                <div>
+                    <span class="block font-bold text-blue-600">Masculino</span>
+                    <span class="font-mono text-slate-500">{{ dados.porGenero.M }} ({{ dados.totalProcedimentos > 0 ? ((dados.porGenero.M / dados.totalProcedimentos) * 100)|number_format(1, ',', '.') : 0 }}%)</span>
+                </div>
+                <div>
+                    <span class="block font-bold text-pink-600">Feminino</span>
+                    <span class="font-mono text-slate-500">{{ dados.porGenero.F }} ({{ dados.totalProcedimentos > 0 ? ((dados.porGenero.F / dados.totalProcedimentos) * 100)|number_format(1, ',', '.') : 0 }}%)</span>
+                </div>
+                <div>
+                    <span class="block font-bold text-slate-500">Não informado</span>
+                    <span class="font-mono text-slate-500">{{ dados.porGenero['NÃO INFORMADO'] }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Perfil por Faixa Etária (Barras) -->
+        <div class="bg-white/80 dark:bg-slate-900/80 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+            <div class="mb-2">
+                <h3 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <sl-icon name="people" class="text-teal-500"></sl-icon> Perfil por Faixa Etária
+                </h3>
+                <p class="text-xs text-slate-500">Grupos etários atendidos pela clínica</p>
+            </div>
+            <div class="h-56 w-full">
+                <canvas id="graficoFaixaEtariaBarra"></canvas>
+            </div>
+        </div>
+
+        <!-- Top Operadoras de Convênio (Barras Horizontais) -->
+        <div class="bg-white/80 dark:bg-slate-900/80 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+            <div class="mb-2">
+                <h3 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <sl-icon name="hospital" class="text-sky-500"></sl-icon> Top Convênios / Planos
+                </h3>
+                <p class="text-xs text-slate-500">Operadoras com maior volume no período</p>
+            </div>
+            <div class="h-56 w-full">
+                <canvas id="graficoTopConveniosBarra"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- 7. Tabelas Planilhadas por Intervalo (Dia / Mês / Trimestre / Quadrimestre / Semestre / Ano) -->
     <div class="bg-white/80 dark:bg-slate-900/80 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
             <div>
-                <h3 class="text-base font-bold text-slate-900 dark:text-white">Tabelas Planilhadas por Intervalo Temporal</h3>
+                <h3 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <sl-icon name="table" class="text-cyan-600"></sl-icon> Tabelas Planilhadas por Intervalo Temporal
+                </h3>
                 <p class="text-xs text-slate-500">Visão estatística agregada de procedimentos & exames por Dia, Mês, Trimestre, Quadrimestre, Semestre e Ano</p>
             </div>
 
@@ -304,7 +498,7 @@
 
         <!-- Tabela por Dia -->
         <div id="tabConceitoDia" class="tabela-agregada-painel hidden">
-            <div class="max-h-72 overflow-y-auto">
+            <div class="max-h-72 overflow-y-auto custom-scrollbar">
                 <table class="w-full text-left text-xs border-collapse">
                     <thead class="sticky top-0 bg-slate-100 dark:bg-slate-950 font-bold uppercase text-slate-500">
                         <tr>
@@ -317,7 +511,7 @@
                         {% for dia, count in dados.porDia %}
                             <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40">
                                 <td class="py-2 px-3 font-mono font-bold text-slate-800 dark:text-slate-200">{{ dia|date('d/m/Y') }}</td>
-                                <td class="py-2 px-3 text-right font-mono font-black text-cyan-600 dark:text-cyan-400">{{ count }} procedimentos / exames</td>
+                                <td class="py-2 px-3 text-right font-mono font-black text-cyan-600 dark:text-cyan-400">{{ count }} atendimentos</td>
                                 <td class="py-2 px-3 text-right font-mono text-slate-500">
                                     {{ dados.totalProcedimentos > 0 ? ((count / dados.totalProcedimentos) * 100)|number_format(1, ',', '.') : 0 }}%
                                 </td>
@@ -332,7 +526,7 @@
 
         <!-- Tabela por Mês -->
         <div id="tabConceitoMes" class="tabela-agregada-painel">
-            <div class="max-h-72 overflow-y-auto">
+            <div class="max-h-72 overflow-y-auto custom-scrollbar">
                 <table class="w-full text-left text-xs border-collapse">
                     <thead class="sticky top-0 bg-slate-100 dark:bg-slate-950 font-bold uppercase text-slate-500">
                         <tr>
@@ -345,7 +539,7 @@
                         {% for mesAno, count in dados.porMes %}
                             <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40">
                                 <td class="py-2 px-3 font-mono font-bold text-slate-800 dark:text-slate-200">{{ mesAno }}</td>
-                                <td class="py-2 px-3 text-right font-mono font-black text-indigo-600 dark:text-indigo-400">{{ count }} procedimentos / exames</td>
+                                <td class="py-2 px-3 text-right font-mono font-black text-indigo-600 dark:text-indigo-400">{{ count }} atendimentos</td>
                                 <td class="py-2 px-3 text-right font-mono text-slate-500">
                                     {{ dados.totalProcedimentos > 0 ? ((count / dados.totalProcedimentos) * 100)|number_format(1, ',', '.') : 0 }}%
                                 </td>
@@ -360,7 +554,7 @@
 
         <!-- Tabela por Trimestre -->
         <div id="tabConceitoTrimestre" class="tabela-agregada-painel hidden">
-            <div class="max-h-72 overflow-y-auto">
+            <div class="max-h-72 overflow-y-auto custom-scrollbar">
                 <table class="w-full text-left text-xs border-collapse">
                     <thead class="sticky top-0 bg-slate-100 dark:bg-slate-950 font-bold uppercase text-slate-500">
                         <tr>
@@ -373,7 +567,7 @@
                         {% for tri, count in dados.porTrimestre %}
                             <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40">
                                 <td class="py-2 px-3 font-mono font-bold text-slate-800 dark:text-slate-200">{{ tri }}</td>
-                                <td class="py-2 px-3 text-right font-mono font-black text-sky-600 dark:text-sky-400">{{ count }} procedimentos / exames</td>
+                                <td class="py-2 px-3 text-right font-mono font-black text-sky-600 dark:text-sky-400">{{ count }} atendimentos</td>
                                 <td class="py-2 px-3 text-right font-mono text-slate-500">
                                     {{ dados.totalProcedimentos > 0 ? ((count / dados.totalProcedimentos) * 100)|number_format(1, ',', '.') : 0 }}%
                                 </td>
@@ -388,7 +582,7 @@
 
         <!-- Tabela por Quadrimestre -->
         <div id="tabConceitoQuadrimestre" class="tabela-agregada-painel hidden">
-            <div class="max-h-72 overflow-y-auto">
+            <div class="max-h-72 overflow-y-auto custom-scrollbar">
                 <table class="w-full text-left text-xs border-collapse">
                     <thead class="sticky top-0 bg-slate-100 dark:bg-slate-950 font-bold uppercase text-slate-500">
                         <tr>
@@ -401,7 +595,7 @@
                         {% for quadri, count in dados.porQuadrimestre %}
                             <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40">
                                 <td class="py-2 px-3 font-mono font-bold text-slate-800 dark:text-slate-200">{{ quadri }}</td>
-                                <td class="py-2 px-3 text-right font-mono font-black text-purple-600 dark:text-purple-400">{{ count }} procedimentos / exames</td>
+                                <td class="py-2 px-3 text-right font-mono font-black text-purple-600 dark:text-purple-400">{{ count }} atendimentos</td>
                                 <td class="py-2 px-3 text-right font-mono text-slate-500">
                                     {{ dados.totalProcedimentos > 0 ? ((count / dados.totalProcedimentos) * 100)|number_format(1, ',', '.') : 0 }}%
                                 </td>
@@ -416,7 +610,7 @@
 
         <!-- Tabela por Semestre -->
         <div id="tabConceitoSemestre" class="tabela-agregada-painel hidden">
-            <div class="max-h-72 overflow-y-auto">
+            <div class="max-h-72 overflow-y-auto custom-scrollbar">
                 <table class="w-full text-left text-xs border-collapse">
                     <thead class="sticky top-0 bg-slate-100 dark:bg-slate-950 font-bold uppercase text-slate-500">
                         <tr>
@@ -429,7 +623,7 @@
                         {% for sem, count in dados.porSemestre %}
                             <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40">
                                 <td class="py-2 px-3 font-mono font-bold text-slate-800 dark:text-slate-200">{{ sem }}</td>
-                                <td class="py-2 px-3 text-right font-mono font-black text-emerald-600 dark:text-emerald-400">{{ count }} procedimentos / exames</td>
+                                <td class="py-2 px-3 text-right font-mono font-black text-emerald-600 dark:text-emerald-400">{{ count }} atendimentos</td>
                                 <td class="py-2 px-3 text-right font-mono text-slate-500">
                                     {{ dados.totalProcedimentos > 0 ? ((count / dados.totalProcedimentos) * 100)|number_format(1, ',', '.') : 0 }}%
                                 </td>
@@ -444,7 +638,7 @@
 
         <!-- Tabela por Ano -->
         <div id="tabConceitoAno" class="tabela-agregada-painel hidden">
-            <div class="max-h-72 overflow-y-auto">
+            <div class="max-h-72 overflow-y-auto custom-scrollbar">
                 <table class="w-full text-left text-xs border-collapse">
                     <thead class="sticky top-0 bg-slate-100 dark:bg-slate-950 font-bold uppercase text-slate-500">
                         <tr>
@@ -457,7 +651,7 @@
                         {% for anoVal, count in dados.porAno %}
                             <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40">
                                 <td class="py-2 px-3 font-mono font-bold text-slate-800 dark:text-slate-200">{{ anoVal }}</td>
-                                <td class="py-2 px-3 text-right font-mono font-black text-amber-600 dark:text-amber-400">{{ count }} procedimentos / exames</td>
+                                <td class="py-2 px-3 text-right font-mono font-black text-amber-600 dark:text-amber-400">{{ count }} atendimentos</td>
                                 <td class="py-2 px-3 text-right font-mono text-slate-500">
                                     {{ dados.totalProcedimentos > 0 ? ((count / dados.totalProcedimentos) * 100)|number_format(1, ',', '.') : 0 }}%
                                 </td>
@@ -470,158 +664,26 @@
             </div>
         </div>
     </div>
-
-    <!-- Ranking de Procedimentos e Especialidades -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div class="bg-white/80 dark:bg-slate-900/80 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-            <h3 class="text-base font-bold text-slate-900 dark:text-white mb-4">Procedimentos & Exames Mais Frequentes</h3>
-            <div class="space-y-2.5 max-h-60 overflow-y-auto pr-2">
-                {% for proc, count in dados.porProcedimento %}
-                    <div class="flex items-center justify-between p-2.5 bg-slate-50 dark:bg-slate-950/60 rounded-xl border border-slate-200/60 dark:border-slate-800">
-                        <span class="text-xs font-bold text-slate-800 dark:text-slate-200">{{ proc }}</span>
-                        <span class="text-xs font-mono font-black text-cyan-600 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-950 border border-cyan-200 dark:border-cyan-800 px-2 py-0.5 rounded-lg">{{ count }} exames</span>
-                    </div>
-                {% else %}
-                    <p class="text-xs text-slate-400">Nenhum registro no período.</p>
-                {% endfor %}
-            </div>
-        </div>
-
-        <div class="bg-white/80 dark:bg-slate-900/80 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-            <h3 class="text-base font-bold text-slate-900 dark:text-white mb-4">Atendimentos por Especialidade</h3>
-            <div class="space-y-2.5 max-h-60 overflow-y-auto pr-2">
-                {% for esp, count in dados.porEspecialidade %}
-                    <div class="flex items-center justify-between p-2.5 bg-slate-50 dark:bg-slate-950/60 rounded-xl border border-slate-200/60 dark:border-slate-800">
-                        <span class="text-xs font-bold text-slate-800 dark:text-slate-200">{{ esp }}</span>
-                        <span class="text-xs font-mono font-black text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950 border border-indigo-200 dark:border-indigo-800 px-2 py-0.5 rounded-lg">{{ count }} consultas</span>
-                    </div>
-                {% else %}
-                    <p class="text-xs text-slate-400">Nenhum registro no período.</p>
-                {% endfor %}
-            </div>
-        </div>
-    </div>
-
-    <!-- Registros Analíticos do Período (Paginados de 100 em 100) -->
-    <div class="bg-white/80 dark:bg-slate-900/80 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
-                <h3 class="text-base font-bold text-slate-900 dark:text-white">Registros Analíticos do Período</h3>
-                <p class="text-xs text-slate-500">Lista completa com paginação de 100 em 100 registros por página</p>
-            </div>
-            <span class="text-xs font-semibold text-slate-500">Total de {{ dados.totalItems }} registros</span>
-        </div>
-
-        <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse">
-                <thead>
-                    <tr class="border-b border-slate-200 dark:border-slate-800 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                        <th class="py-3 px-2">Data/Hora</th>
-                        <th class="py-3 px-2">Paciente</th>
-                        <th class="py-3 px-2">Procedimento</th>
-                        <th class="py-3 px-2">Financiamento</th>
-                        <th class="py-3 px-2">Médico</th>
-                        <th class="py-3 px-2">Status</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
-                    {% for ag in dados.agendamentosPaginados %}
-                        <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/40">
-                            <td class="py-2.5 px-2 font-mono text-slate-700 dark:text-slate-300">
-                                {{ ag.dataHoraAgendada ? ag.dataHoraAgendada|date('d/m/Y H:i') : '--' }}
-                            </td>
-                            <td class="py-2.5 px-2 font-bold text-slate-900 dark:text-white">
-                                {{ ag.pacienteNome|default('Paciente') }}
-                            </td>
-                            <td class="py-2.5 px-2 text-cyan-600 dark:text-cyan-400 font-medium">
-                                {{ ag.procedimentoNome ?? 'Procedimento Geral' }}
-                            </td>
-                            <td class="py-2.5 px-2">
-                                {% set t = ag.tipoAtendimento|default('sus') %}
-                                {% if 'sus' in t %}
-                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">SUS</span>
-                                {% elseif 'filantrop' in t %}
-                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">Filantrópico</span>
-                                {% else %}
-                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300">Convênio</span>
-                                {% endif %}
-                            </td>
-                            <td class="py-2.5 px-2 text-slate-700 dark:text-slate-300">
-                                {{ ag.medicoNome|default('Não informado') }}
-                            </td>
-                            <td class="py-2.5 px-2">
-                                <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
-                                    {{ ag.status }}
-                                </span>
-                            </td>
-                        </tr>
-                    {% else %}
-                        <tr>
-                            <td colspan="6" class="py-4 text-center text-slate-400">Nenhum agendamento encontrado para o período selecionado.</td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-
-        <!-- Paginação de 100 em 100 -->
-        {% if dados.totalPages > 1 %}
-            <div class="p-4 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
-                <span class="text-slate-500">
-                    Mostrando página <strong>{{ dados.page }}</strong> de <strong>{{ dados.totalPages }}</strong> (100 itens por página)
-                </span>
-
-                <div class="flex items-center gap-1">
-                    {% if dados.page > 1 %}
-                        <a href="{{ path('app_admin_relatorio_procedimentos', app.request.query.all|merge({'page': dados.page - 1})) }}" class="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-lg transition">
-                            &laquo; Anterior
-                        </a>
-                    {% endif %}
-
-                    {% set startP = max(1, dados.page - 2) %}
-                    {% set endP = min(dados.totalPages, dados.page + 2) %}
-
-                    {% for p in startP..endP %}
-                        <a href="{{ path('app_admin_relatorio_procedimentos', app.request.query.all|merge({'page': p})) }}" class="px-3 py-1.5 font-bold rounded-lg transition {% if p == dados.page %}bg-cyan-600 text-white shadow-sm{% else %}bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700{% endif %}">
-                            {{ p }}
-                        </a>
-                    {% endfor %}
-
-                    {% if dados.page < dados.totalPages %}
-                        <a href="{{ path('app_admin_relatorio_procedimentos', app.request.query.all|merge({'page': dados.page + 1})) }}" class="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-lg transition">
-                            Próximo &raquo;
-                        </a>
-                    {% endif %}
-                </div>
-            </div>
-        {% endif %}
-    </div>
 </div>
 
 <script>
     function toggleFiltroPeriodo() {
         const select = document.getElementById('tipoPeriodoSelect');
-        const containerMes = document.getElementById('containerMesEspecifico');
-        const containerAno = document.getElementById('containerAnoEspecifico');
-        const containerPersonalizado = document.getElementById('containerPersonalizado');
+        const mesContainer = document.getElementById('containerMesEspecifico');
+        const anoContainer = document.getElementById('containerAnoEspecifico');
+        const personalizadoContainer = document.getElementById('containerPersonalizado');
 
-        const val = select.value;
-        if (val === 'mes_especifico') {
-            containerMes.classList.remove('hidden');
-            containerAno.classList.remove('hidden');
-            containerPersonalizado.classList.add('hidden');
-        } else if (val === 'ano_especifico') {
-            containerMes.classList.add('hidden');
-            containerAno.classList.remove('hidden');
-            containerPersonalizado.classList.add('hidden');
-        } else if (val === 'personalizado') {
-            containerMes.classList.add('hidden');
-            containerAno.classList.add('hidden');
-            containerPersonalizado.classList.remove('hidden');
-        } else {
-            containerMes.classList.add('hidden');
-            containerAno.classList.add('hidden');
-            containerPersonalizado.classList.add('hidden');
+        mesContainer.classList.add('hidden');
+        anoContainer.classList.add('hidden');
+        personalizadoContainer.classList.add('hidden');
+
+        if (select.value === 'mes_especifico') {
+            mesContainer.classList.remove('hidden');
+            anoContainer.classList.remove('hidden');
+        } else if (select.value === 'ano_especifico') {
+            anoContainer.classList.remove('hidden');
+        } else if (select.value === 'personalizado') {
+            personalizadoContainer.classList.remove('hidden');
         }
     }
 
@@ -637,6 +699,20 @@
                 } else {
                     btn.className = "px-2.5 py-1 rounded-lg transition text-slate-600 dark:text-slate-400 hover:text-slate-900";
                 }
+            }
+        });
+    }
+
+    function filtrarTabelaMedicos() {
+        const query = document.getElementById('filtroMedicosInput').value.toLowerCase();
+        const rows = document.querySelectorAll('.medico-row');
+        rows.forEach(r => {
+            const nome = r.querySelector('.medico-nome')?.textContent.toLowerCase() || '';
+            const esp = r.querySelector('.medico-esp')?.textContent.toLowerCase() || '';
+            if (nome.includes(query) || esp.includes(query)) {
+                r.style.display = '';
+            } else {
+                r.style.display = 'none';
             }
         });
     }
@@ -669,7 +745,15 @@
         }
     };
 
+    const seriesFinanciamento = {{ dados.seriesFinanciamento|json_encode|raw }};
+    const seriesStatus = {{ dados.seriesStatus|json_encode|raw }};
+
     let meuGraficoComparativo = null;
+    let meuGraficoEvolucao = null;
+    let metricaEvolucaoAtual = 'total';
+    let agrupamentoEvolucaoAtual = 'mes';
+    let tipoGraficoEvolucaoAtual = 'line';
+
     const rawDatasetsProcedimentos = {{ dados.datasetsProcedimentos|json_encode|raw }};
     const mesesLabels = {{ dados.porMesKeys|json_encode|raw }};
 
@@ -721,9 +805,200 @@
         meuGraficoComparativo.update();
     }
 
-    // Inicialização dos Gráficos Chart.js
+    // Gerador dinâmico de datasets para a Evolução Temporal Estratégica
+    function obterDatasetsEvolucao() {
+        const isArea = tipoGraficoEvolucaoAtual === 'area';
+        const isBar = tipoGraficoEvolucaoAtual === 'bar';
+
+        if (metricaEvolucaoAtual === 'financiamento') {
+            return [
+                {
+                    label: 'SUS',
+                    data: (seriesFinanciamento.sus && seriesFinanciamento.sus[agrupamentoEvolucaoAtual]) || [],
+                    borderColor: '#10b981',
+                    backgroundColor: isBar ? '#10b981' : (isArea ? 'rgba(16, 185, 129, 0.25)' : 'rgba(16, 185, 129, 0.05)'),
+                    fill: isArea,
+                    tension: 0.35,
+                    borderWidth: 2.5,
+                    borderRadius: isBar ? 6 : 0,
+                    pointRadius: isBar ? 0 : 3,
+                    pointHoverRadius: isBar ? 0 : 6
+                },
+                {
+                    label: 'Convênios & Particular',
+                    data: (seriesFinanciamento.convenio && seriesFinanciamento.convenio[agrupamentoEvolucaoAtual]) || [],
+                    borderColor: '#0284c7',
+                    backgroundColor: isBar ? '#0284c7' : (isArea ? 'rgba(2, 132, 199, 0.25)' : 'rgba(2, 132, 199, 0.05)'),
+                    fill: isArea,
+                    tension: 0.35,
+                    borderWidth: 2.5,
+                    borderRadius: isBar ? 6 : 0,
+                    pointRadius: isBar ? 0 : 3,
+                    pointHoverRadius: isBar ? 0 : 6
+                },
+                {
+                    label: 'Filantrópico',
+                    data: (seriesFinanciamento.filantropico && seriesFinanciamento.filantropico[agrupamentoEvolucaoAtual]) || [],
+                    borderColor: '#6366f1',
+                    backgroundColor: isBar ? '#6366f1' : (isArea ? 'rgba(99, 102, 241, 0.25)' : 'rgba(99, 102, 241, 0.05)'),
+                    fill: isArea,
+                    tension: 0.35,
+                    borderWidth: 2.5,
+                    borderRadius: isBar ? 6 : 0,
+                    pointRadius: isBar ? 0 : 3,
+                    pointHoverRadius: isBar ? 0 : 6
+                }
+            ];
+        } else if (metricaEvolucaoAtual === 'status') {
+            return [
+                {
+                    label: 'Concluídos / Realizados',
+                    data: (seriesStatus.finalizado && seriesStatus.finalizado[agrupamentoEvolucaoAtual]) || [],
+                    borderColor: '#059669',
+                    backgroundColor: isBar ? '#059669' : (isArea ? 'rgba(5, 150, 105, 0.25)' : 'rgba(5, 150, 105, 0.05)'),
+                    fill: isArea,
+                    tension: 0.35,
+                    borderWidth: 2.5,
+                    borderRadius: isBar ? 6 : 0,
+                    pointRadius: isBar ? 0 : 3,
+                    pointHoverRadius: isBar ? 0 : 6
+                },
+                {
+                    label: 'Cancelados / Faltas',
+                    data: (seriesStatus.cancelado && seriesStatus.cancelado[agrupamentoEvolucaoAtual]) || [],
+                    borderColor: '#ef4444',
+                    backgroundColor: isBar ? '#ef4444' : (isArea ? 'rgba(239, 68, 68, 0.25)' : 'rgba(239, 68, 68, 0.05)'),
+                    fill: isArea,
+                    tension: 0.35,
+                    borderWidth: 2.5,
+                    borderRadius: isBar ? 6 : 0,
+                    pointRadius: isBar ? 0 : 3,
+                    pointHoverRadius: isBar ? 0 : 6
+                },
+                {
+                    label: 'Agendados / Em Aberto',
+                    data: (seriesStatus.agendado && seriesStatus.agendado[agrupamentoEvolucaoAtual]) || [],
+                    borderColor: '#f59e0b',
+                    backgroundColor: isBar ? '#f59e0b' : (isArea ? 'rgba(245, 158, 11, 0.25)' : 'rgba(245, 158, 11, 0.05)'),
+                    fill: isArea,
+                    tension: 0.35,
+                    borderWidth: 2.5,
+                    borderRadius: isBar ? 6 : 0,
+                    pointRadius: isBar ? 0 : 3,
+                    pointHoverRadius: isBar ? 0 : 6
+                }
+            ];
+        }
+
+        // Padrão: Total
+        const config = mapasAgrupamentos[agrupamentoEvolucaoAtual] || mapasAgrupamentos.mes;
+        return [{
+            label: 'Total de Atendimentos',
+            data: config.data,
+            borderColor: '#0891b2',
+            backgroundColor: isBar ? '#0891b2' : (isArea ? 'rgba(8, 145, 178, 0.25)' : 'rgba(8, 145, 178, 0.05)'),
+            borderWidth: 3,
+            fill: isArea,
+            tension: 0.35,
+            borderRadius: isBar ? 6 : 0,
+            pointRadius: isBar ? 0 : 3,
+            pointHoverRadius: isBar ? 0 : 6
+        }];
+    }
+
+    function renderizarGraficoEvolucao() {
+        const ctxLinha = document.getElementById('graficoEvolucaoTemporal');
+        if (!ctxLinha) return;
+
+        const config = mapasAgrupamentos[agrupamentoEvolucaoAtual] || mapasAgrupamentos.mes;
+        const chartType = tipoGraficoEvolucaoAtual === 'bar' ? 'bar' : 'line';
+        const showLegend = metricaEvolucaoAtual !== 'total';
+
+        if (meuGraficoEvolucao) {
+            meuGraficoEvolucao.destroy();
+        }
+
+        meuGraficoEvolucao = new Chart(ctxLinha, {
+            type: chartType,
+            data: {
+                labels: config.labels,
+                datasets: obterDatasetsEvolucao()
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
+                plugins: {
+                    legend: {
+                        display: showLegend,
+                        position: 'top',
+                        labels: {
+                            boxWidth: 12,
+                            font: { size: 11, weight: 'bold' }
+                        }
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false
+                    }
+                },
+                scales: {
+                    x: { grid: { display: false } },
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: 'rgba(150, 150, 150, 0.08)' }
+                    }
+                }
+            }
+        });
+    }
+
+    function alterarMetricaEvolucao(metrica) {
+        metricaEvolucaoAtual = metrica;
+        
+        ['Total', 'Financiamento', 'Status'].forEach(m => {
+            const btn = document.getElementById('btnMetrica' + m);
+            if (btn) {
+                if (m.toLowerCase() === metrica) {
+                    btn.className = "px-2.5 py-1 rounded-lg transition bg-white dark:bg-slate-800 text-cyan-600 dark:text-cyan-400 shadow-xs";
+                } else {
+                    btn.className = "px-2.5 py-1 rounded-lg transition text-slate-600 dark:text-slate-400 hover:text-slate-900";
+                }
+            }
+        });
+
+        renderizarGraficoEvolucao();
+    }
+
+    function alterarTipoGraficoEvolucao(tipo) {
+        tipoGraficoEvolucaoAtual = tipo;
+
+        const tipos = { line: 'btnTipoLinha', bar: 'btnTipoBarra', area: 'btnTipoArea' };
+        Object.keys(tipos).forEach(t => {
+            const btn = document.getElementById(tipos[t]);
+            if (btn) {
+                if (t === tipo) {
+                    btn.className = "px-2 py-1 rounded-lg transition bg-white dark:bg-slate-800 text-cyan-600 dark:text-cyan-400 shadow-xs";
+                } else {
+                    btn.className = "px-2 py-1 rounded-lg transition text-slate-600 dark:text-slate-400 hover:text-slate-900";
+                }
+            }
+        });
+
+        renderizarGraficoEvolucao();
+    }
+
+    function alterarAgrupamentoEvolucao(agrupamento) {
+        agrupamentoEvolucaoAtual = agrupamento;
+        renderizarGraficoEvolucao();
+    }
+
+    // Inicialização de Todos os Gráficos
     document.addEventListener('DOMContentLoaded', function() {
-        // 0. Gráfico Inteligente Comparativo por Procedimento (Linhas Individuais)
+        // 0. Gráfico Inteligente Comparativo por Procedimento
         const ctxComparativo = document.getElementById('graficoComparativoProcedimentos');
         if (ctxComparativo) {
             const chartDatasets = rawDatasetsProcedimentos.map(ds => ({
@@ -758,40 +1033,8 @@
             });
         }
 
-        // 1. Gráfico de Evolução Temporal (Linha)
-        const ctxLinha = document.getElementById('graficoEvolucaoTemporal');
-        if (ctxLinha) {
-            const configInicial = mapasAgrupamentos.mes;
-
-            meuGraficoEvolucao = new Chart(ctxLinha, {
-                type: 'line',
-                data: {
-                    labels: configInicial.labels,
-                    datasets: [{
-                        label: 'Atendimentos Realizados',
-                        data: configInicial.data,
-                        borderColor: '#0891b2',
-                        backgroundColor: 'rgba(8, 145, 178, 0.1)',
-                        borderWidth: 3,
-                        fill: true,
-                        tension: 0.3,
-                        pointRadius: 3,
-                        pointHoverRadius: 6
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false }
-                    },
-                    scales: {
-                        x: { grid: { display: false } },
-                        y: { beginAtZero: true }
-                    }
-                }
-            });
-        }
+        // 1. Gráfico de Evolução Temporal Estratégica
+        renderizarGraficoEvolucao();
 
         // 2. Gráfico de Rosca (Financiamento)
         const ctxRosca = document.getElementById('graficoFinanciamentoRosca');
@@ -814,25 +1057,28 @@
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: { position: 'bottom' }
+                        legend: { position: 'bottom', labels: { font: { size: 10 } } }
                     },
                     cutout: '70%'
                 }
             });
         }
 
-        // 3. Gráfico Top 10 Procedimentos e Exames Mais Realizados (Barras Horizontais)
-        const ctxTop = document.getElementById('graficoTopProcedimentos');
-        if (ctxTop) {
-            const top10 = rawDatasetsProcedimentos.slice(0, 10);
-            new Chart(ctxTop, {
+        // 3. Gráfico de Especialidades (Barras Horizontais)
+        const ctxEsp = document.getElementById('graficoEspecialidadesBarra');
+        if (ctxEsp) {
+            const espObj = {{ dados.porEspecialidade|json_encode|raw }};
+            const labelsEsp = Object.keys(espObj).slice(0, 8);
+            const valsEsp = Object.values(espObj).slice(0, 8);
+
+            new Chart(ctxEsp, {
                 type: 'bar',
                 data: {
-                    labels: top10.map(d => d.nome.length > 25 ? d.nome.substring(0, 25) + '...' : d.nome),
+                    labels: labelsEsp.map(l => l.length > 20 ? l.substring(0, 20) + '...' : l),
                     datasets: [{
-                        label: 'Volume de Exames',
-                        data: top10.map(d => d.total),
-                        backgroundColor: top10.map(d => d.cor),
+                        label: 'Atendimentos',
+                        data: valsEsp,
+                        backgroundColor: '#6366f1',
                         borderRadius: 6
                     }]
                 },
@@ -840,9 +1086,7 @@
                     indexAxis: 'y',
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false }
-                    },
+                    plugins: { legend: { display: false } },
                     scales: {
                         x: { beginAtZero: true, grid: { display: false } },
                         y: { grid: { display: false } }
@@ -851,25 +1095,140 @@
             });
         }
 
-        // 4. Gráfico por Status dos Agendamentos (Pizza)
-        const ctxStatus = document.getElementById('graficoStatusPizza');
-        if (ctxStatus) {
-            const statusObj = {{ dados.porStatus|json_encode|raw }};
-            new Chart(ctxStatus, {
-                type: 'pie',
+        // 4. Gráfico Fluxo por Dia da Semana (Barras)
+        const ctxDias = document.getElementById('graficoDiasSemanaBarra');
+        if (ctxDias) {
+            const diasObj = {{ dados.porDiaSemana|json_encode|raw }};
+            new Chart(ctxDias, {
+                type: 'bar',
                 data: {
-                    labels: Object.keys(statusObj),
+                    labels: Object.keys(diasObj),
                     datasets: [{
-                        data: Object.values(statusObj),
-                        backgroundColor: ['#0891b2', '#059669', '#f59e0b', '#ef4444', '#64748b', '#8b5cf6'],
+                        label: 'Volume de Atendimentos',
+                        data: Object.values(diasObj),
+                        backgroundColor: ['#0891b2', '#0284c7', '#3b82f6', '#6366f1', '#8b5cf6', '#a855f7', '#ec4899'],
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { display: false } },
+                        y: { beginAtZero: true, grid: { color: 'rgba(150, 150, 150, 0.08)' } }
+                    }
+                }
+            });
+        }
+
+        // 5. Gráfico Faixas Horárias (Área / Linha)
+        const ctxHoras = document.getElementById('graficoFaixasHorariasArea');
+        if (ctxHoras) {
+            const horasObj = {{ dados.porFaixaHoraria|json_encode|raw }};
+            new Chart(ctxHoras, {
+                type: 'line',
+                data: {
+                    labels: Object.keys(horasObj),
+                    datasets: [{
+                        label: 'Concentração de Atendimentos',
+                        data: Object.values(horasObj),
+                        borderColor: '#f43f5e',
+                        backgroundColor: 'rgba(244, 63, 94, 0.15)',
+                        borderWidth: 2.5,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { display: false } },
+                        y: { beginAtZero: true, grid: { color: 'rgba(150, 150, 150, 0.08)' } }
+                    }
+                }
+            });
+        }
+
+        // 6. Gráfico Gênero (Rosca)
+        const ctxGen = document.getElementById('graficoGeneroRosca');
+        if (ctxGen) {
+            const genObj = {{ dados.porGenero|json_encode|raw }};
+            new Chart(ctxGen, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Masculino (M)', 'Feminino (F)', 'Não informado'],
+                    datasets: [{
+                        data: [genObj.M || 0, genObj.F || 0, genObj['NÃO INFORMADO'] || 0],
+                        backgroundColor: ['#2563eb', '#db2777', '#94a3b8'],
                         borderWidth: 0
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: {
-                        legend: { position: 'bottom' }
+                    plugins: { legend: { position: 'bottom', labels: { font: { size: 10 } } } },
+                    cutout: '70%'
+                }
+            });
+        }
+
+        // 7. Gráfico Faixa Etária (Barras)
+        const ctxFx = document.getElementById('graficoFaixaEtariaBarra');
+        if (ctxFx) {
+            const fxObj = {{ dados.porFaixaEtaria|json_encode|raw }};
+            new Chart(ctxFx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(fxObj),
+                    datasets: [{
+                        label: 'Pacientes',
+                        data: Object.values(fxObj),
+                        backgroundColor: '#14b8a6',
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { font: { size: 9 } } },
+                        y: { beginAtZero: true, grid: { color: 'rgba(150, 150, 150, 0.08)' } }
+                    }
+                }
+            });
+        }
+
+        // 8. Gráfico Top Convênios (Barras Horizontais)
+        const ctxConv = document.getElementById('graficoTopConveniosBarra');
+        if (ctxConv) {
+            const convObj = {{ dados.porConvenio|json_encode|raw }};
+            const labelsConv = Object.keys(convObj).slice(0, 6);
+            const valsConv = Object.values(convObj).slice(0, 6);
+
+            new Chart(ctxConv, {
+                type: 'bar',
+                data: {
+                    labels: labelsConv.map(l => l.length > 18 ? l.substring(0, 18) + '...' : l),
+                    datasets: [{
+                        label: 'Atendimentos',
+                        data: valsConv,
+                        backgroundColor: '#0284c7',
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { beginAtZero: true, grid: { display: false } },
+                        y: { grid: { display: false }, ticks: { font: { size: 10 } } }
                     }
                 }
             });

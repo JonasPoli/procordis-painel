@@ -83,16 +83,37 @@ class RelatorioService
         $countQb = clone $qb;
         $totalProcedimentos = (int) $countQb->select('COUNT(a.id)')->getQuery()->getSingleScalarResult();
 
-        // 2. Trazer apenas os campos estritamente necessários em formato Array escalar
-        $items = $qb->select('a.id, a.dataHoraAgendada, a.createdAt, a.tipoAtendimento, a.convenioNome, a.procedimentoNome, a.status, p.nomeCompleto as pacienteNome, m.nome as medicoNome, e.nome as especialidadeNome')
-            ->getQuery()
-            ->getArrayResult();
+        // 2. Trazer apenas os campos necessários em formato Array escalar
+        $items = $qb->select('
+            a.id,
+            a.dataHoraAgendada,
+            a.createdAt,
+            a.horarioChegada,
+            a.horarioInicioConsulta,
+            a.horarioSaida,
+            a.horarioFimConsulta,
+            a.tipoAtendimento,
+            a.convenioNome,
+            a.procedimentoNome,
+            a.status,
+            a.encaixe,
+            p.nomeCompleto as pacienteNome,
+            p.sexo as pacienteSexo,
+            p.dataNascimento as pacienteNascimento,
+            m.nome as medicoNome,
+            e.nome as especialidadeNome
+        ')
+        ->getQuery()
+        ->getArrayResult();
 
         // Contadores de Financiamento / Convênio
         $countSus = 0;
         $countFilantropico = 0;
         $countConvenio = 0;
         $countParticular = 0;
+        $countEncaixes = 0;
+        $totalEsperaMinutos = 0;
+        $countComEspera = 0;
 
         // Agrupamentos temporais e por entidade
         $porDia = [];
@@ -105,21 +126,83 @@ class RelatorioService
         $porProcedimento = [];
         $porEspecialidade = [];
         $porMedico = [];
+        $detalhesMedicos = [];
+        $porConvenio = [];
         $porStatus = [];
         $porProcedimentoMes = []; // Matriz [procedimentoNome][mês] = qtd
         $porProcedimentoDia = []; // Matriz [dia][procedimentoNome] = qtd
 
+        // Demografia
+        $porGenero = ['M' => 0, 'F' => 0, 'NÃO INFORMADO' => 0];
+        $porFaixaEtaria = [
+            '0 a 18 anos' => 0,
+            '19 a 39 anos' => 0,
+            '40 a 59 anos' => 0,
+            '60 a 79 anos' => 0,
+            '80+ anos' => 0,
+            'Não informada' => 0,
+        ];
+
+        // Dias da Semana e Faixas de Horário
+        $diasSemanaNomes = [
+            1 => 'Segunda-feira',
+            2 => 'Terça-feira',
+            3 => 'Quarta-feira',
+            4 => 'Quinta-feira',
+            5 => 'Sexta-feira',
+            6 => 'Sábado',
+            7 => 'Domingo'
+        ];
+        $porDiaSemana = [
+            'Segunda-feira' => 0,
+            'Terça-feira' => 0,
+            'Quarta-feira' => 0,
+            'Quinta-feira' => 0,
+            'Sexta-feira' => 0,
+            'Sábado' => 0,
+            'Domingo' => 0,
+        ];
+        $porFaixaHoraria = [];
+        for ($h = 6; $h <= 20; $h++) {
+            $porFaixaHoraria[sprintf('%02dh', $h)] = 0;
+        }
+
+        // Matrizes de financiamento e status por intervalo
+        $porFinanciamentoIntervalo = [
+            'sus' => ['dia' => [], 'mes' => [], 'trimestre' => [], 'quadrimestre' => [], 'semestre' => [], 'ano' => []],
+            'filantropico' => ['dia' => [], 'mes' => [], 'trimestre' => [], 'quadrimestre' => [], 'semestre' => [], 'ano' => []],
+            'convenio' => ['dia' => [], 'mes' => [], 'trimestre' => [], 'quadrimestre' => [], 'semestre' => [], 'ano' => []],
+        ];
+
+        $porStatusIntervalo = [
+            'finalizado' => ['dia' => [], 'mes' => [], 'trimestre' => [], 'quadrimestre' => [], 'semestre' => [], 'ano' => []],
+            'cancelado' => ['dia' => [], 'mes' => [], 'trimestre' => [], 'quadrimestre' => [], 'semestre' => [], 'ano' => []],
+            'agendado' => ['dia' => [], 'mes' => [], 'trimestre' => [], 'quadrimestre' => [], 'semestre' => [], 'ano' => []],
+        ];
+
         foreach ($items as $item) {
             $tipoAt = strtolower($item['tipoAtendimento'] ?? 'sus');
+            $finKey = 'convenio';
             if (str_contains($tipoAt, 'sus')) {
                 $countSus++;
+                $finKey = 'sus';
             } elseif (str_contains($tipoAt, 'filantrop')) {
                 $countFilantropico++;
+                $finKey = 'filantropico';
             } elseif (str_contains($tipoAt, 'particular')) {
                 $countParticular++;
+                $finKey = 'convenio';
             } else {
                 $countConvenio++;
+                $finKey = 'convenio';
             }
+
+            if (!empty($item['encaixe'])) {
+                $countEncaixes++;
+            }
+
+            $convNome = !empty($item['convenioNome']) ? trim($item['convenioNome']) : (str_contains($tipoAt, 'sus') ? 'SUS - Sistema Único de Saúde' : 'Particular / Outros');
+            $porConvenio[$convNome] = ($porConvenio[$convNome] ?? 0) + 1;
 
             $dt = $item['dataHoraAgendada'] ?? $item['createdAt'];
             if (!$dt instanceof \DateTimeInterface) {
@@ -147,6 +230,66 @@ class RelatorioService
             $porQuadrimestre[$chaveQuadrimestre] = ($porQuadrimestre[$chaveQuadrimestre] ?? 0) + 1;
             $porSemestre[$chaveSemestre] = ($porSemestre[$chaveSemestre] ?? 0) + 1;
             $porAno[$chaveAno] = ($porAno[$chaveAno] ?? 0) + 1;
+
+            // Dia da semana e Hora
+            $numDiaSemana = (int) $dt->format('N');
+            $nomeDiaSemana = $diasSemanaNomes[$numDiaSemana] ?? 'Outro';
+            $porDiaSemana[$nomeDiaSemana] = ($porDiaSemana[$nomeDiaSemana] ?? 0) + 1;
+
+            $horaFormatada = $dt->format('H') . 'h';
+            if (isset($porFaixaHoraria[$horaFormatada])) {
+                $porFaixaHoraria[$horaFormatada]++;
+            } else {
+                $porFaixaHoraria[$horaFormatada] = ($porFaixaHoraria[$horaFormatada] ?? 0) + 1;
+            }
+
+            // Demografia - Gênero
+            $sexoRaw = strtoupper(trim($item['pacienteSexo'] ?? ''));
+            if ($sexoRaw === 'M' || $sexoRaw === 'MASCULINO') {
+                $porGenero['M']++;
+            } elseif ($sexoRaw === 'F' || $sexoRaw === 'FEMININO') {
+                $porGenero['F']++;
+            } else {
+                $porGenero['NÃO INFORMADO']++;
+            }
+
+            // Demografia - Faixa Etária
+            $nasc = $item['pacienteNascimento'] ?? null;
+            if ($nasc instanceof \DateTimeInterface) {
+                $idade = $dt->diff($nasc)->y;
+                if ($idade <= 18) {
+                    $porFaixaEtaria['0 a 18 anos']++;
+                } elseif ($idade <= 39) {
+                    $porFaixaEtaria['19 a 39 anos']++;
+                } elseif ($idade <= 59) {
+                    $porFaixaEtaria['40 a 59 anos']++;
+                } elseif ($idade <= 79) {
+                    $porFaixaEtaria['60 a 79 anos']++;
+                } else {
+                    $porFaixaEtaria['80+ anos']++;
+                }
+            } else {
+                $porFaixaEtaria['Não informada']++;
+            }
+
+            // Tempo de Espera
+            $chegada = $item['horarioChegada'] ?? null;
+            $inicioConsulta = $item['horarioInicioConsulta'] ?? $item['horarioSaida'] ?? $item['horarioFimConsulta'] ?? null;
+            if ($chegada instanceof \DateTimeInterface && $inicioConsulta instanceof \DateTimeInterface) {
+                $diffSec = $inicioConsulta->getTimestamp() - $chegada->getTimestamp();
+                if ($diffSec > 0 && $diffSec < 43200) { // menos de 12 horas
+                    $totalEsperaMinutos += ($diffSec / 60);
+                    $countComEspera++;
+                }
+            }
+
+            // Financiamento por intervalo
+            $porFinanciamentoIntervalo[$finKey]['dia'][$chaveDia] = ($porFinanciamentoIntervalo[$finKey]['dia'][$chaveDia] ?? 0) + 1;
+            $porFinanciamentoIntervalo[$finKey]['mes'][$chaveMes] = ($porFinanciamentoIntervalo[$finKey]['mes'][$chaveMes] ?? 0) + 1;
+            $porFinanciamentoIntervalo[$finKey]['trimestre'][$chaveTrimestre] = ($porFinanciamentoIntervalo[$finKey]['trimestre'][$chaveTrimestre] ?? 0) + 1;
+            $porFinanciamentoIntervalo[$finKey]['quadrimestre'][$chaveQuadrimestre] = ($porFinanciamentoIntervalo[$finKey]['quadrimestre'][$chaveQuadrimestre] ?? 0) + 1;
+            $porFinanciamentoIntervalo[$finKey]['semestre'][$chaveSemestre] = ($porFinanciamentoIntervalo[$finKey]['semestre'][$chaveSemestre] ?? 0) + 1;
+            $porFinanciamentoIntervalo[$finKey]['ano'][$chaveAno] = ($porFinanciamentoIntervalo[$finKey]['ano'][$chaveAno] ?? 0) + 1;
 
             $nomeProc = $item['procedimentoNome'] ?? 'Consulta / Procedimento Geral';
             $porProcedimento[$nomeProc] = ($porProcedimento[$nomeProc] ?? 0) + 1;
@@ -177,16 +320,66 @@ class RelatorioService
             $st = strtoupper($item['status'] ?? 'AGENDADO');
             $porStatus[$st] = ($porStatus[$st] ?? 0) + 1;
 
+            $stKey = 'agendado';
+            $isFinalizado = false;
+            $isCancelado = false;
+            if (str_contains($st, 'CANCEL') || str_contains($st, 'FALTA') || str_contains($st, 'DESIST')) {
+                $stKey = 'cancelado';
+                $isCancelado = true;
+            } elseif (str_contains($st, 'FINALIZ') || str_contains($st, 'CONCLU')) {
+                $stKey = 'finalizado';
+                $isFinalizado = true;
+            }
+
+            // Detalhes por Médico
+            if (!isset($detalhesMedicos[$medicoNome])) {
+                $detalhesMedicos[$medicoNome] = [
+                    'nome' => $medicoNome,
+                    'especialidade' => $espNome,
+                    'total' => 0,
+                    'finalizados' => 0,
+                    'cancelados' => 0,
+                    'encaixes' => 0,
+                ];
+            }
+            $detalhesMedicos[$medicoNome]['total']++;
+            if ($isFinalizado) $detalhesMedicos[$medicoNome]['finalizados']++;
+            if ($isCancelado) $detalhesMedicos[$medicoNome]['cancelados']++;
+            if (!empty($item['encaixe'])) $detalhesMedicos[$medicoNome]['encaixes']++;
+
+            $porStatusIntervalo[$stKey]['dia'][$chaveDia] = ($porStatusIntervalo[$stKey]['dia'][$chaveDia] ?? 0) + 1;
+            $porStatusIntervalo[$stKey]['mes'][$chaveMes] = ($porStatusIntervalo[$stKey]['mes'][$chaveMes] ?? 0) + 1;
+            $porStatusIntervalo[$stKey]['trimestre'][$chaveTrimestre] = ($porStatusIntervalo[$stKey]['trimestre'][$chaveTrimestre] ?? 0) + 1;
+            $porStatusIntervalo[$stKey]['quadrimestre'][$chaveQuadrimestre] = ($porStatusIntervalo[$stKey]['quadrimestre'][$chaveQuadrimestre] ?? 0) + 1;
+            $porStatusIntervalo[$stKey]['semestre'][$chaveSemestre] = ($porStatusIntervalo[$stKey]['semestre'][$chaveSemestre] ?? 0) + 1;
+            $porStatusIntervalo[$stKey]['ano'][$chaveAno] = ($porStatusIntervalo[$stKey]['ano'][$chaveAno] ?? 0) + 1;
+
             if (!isset($porProcedimentoDia[$chaveDia])) {
                 $porProcedimentoDia[$chaveDia] = [];
             }
             $porProcedimentoDia[$chaveDia][$nomeProc] = ($porProcedimentoDia[$chaveDia][$nomeProc] ?? 0) + 1;
         }
 
+        // Ordenar e enriquecer médicos
+        uasort($detalhesMedicos, fn($a, $b) => $b['total'] <=> $a['total']);
+        foreach ($detalhesMedicos as &$dm) {
+            $dm['pctTotal'] = $totalProcedimentos > 0 ? round(($dm['total'] / $totalProcedimentos) * 100, 1) : 0;
+            $dm['taxaCancelamento'] = $dm['total'] > 0 ? round(($dm['cancelados'] / $dm['total']) * 100, 1) : 0;
+        }
+        unset($dm);
+
+        // Ordenar convênios
+        arsort($porConvenio);
+
         // Percentuais
         $pctSus = $totalProcedimentos > 0 ? round(($countSus / $totalProcedimentos) * 100, 1) : 0;
         $pctFilantropico = $totalProcedimentos > 0 ? round(($countFilantropico / $totalProcedimentos) * 100, 1) : 0;
         $pctConvenio = $totalProcedimentos > 0 ? round((($countConvenio + $countParticular) / $totalProcedimentos) * 100, 1) : 0;
+        $taxaEncaixes = $totalProcedimentos > 0 ? round(($countEncaixes / $totalProcedimentos) * 100, 1) : 0;
+        
+        $totalCancelados = ($porStatus['CANCELADO'] ?? 0) + ($porStatus['FALTOU'] ?? 0) + ($porStatus['DESMARCADO'] ?? 0);
+        $taxaCancelamentoGeral = $totalProcedimentos > 0 ? round(($totalCancelados / $totalProcedimentos) * 100, 1) : 0;
+        $tempoMedioEsperaMin = $countComEspera > 0 ? round($totalEsperaMinutos / $countComEspera, 1) : 0;
 
         // Ordenar dados
         ksort($porDia);
@@ -203,7 +396,7 @@ class RelatorioService
         $diasComAtendimento = count($porDia);
         $mediaDia = $diasComAtendimento > 0 ? round($totalProcedimentos / $diasComAtendimento, 1) : 0;
 
-        // Preparar datasets por procedimento alinhados a todas as modalidades de tempo
+        // Preparar chaves temporais
         $chavesTemporais = [
             'dia' => array_keys($porDia),
             'mes' => array_keys($porMes),
@@ -212,6 +405,54 @@ class RelatorioService
             'semestre' => array_keys($porSemestre),
             'ano' => array_keys($porAno),
         ];
+
+        // Séries de Financiamento por Intervalo
+        $seriesFinanciamento = [];
+        foreach (['sus', 'filantropico', 'convenio'] as $fk) {
+            foreach ($chavesTemporais as $mod => $keys) {
+                $arrVals = [];
+                foreach ($keys as $k) {
+                    $arrVals[] = $porFinanciamentoIntervalo[$fk][$mod][$k] ?? 0;
+                }
+                $seriesFinanciamento[$fk][$mod] = $arrVals;
+            }
+        }
+
+        // Séries de Status por Intervalo
+        $seriesStatus = [];
+        foreach (['finalizado', 'cancelado', 'agendado'] as $sk) {
+            foreach ($chavesTemporais as $mod => $keys) {
+                $arrVals = [];
+                foreach ($keys as $k) {
+                    $arrVals[] = $porStatusIntervalo[$sk][$mod][$k] ?? 0;
+                }
+                $seriesStatus[$sk][$mod] = $arrVals;
+            }
+        }
+
+        // Insights estatísticos da evolução
+        $picoValor = 0;
+        $picoPeriodo = '-';
+        $minValor = $totalProcedimentos > 0 ? PHP_INT_MAX : 0;
+        $minPeriodo = '-';
+
+        $mesesCounts = array_values($porMes);
+        $totalMeses = count($mesesCounts);
+        $mediaPeriodoMes = $totalMeses > 0 ? round($totalProcedimentos / $totalMeses, 1) : 0;
+
+        foreach ($porMes as $mKey => $v) {
+            if ($v > $picoValor) {
+                $picoValor = $v;
+                $picoPeriodo = $mKey;
+            }
+            if ($v < $minValor) {
+                $minValor = $v;
+                $minPeriodo = $mKey;
+            }
+        }
+        if ($minValor === PHP_INT_MAX) {
+            $minValor = 0;
+        }
 
         $datasetsProcedimentos = [];
         $paletaCores = [
@@ -259,6 +500,28 @@ class RelatorioService
                 'convenio' => $countConvenio + $countParticular,
                 'pctConvenio' => $pctConvenio,
             ],
+            'eficiencia' => [
+                'countEncaixes' => $countEncaixes,
+                'taxaEncaixes' => $taxaEncaixes,
+                'totalCancelados' => $totalCancelados,
+                'taxaCancelamentoGeral' => $taxaCancelamentoGeral,
+                'tempoMedioEsperaMin' => $tempoMedioEsperaMin,
+            ],
+            'detalhesMedicos' => $detalhesMedicos,
+            'porConvenio' => $porConvenio,
+            'porGenero' => $porGenero,
+            'porFaixaEtaria' => $porFaixaEtaria,
+            'porDiaSemana' => $porDiaSemana,
+            'porFaixaHoraria' => $porFaixaHoraria,
+            'insights' => [
+                'picoValor' => $picoValor,
+                'picoPeriodo' => $picoPeriodo,
+                'minValor' => $minValor,
+                'minPeriodo' => $minPeriodo,
+                'mediaPeriodoMes' => $mediaPeriodoMes,
+            ],
+            'seriesFinanciamento' => $seriesFinanciamento,
+            'seriesStatus' => $seriesStatus,
             'mediaDia' => $mediaDia,
             'porDia' => $porDia,
             'porDiaKeys' => array_keys($porDia),
