@@ -38,6 +38,15 @@ class ConfiguracaoAdminController extends AbstractController
                 } else {
                     $this->addFlash('success', "Sincronização realizada! {$res['total']} registros processados ({$res['novos']} novos, {$res['atualizados']} atualizados).");
                 }
+            } elseif ($action === 'import_history') {
+                $dtInicioStr = $request->request->get('dataInicio', date('Y-m-d', strtotime('-1 year')));
+                $dtFimStr = $request->request->get('dataFim', date('Y-m-d'));
+
+                $dtInicio = \DateTime::createFromFormat('Y-m-d', $dtInicioStr) ?: (new \DateTime())->modify('-1 year');
+                $dtFim = \DateTime::createFromFormat('Y-m-d', $dtFimStr) ?: new \DateTime();
+
+                $res = $this->medwareClient->sincronizarPeriodoHistorico($dtInicio, $dtFim);
+                $this->addFlash('success', "Importação Histórica Concluída! {$res['diasProcessados']} dia(s) processados, totalizando {$res['total']} registros ({$res['novos']} novos e {$res['atualizados']} atualizados).");
             } else {
                 $baseUrl = $request->request->get('apiBaseUrl');
                 $usuario = $request->request->get('apiUsuario');

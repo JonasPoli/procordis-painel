@@ -419,6 +419,37 @@ class MedwareApiClientService
         return null;
     }
 
+    /**
+     * Sincroniza um período histórico completo paginado por intervalos de datas.
+     */
+    public function sincronizarPeriodoHistorico(\DateTimeInterface $dataInicio, \DateTimeInterface $dataFim): array
+    {
+        $cursorAtual = clone $dataInicio;
+        $totalGeral = 0;
+        $novosGeral = 0;
+        $atualizadosGeral = 0;
+        $diasProcessados = 0;
+
+        // Itera dia a dia para garantir carga completa sem sobrecarregar a API
+        while ($cursorAtual <= $dataFim) {
+            $res = $this->sincronizarAgendamentosHoje($cursorAtual);
+            if (!isset($res['erro'])) {
+                $totalGeral += $res['total'] ?? 0;
+                $novosGeral += $res['novos'] ?? 0;
+                $atualizadosGeral += $res['atualizados'] ?? 0;
+            }
+            $diasProcessados++;
+            $cursorAtual->modify('+1 day');
+        }
+
+        return [
+            'total' => $totalGeral,
+            'novos' => $novosGeral,
+            'atualizados' => $atualizadosGeral,
+            'diasProcessados' => $diasProcessados
+        ];
+    }
+
     private function registrarLog(string $endpoint, string $metodo, int $status, int $tempoMs, ?string $erro, int $count): void
     {
         $log = new LogSyncApi();

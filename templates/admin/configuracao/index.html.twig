@@ -77,6 +77,42 @@
                     </sl-button>
                 </form>
             </sl-card>
+
+            <!-- Card de Importação Histórica Completa via API -->
+            <sl-card class="w-full">
+                <div slot="header" class="flex items-center gap-3">
+                    <sl-icon name="cloud-download" class="text-3xl text-indigo-500"></sl-icon>
+                    <div>
+                        <h2 class="text-xl font-bold dark:text-white">Importação Histórica Retroativa (API Medware)</h2>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">Abasteça o sistema novo com todo o histórico de exames, consultas, pacientes e triagens do sistema antigo.</p>
+                    </div>
+                </div>
+
+                <form method="post" class="space-y-4">
+                    <input type="hidden" name="action" value="import_history">
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Data Inicial do Histórico</label>
+                            <input type="date" name="dataInicio" value="{{ "now"|date_modify("-6 months")|date("Y-m-d") }}" required class="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Data Final</label>
+                            <input type="date" name="dataFim" value="{{ "now"|date("Y-m-d") }}" required class="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-sm">
+                        </div>
+                    </div>
+
+                    <div class="p-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-xs text-indigo-700 dark:text-indigo-300">
+                        <sl-icon name="info-circle" class="mr-1"></sl-icon>
+                        A importação é realizada paginada dia a dia. Registros existentes serão atualizados e novos pacientes/procedimentos serão inseridos sem duplicação.
+                    </div>
+
+                    <sl-button type="submit" variant="success">
+                        <sl-icon slot="prefix" name="download"></sl-icon>
+                        Iniciar Carga Histórica da API
+                    </sl-button>
+                </form>
+            </sl-card>
         </div>
 
         <!-- Logs de Sincronização -->
