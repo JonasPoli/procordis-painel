@@ -64,10 +64,23 @@ class BackupAdminController extends AbstractController
     }
 
     #[Route('/diagnostico-api', name: 'diagnostico_api', methods: ['GET'])]
-    public function diagnosticoApi(): Response
+    public function diagnosticoApi(): JsonResponse
     {
-        $diag = $this->backupService->diagnosticarAmbiente();
-        return $this->json($diag);
+        @ini_set('display_errors', '0');
+        while (ob_get_level() > 0) {
+            @ob_end_clean();
+        }
+
+        try {
+            $diag = $this->backupService->diagnosticarAmbiente();
+            return new JsonResponse($diag);
+        } catch (\Throwable $e) {
+            return new JsonResponse([
+                'sucesso' => false,
+                'erro' => $e->getMessage() . " em " . $e->getFile() . ":" . $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+            ], 200);
+        }
     }
 
     #[Route('/restaurar', name: 'restaurar', methods: ['POST'])]

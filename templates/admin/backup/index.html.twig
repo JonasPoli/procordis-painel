@@ -196,7 +196,27 @@
 
         try {
             const res = await fetch('{{ path("app_admin_backup_diagnostico_api") }}');
-            const data = await res.json();
+            const rawText = await res.text();
+
+            let data;
+            try {
+                data = JSON.parse(rawText);
+            } catch (jsonErr) {
+                loading.classList.add('hidden');
+                alertaErro.classList.remove('hidden');
+                document.getElementById('diagErroTexto').innerHTML = '<strong>O servidor retornou uma mensagem HTML/PHP em vez de JSON:</strong><div class="mt-2 p-3 bg-black/80 rounded border border-red-500/40 text-red-300 font-mono text-xs overflow-x-auto">' + rawText + '</div>';
+                content.classList.remove('hidden');
+                return;
+            }
+
+            if (data.sucesso === false) {
+                loading.classList.add('hidden');
+                alertaErro.classList.remove('hidden');
+                document.getElementById('diagErroTexto').textContent = data.erro || 'Erro não especificado retornado pelo servidor.';
+                document.getElementById('diagErroTrace').textContent = data.trace || '';
+                content.classList.remove('hidden');
+                return;
+            }
 
             // 1. Preencher Ambiente
             document.getElementById('diagPhpVersion').textContent = data.ambiente.php_version + ' (' + data.ambiente.sapi + ')';
@@ -252,7 +272,7 @@
         } catch (err) {
             loading.classList.add('hidden');
             alertaErro.classList.remove('hidden');
-            document.getElementById('diagErroTexto').textContent = 'Erro ao consultar API de diagnóstico: ' + err.message;
+            document.getElementById('diagErroTexto').textContent = 'Erro ao processar diagnóstico: ' + err.message;
             content.classList.remove('hidden');
         }
     }
