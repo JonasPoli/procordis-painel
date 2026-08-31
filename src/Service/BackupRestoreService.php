@@ -292,4 +292,131 @@ class BackupRestoreService
         }
         return sys_get_temp_dir();
     }
+
+    /**
+     * Diagnóstico profundo do ambiente de execução do backup em produção.
+     */
+    public function diagnosticarAmbiente(): array
+    {
+        $inicio = microtime(true);
+        $memoriaInicio = memory_get_usage(true);
+        $conn = $this->em->getConnection();
+        $projectDir = dirname(__DIR__, 2);
+
+        $diag = [
+            'timestamp' => date('Y-m-d H:i:s'),
+            'ambiente' => [
+                'php_version' => PHP_VERSION,
+                'sapi' => PHP_SAPI,
+                'os' => PHP_OS,
+                'memory_limit' => ini_get('memory_limit'),
+                'max_execution_time' => ini_get('max_execution_time'),
+                'upload_max_filesize' => ini_get('upload_max_filesize'),
+                'post_max_size' => ini_get('post_max_size'),
+                'open_basedir' => ini_get('open_basedir') ?: '(desativado / livre)',
+                'extensoes' => [
+                    'zip' => class_exists('ZipArchive') ? 'Instalada' : 'Não instalada (usando fallback GZ)',
+                    'zlib_gz' => function_exists('gzopen') ? 'Instalada (gzip OK)' : 'Não instalada',
+                    'pdo_mysql' => extension_loaded('pdo_mysql') ? 'Instalada' : 'Não instalada',
+                    'json' => function_exists('json_encode') ? 'Instalada' : 'Não instalada',
+                    'mbstring' => extension_loaded('mbstring') ? 'Instalada' : 'Não instalada',
+                ],
+            ],
+            'pastas' => [
+                'var_backup' => [
+                    'caminho' => $projectDir . '/var/backup',
+                    'existe' => is_dir($projectDir . '/var/backup'),
+                    'gravavel' => is_writable($projectDir . '/var/backup') || is_writable($projectDir . '/var'),
+                ],
+                'sys_temp' => [
+                    'caminho' => sys_get_temp_dir(),
+                    'gravavel' => is_writable(sys_get_temp_dir()),
+                ],
+            ],
+            'tabelas' => [],
+            'teste_geracao' => [
+                'sucesso' => false,
+                'tempo_ms' => 0,
+                'memoria_pico_mb' => 0,
+                'tamanho_bytes' => 0,
+                'tamanho_formatado' => '0 KB',
+                'erro' => null,
+            ],
+            'ultimos_logs_erro' => $this->obterUltimosLogsErro(),
+        ];
+
+        // 1. Contagem das tabelas
+        foreach (self::TABELAS_ORDEM as $tableName => $aliasKey) {
+            try {
+                $count = (int) $conn->fetchOne("SELECT COUNT(*) FROM `{$tableName}`");
+                $diag['tabelas'][$tableName] = [
+                    'status' => 'OK',
+                    'total' => $count,
+                ];
+            } catch (\Throwable $e) {
+                $diag['tabelas'][$tableName] = [
+                    'status' => 'ERRO',
+                    'total' => 0,
+                    'erro' => $e->getMessage(),
+                ];
+            }
+        }
+
+        // 2. Teste real de geração de backup
+        try {
+            $testeInicio = microtime(true);
+            $caminhoTeste = $this->gerarBackup();
+            $testeFim = microtime(true);
+
+            $tamanho = file_exists($caminhoTeste) ? filesize($caminhoTeste) : 0;
+            $memoriaPico = memory_get_peak_usage(true);
+
+            // Validar se o arquivo gerado é legível
+            $conteudoTeste = file_get_contents($caminhoTeste, false, null, 0, 100);
+            @unlink($caminhoTeste);
+
+            $diag['teste_geracao']['sucesso'] = true;
+            $diag['teste_geracao']['tempo_ms'] = round(($testeFim - $testeInicio) * 1000, 2);
+            $diag['teste_geracao']['memoria_pico_mb'] = round($memoriaPico / 1024 / 1024, 2);
+            $diag['teste_geracao']['tamanho_bytes'] = $tamanho;
+            $diag['teste_geracao']['tamanho_formatado'] = round($tamanho / 1024, 2) . ' KB';
+        } catch (\Throwable $e) {
+            $diag['teste_geracao']['sucesso'] = false;
+            $diag['teste_geracao']['erro'] = $e->getMessage() . " em " . $e->getFile() . ":" . $e->getLine();
+            $diag['teste_geracao']['trace'] = $e->getTraceAsString();
+        }
+
+        $diag['tempo_total_diagnostico_ms'] = round((microtime(true) - $inicio) * 1000, 2);
+
+        return $diag;
+    }
+
+    private function obterUltimosLogsErro(): array
+    {
+        $projectDir = dirname(__DIR__, 2);
+        $arquivosLog = [
+            $projectDir . '/var/log/prod.log',
+            $projectDir . '/var/log/dev.log',
+            $projectDir . '/var/log/backup.log',
+        ];
+
+        $erros = [];
+
+        foreach ($arquivosLog as $logFile) {
+            if (file_exists($logFile) && is_readable($logFile)) {
+                $linhas = file($logFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+                if ($linhas) {
+                    $ultimas = array_slice($linhas, -30);
+                    foreach (array_reverse($ultimas) as $l) {
+                        if (stripos($l, 'CRITICAL') !== false || stripos($l, 'ERROR') !== false || stripos($l, 'Fatal') !== false || stripos($l, 'Exception') !== false) {
+                            $erros[] = substr($l, 0, 250);
+                            if (count($erros) >= 10) break 2;
+                        }
+                    }
+                }
+            }
+        }
+
+        return $erros;
+    }
 }

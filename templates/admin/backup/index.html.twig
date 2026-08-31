@@ -11,13 +11,93 @@
                 <sl-icon name="database-fill-down" class="text-cyan-500 text-2xl"></sl-icon>
                 <h1 class="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Central de Backup & Restauração</h1>
             </div>
-            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Gere cópias de segurança integrais do banco de dados (logins ADM, pacientes, médicos, consultas, anamneses e configurações) ou restaure a partir de um arquivo.</p>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Gere cópias de segurança integrais do banco de dados ou restaure a partir de um arquivo.</p>
         </div>
 
         <div class="flex flex-wrap items-center gap-3">
+            <button type="button" onclick="executarDiagnosticoOnline()" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 text-cyan-400 font-bold rounded-xl text-xs flex items-center gap-2 shadow transition">
+                <sl-icon name="activity"></sl-icon> <span>Diagnóstico Online do Servidor</span>
+            </button>
             <a href="{{ path('app_admin_backup_download') }}" data-turbo="false" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center gap-2 shadow-md transition">
                 <sl-icon name="download"></sl-icon> <span>Gerar & Baixar Backup Completo (.bak)</span>
             </a>
+        </div>
+    </div>
+
+    <!-- Painel de Diagnóstico em Tempo Real (Expandível) -->
+    <div id="painelDiagnostico" class="hidden bg-slate-900 text-slate-100 p-6 rounded-2xl border border-cyan-500/30 shadow-xl space-y-4 transition-all">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div class="flex items-center gap-2">
+                <sl-icon name="cpu" class="text-cyan-400 text-xl"></sl-icon>
+                <h3 class="text-base font-bold text-white">Resultado do Diagnóstico em Tempo Real (Servidor Online)</h3>
+            </div>
+            <button type="button" onclick="document.getElementById('painelDiagnostico').classList.add('hidden')" class="text-slate-400 hover:text-white text-xs">Fechar [x]</button>
+        </div>
+
+        <div id="diagLoading" class="text-center py-6">
+            <sl-icon name="arrow-repeat" class="text-cyan-400 text-3xl animate-spin"></sl-icon>
+            <p class="text-xs text-slate-400 mt-2 font-mono">Executando varredura de permissões, banco e teste de geração de backup...</p>
+        </div>
+
+        <div id="diagContent" class="hidden space-y-4 text-xs">
+            <!-- Grid de Métricas -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <!-- Card 1: Ambiente PHP -->
+                <div class="bg-slate-950/80 p-4 rounded-xl border border-slate-800 space-y-2">
+                    <h4 class="font-bold text-cyan-400 flex items-center gap-1.5"><sl-icon name="gear"></sl-icon> Ambiente PHP</h4>
+                    <div class="space-y-1 text-slate-300">
+                        <div>Versão PHP: <span id="diagPhpVersion" class="font-mono text-emerald-400 font-bold"></span></div>
+                        <div>Memory Limit: <span id="diagMemoryLimit" class="font-mono text-cyan-300"></span></div>
+                        <div>Max Execution Time: <span id="diagMaxTime" class="font-mono text-cyan-300"></span></div>
+                        <div>open_basedir: <span id="diagOpenBasedir" class="font-mono text-slate-400"></span></div>
+                        <div>Extensão ZIP: <span id="diagExtZip" class="font-mono"></span></div>
+                        <div>Extensão GZ/Zlib: <span id="diagExtGz" class="font-mono text-emerald-400 font-bold"></span></div>
+                    </div>
+                </div>
+
+                <!-- Card 2: Permissões de Disco -->
+                <div class="bg-slate-950/80 p-4 rounded-xl border border-slate-800 space-y-2">
+                    <h4 class="font-bold text-emerald-400 flex items-center gap-1.5"><sl-icon name="folder-check"></sl-icon> Diretórios & Permissões</h4>
+                    <div class="space-y-1 text-slate-300">
+                        <div>Pasta <code>var/backup</code>: <span id="diagVarBackupStatus" class="font-bold"></span></div>
+                        <div class="text-[11px] text-slate-500 break-all" id="diagVarBackupPath"></div>
+                        <div class="mt-2">Pasta Temp Sistema: <span id="diagSysTempStatus" class="font-bold"></span></div>
+                        <div class="text-[11px] text-slate-500 break-all" id="diagSysTempPath"></div>
+                    </div>
+                </div>
+
+                <!-- Card 3: Teste de Backup em Tempo Real -->
+                <div class="bg-slate-950/80 p-4 rounded-xl border border-slate-800 space-y-2">
+                    <h4 class="font-bold text-amber-400 flex items-center gap-1.5"><sl-icon name="lightning-charge"></sl-icon> Teste Real de Geração</h4>
+                    <div class="space-y-1 text-slate-300">
+                        <div>Status do Teste: <span id="diagTesteStatus" class="font-bold"></span></div>
+                        <div>Tempo de Geração: <span id="diagTesteTempo" class="font-mono text-cyan-300"></span></div>
+                        <div>Pico de RAM: <span id="diagTesteRam" class="font-mono text-cyan-300"></span></div>
+                        <div>Tamanho do Backup: <span id="diagTesteTamanho" class="font-mono text-emerald-400 font-bold"></span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Alerta de Erro se houver no teste -->
+            <div id="diagAlertaErro" class="hidden p-3.5 rounded-xl bg-red-950/70 border border-red-500/50 text-red-300">
+                <div class="font-bold text-red-200 flex items-center gap-2">
+                    <sl-icon name="exclamation-octagon" class="text-red-400 text-base"></sl-icon> ERRO DETECTADO NA EXECUÇÃO:
+                </div>
+                <div id="diagErroTexto" class="mt-1 font-mono text-[11px] text-red-300 break-all"></div>
+                <pre id="diagErroTrace" class="mt-2 p-2 bg-black/60 rounded text-[10px] text-red-400 max-h-40 overflow-y-auto font-mono"></pre>
+            </div>
+
+            <!-- Tabela de Registros Contabilizados no Banco -->
+            <div class="bg-slate-950/80 p-4 rounded-xl border border-slate-800 space-y-2">
+                <h4 class="font-bold text-slate-200 flex items-center gap-1.5"><sl-icon name="table"></sl-icon> Linhas Encontradas por Tabela</h4>
+                <div id="diagTabelasGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2"></div>
+            </div>
+
+            <!-- Últimos Logs de Erro do Servidor -->
+            <div class="bg-slate-950/80 p-4 rounded-xl border border-slate-800 space-y-2">
+                <h4 class="font-bold text-slate-400 flex items-center gap-1.5"><sl-icon name="file-earmark-text"></sl-icon> Últimas Linhas de Erro dos Logs do Servidor</h4>
+                <div id="diagLogsBox" class="p-2.5 bg-black/60 rounded-lg text-[11px] font-mono text-slate-400 max-h-36 overflow-y-auto space-y-1"></div>
+            </div>
         </div>
     </div>
 
@@ -101,6 +181,80 @@
             return true;
         }
         return false;
+    }
+
+    async function executarDiagnosticoOnline() {
+        const painel = document.getElementById('painelDiagnostico');
+        const loading = document.getElementById('diagLoading');
+        const content = document.getElementById('diagContent');
+        const alertaErro = document.getElementById('diagAlertaErro');
+
+        painel.classList.remove('hidden');
+        loading.classList.remove('hidden');
+        content.classList.add('hidden');
+        alertaErro.classList.add('hidden');
+
+        try {
+            const res = await fetch('{{ path("app_admin_backup_diagnostico_api") }}');
+            const data = await res.json();
+
+            // 1. Preencher Ambiente
+            document.getElementById('diagPhpVersion').textContent = data.ambiente.php_version + ' (' + data.ambiente.sapi + ')';
+            document.getElementById('diagMemoryLimit').textContent = data.ambiente.memory_limit;
+            document.getElementById('diagMaxTime').textContent = data.ambiente.max_execution_time + 's';
+            document.getElementById('diagOpenBasedir').textContent = data.ambiente.open_basedir;
+            document.getElementById('diagExtZip').textContent = data.ambiente.extensoes.zip;
+            document.getElementById('diagExtGz').textContent = data.ambiente.extensoes.zlib_gz;
+
+            // 2. Preencher Pastas
+            const varBkp = data.pastas.var_backup;
+            document.getElementById('diagVarBackupStatus').innerHTML = varBkp.gravavel ? '<span class="text-emerald-400">Gravável [OK]</span>' : '<span class="text-red-400">Sem Permissão</span>';
+            document.getElementById('diagVarBackupPath').textContent = varBkp.caminho;
+
+            const sysTemp = data.pastas.sys_temp;
+            document.getElementById('diagSysTempStatus').innerHTML = sysTemp.gravavel ? '<span class="text-emerald-400">Gravável [OK]</span>' : '<span class="text-red-400">Sem Permissão</span>';
+            document.getElementById('diagSysTempPath').textContent = sysTemp.caminho;
+
+            // 3. Preencher Teste de Geração
+            const teste = data.teste_geracao;
+            if (teste.sucesso) {
+                document.getElementById('diagTesteStatus').innerHTML = '<span class="text-emerald-400">Sucesso Absoluto (100% OK)</span>';
+                document.getElementById('diagTesteTempo').textContent = teste.tempo_ms + ' ms';
+                document.getElementById('diagTesteRam').textContent = teste.memoria_pico_mb + ' MB';
+                document.getElementById('diagTesteTamanho').textContent = teste.tamanho_formatado;
+            } else {
+                document.getElementById('diagTesteStatus').innerHTML = '<span class="text-red-400">Falha no Teste</span>';
+                alertaErro.classList.remove('hidden');
+                document.getElementById('diagErroTexto').textContent = teste.erro || 'Erro desconhecido';
+                document.getElementById('diagErroTrace').textContent = teste.trace || '';
+            }
+
+            // 4. Preencher Tabelas
+            const grid = document.getElementById('diagTabelasGrid');
+            grid.innerHTML = '';
+            for (const [tabela, info] of Object.entries(data.tabelas)) {
+                const el = document.createElement('div');
+                el.className = 'p-2 rounded bg-slate-900 border border-slate-800 text-center';
+                el.innerHTML = `<div class="text-[10px] text-slate-400 truncate" title="${tabela}">${tabela}</div><div class="font-bold text-cyan-300">${info.total.toLocaleString()}</div>`;
+                grid.appendChild(el);
+            }
+
+            // 5. Preencher Logs
+            const logsBox = document.getElementById('diagLogsBox');
+            if (data.ultimos_logs_erro && data.ultimos_logs_erro.length > 0) {
+                logsBox.innerHTML = data.ultimos_logs_erro.map(l => `<div class="text-red-400 border-b border-slate-800 pb-0.5">${l}</div>`).join('');
+            } else {
+                logsBox.innerHTML = '<div class="text-emerald-400">Nenhum log crítico de erro recente encontrado.</div>';
+            }
+
+            loading.classList.add('hidden');
+            content.classList.remove('hidden');
+        } catch (err) {
+            loading.classList.add('hidden');
+            alertaErro.classList.remove('hidden');
+            document.getElementById('diagErroTexto').textContent = 'Erro ao consultar API de diagnóstico: ' + err.message;
+            content.classList.remove('hidden');
+        }
     }
 </script>
 {% endblock %}

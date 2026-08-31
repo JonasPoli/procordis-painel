@@ -28,6 +28,10 @@ class BackupAdminController extends AbstractController
     #[Route('/download', name: 'download', methods: ['GET'])]
     public function download(): Response
     {
+        $logPath = dirname(__DIR__, 3) . '/var/log/backup.log';
+        $timestamp = date('Y-m-d H:i:s');
+        @file_put_contents($logPath, "[$timestamp] [INFO] Iniciando solicitação de download de backup...\n", FILE_APPEND);
+
         try {
             $caminhoArquivo = $this->backupService->gerarBackup();
             $nomeDownload = 'procordis_backup_total_' . date('Ymd_His') . '.procordis.bak';
@@ -35,6 +39,9 @@ class BackupAdminController extends AbstractController
             if (!file_exists($caminhoArquivo)) {
                 throw new \RuntimeException("Arquivo de backup não encontrado no disco.");
             }
+
+            $tamanho = filesize($caminhoArquivo);
+            @file_put_contents($logPath, "[$timestamp] [SUCCESS] Backup gerado com sucesso ($tamanho bytes). Enviando ao cliente...\n", FILE_APPEND);
 
             $conteudo = file_get_contents($caminhoArquivo);
             @unlink($caminhoArquivo);
@@ -48,9 +55,19 @@ class BackupAdminController extends AbstractController
 
             return $response;
         } catch (\Throwable $e) {
+            $msgErro = "[$timestamp] [ERROR] Falha ao gerar backup: " . $e->getMessage() . " em " . $e->getFile() . ":" . $e->getLine() . "\n" . $e->getTraceAsString() . "\n";
+            @file_put_contents($logPath, $msgErro, FILE_APPEND);
+
             $this->addFlash('danger', 'Erro ao gerar backup: ' . $e->getMessage());
             return $this->redirectToRoute('app_admin_backup_index');
         }
+    }
+
+    #[Route('/diagnostico-api', name: 'diagnostico_api', methods: ['GET'])]
+    public function diagnosticoApi(): Response
+    {
+        $diag = $this->backupService->diagnosticarAmbiente();
+        return $this->json($diag);
     }
 
     #[Route('/restaurar', name: 'restaurar', methods: ['POST'])]
