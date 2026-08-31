@@ -147,6 +147,8 @@ class RelatorioService
             ],
             'mediaDia' => $mediaDia,
             'porDia' => $porDia,
+            'porDiaKeys' => array_keys($porDia),
+            'porDiaValues' => array_values($porDia),
             'porSemana' => $porSemana,
             'porMes' => $porMes,
             'porSemestre' => $porSemestre,
