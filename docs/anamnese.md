@@ -84,3 +84,18 @@ para cruzar com os ECGs pelo `cod_agendamento`). O prontuário do paciente mostr
 2. `./build.sh` (novas classes Tailwind)
 3. Com a integração em modo real: `php bin/console app:anamnese:sync --modo=completo` uma vez (carga inicial)
 4. Configurar o cron acima
+
+## Servidor RunCloud
+
+- Projeto: `/home/runcloud/webapps/procordis-painel`
+- PHP de linha de comando: `/RunCloud/Packages/php83rc/bin/php`
+- No `.env.local`: `PHP_CLI_BINARY=/RunCloud/Packages/php83rc/bin/php` (usado pelo botão "Rodar agora")
+- Build: `PHP=/RunCloud/Packages/php83rc/bin/php ./build.sh`
+- Cron (RunCloud → Server → Cron Job, usuário `runcloud`), fuso de São Paulo:
+
+```cron
+0 7,12,18 * * * cd /home/runcloud/webapps/procordis-painel && flock -n var/anamnese.lock /RunCloud/Packages/php83rc/bin/php bin/console app:anamnese:sync --modo=incremental --origem=cron --env=prod >> var/log/anamnese-sync.log 2>&1
+0 2 * * * cd /home/runcloud/webapps/procordis-painel && flock -n var/anamnese.lock /RunCloud/Packages/php83rc/bin/php bin/console app:anamnese:sync --modo=completo --origem=cron --env=prod >> var/log/anamnese-sync.log 2>&1
+```
+
+Se o servidor estiver em UTC (`date` mostra `UTC`), use `0 10,15,21 * * *` e `0 5 * * *`.

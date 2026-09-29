@@ -31,6 +31,7 @@ class AnamneseAdminController extends AbstractController
         private EntityManagerInterface $em,
         #[Autowire('%kernel.project_dir%')] private string $projectDir,
         #[Autowire('%kernel.secret%')] private string $segredo,
+        #[Autowire('%env(default::PHP_CLI_BINARY)%')] private ?string $phpCli = null,
     ) {
     }
 
@@ -154,7 +155,8 @@ class AnamneseAdminController extends AbstractController
             return $this->redirectToRoute('app_admin_anamnese_sincronizacao');
         }
 
-        $php = (new PhpExecutableFinder())->find(false) ?: 'php';
+        // No servidor (PHP-FPM) o PHP de linha de comando precisa ser informado: PHP_CLI_BINARY no .env.local
+        $php = $this->phpCli ?: ((new PhpExecutableFinder())->find(false) ?: 'php');
         $log = $this->projectDir . '/var/log/anamnese-sync-manual.log';
         $cmd = sprintf(
             'nohup %s %s app:anamnese:sync --modo=%s --origem=manual >> %s 2>&1 &',
