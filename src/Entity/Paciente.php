@@ -8,6 +8,7 @@ use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: PacienteRepository::class)]
 #[ORM\Table(name: 'paciente')]
+#[ORM\UniqueConstraint(name: 'uniq_paciente_cod_paciente', columns: ['cod_paciente'])]
 class Paciente
 {
     #[ORM\Id]
@@ -17,6 +18,16 @@ class Paciente
 
     #[ORM\Column(length: 50, nullable: true)]
     private ?string $codigoExterno = null;
+
+    /** Código do paciente na Medware/Procordis (chave real de identificação). */
+    #[ORM\Column(nullable: true)]
+    private ?int $codPaciente = null;
+
+    #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
+    private ?\DateTimeInterface $primeiroVistoEm = null;
+
+    #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
+    private ?\DateTimeInterface $atualizadoEm = null;
 
     #[ORM\Column(length: 255)]
     private ?string $nomeCompleto = null;
@@ -50,6 +61,50 @@ class Paciente
     {
         $this->codigoExterno = $codigoExterno;
         return $this;
+    }
+
+    public function getCodPaciente(): ?int
+    {
+        return $this->codPaciente;
+    }
+
+    public function setCodPaciente(?int $codPaciente): static
+    {
+        $this->codPaciente = $codPaciente;
+        return $this;
+    }
+
+    public function getPrimeiroVistoEm(): ?\DateTimeInterface
+    {
+        return $this->primeiroVistoEm;
+    }
+
+    public function setPrimeiroVistoEm(?\DateTimeInterface $primeiroVistoEm): static
+    {
+        $this->primeiroVistoEm = $primeiroVistoEm;
+        return $this;
+    }
+
+    public function getAtualizadoEm(): ?\DateTimeInterface
+    {
+        return $this->atualizadoEm;
+    }
+
+    public function setAtualizadoEm(?\DateTimeInterface $atualizadoEm): static
+    {
+        $this->atualizadoEm = $atualizadoEm;
+        return $this;
+    }
+
+    /**
+     * Idade em anos completos numa data de referência.
+     */
+    public function getIdadeEm(?\DateTimeInterface $referencia = null): ?int
+    {
+        if (!$this->dataNascimento) {
+            return null;
+        }
+        return $this->dataNascimento->diff($referencia ?? new \DateTime())->y;
     }
 
     public function getNomeCompleto(): ?string

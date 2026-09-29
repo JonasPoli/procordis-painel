@@ -1,0 +1,672 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}Anamnese — Panorama Clínico{% endblock %}
+
+{% set card = 'bg-white/80 dark:bg-slate-900/80 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm' %}
+{% set campo = 'bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-1.5 text-xs text-slate-800 dark:text-slate-200 font-medium focus:ring-2 focus:ring-cyan-500 focus:outline-none' %}
+{% set k = dados.kpis %}
+
+{% block body %}
+<div class="space-y-6 anamnese-root">
+
+    {# ---------- Cabeçalho ---------- #}
+    <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-4 {{ card }} p-5 backdrop-blur">
+        <div>
+            <div class="flex items-center gap-2">
+                <sl-icon name="clipboard2-pulse" class="text-rose-500 text-2xl"></sl-icon>
+                <h1 class="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Anamnese — Panorama Clínico</h1>
+            </div>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                Estatísticas agregadas das classificações de estudo registradas nos exames. Nenhum paciente é identificado nesta página.
+            </p>
+            <p class="text-xs text-slate-400 mt-1">
+                {% if ultimaExecucao %}
+                    Última sincronização: {{ ultimaExecucao.iniciadoEm|date('d/m/Y H:i') }} ({{ ultimaExecucao.modo }}, {{ ultimaExecucao.status }})
+                {% else %}
+                    Nenhuma sincronização executada ainda.
+                {% endif %}
+                {% if modoSimulacao %}<span class="ml-2 px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 font-bold">Dados simulados</span>{% endif %}
+            </p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+            <a href="{{ path('app_admin_anamnese_catalogo') }}" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-xl text-xs flex items-center gap-2 transition">
+                <sl-icon name="tags"></sl-icon> Catálogo de itens
+            </a>
+            <a href="{{ path('app_admin_anamnese_sincronizacao') }}" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-xl text-xs flex items-center gap-2 transition">
+                <sl-icon name="arrow-repeat"></sl-icon> Sincronização
+            </a>
+            <a href="{{ path('app_admin_anamnese_exportar', app.request.query.all) }}" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center gap-2 shadow-sm transition">
+                <sl-icon name="download"></sl-icon> Exportar dados para pesquisa (CSV)
+            </a>
+        </div>
+    </div>
+
+    {# ---------- Filtros ---------- #}
+    <form method="GET" action="{{ path('app_admin_anamnese_painel') }}" class="{{ card }} p-4 flex flex-wrap items-end gap-3">
+        <label class="flex flex-col gap-1">
+            <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Período</span>
+            <select name="periodo" id="filtroPeriodo" class="{{ campo }}">
+                {% for v, l in {'30d': 'Últimos 30 dias', '6m': 'Últimos 6 meses', '12m': 'Últimos 12 meses', 'ano': 'Este ano', '24m': 'Últimos 24 meses', 'tudo': 'Todo o histórico', 'personalizado': 'Personalizado…'} %}
+                    <option value="{{ v }}" {{ filtros.periodo == v ? 'selected' }}>{{ l }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <div id="filtroDatas" class="flex items-end gap-2 {{ filtros.periodo != 'personalizado' ? 'hidden' }}">
+            <label class="flex flex-col gap-1">
+                <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">De</span>
+                <input type="date" name="inicio" value="{{ filtros.inicio|date('Y-m-d') }}" min="{{ opcoes.primeiraData }}" class="{{ campo }}">
+            </label>
+            <label class="flex flex-col gap-1">
+                <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Até</span>
+                <input type="date" name="fim" value="{{ filtros.fim|date('Y-m-d') }}" class="{{ campo }}">
+            </label>
+        </div>
+        <label class="flex flex-col gap-1">
+            <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Sexo</span>
+            <select name="sexo" class="{{ campo }}">
+                <option value="">Todos</option>
+                {% for s in ['Feminino', 'Masculino'] %}<option value="{{ s }}" {{ filtros.sexo == s ? 'selected' }}>{{ s }}</option>{% endfor %}
+            </select>
+        </label>
+        <label class="flex flex-col gap-1">
+            <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Faixa etária</span>
+            <select name="faixa" class="{{ campo }}">
+                <option value="">Todas</option>
+                {% for f in opcoes.faixas %}<option value="{{ f }}" {{ filtros.faixa == f ? 'selected' }}>{{ f }} anos</option>{% endfor %}
+            </select>
+        </label>
+        <label class="flex flex-col gap-1">
+            <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Atendimento</span>
+            <select name="tipo" class="{{ campo }}">
+                <option value="">Todos</option>
+                {% for v, l in opcoes.tipos %}<option value="{{ v }}" {{ filtros.tipo == v ? 'selected' }}>{{ l }}</option>{% endfor %}
+            </select>
+        </label>
+        <label class="flex flex-col gap-1 min-w-0">
+            <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Procedimento</span>
+            <select name="procedimento" class="{{ campo }} max-w-[16rem]">
+                <option value="">Todos</option>
+                {% for p in opcoes.procedimentos %}<option value="{{ p }}" {{ filtros.procedimento == p ? 'selected' }}>{{ p }}</option>{% endfor %}
+            </select>
+        </label>
+        <button type="submit" class="px-4 py-1.5 bg-cyan-600 hover:bg-cyan-700 text-white font-bold text-xs rounded-xl transition shadow-sm">Aplicar</button>
+        <a href="{{ path('app_admin_anamnese_painel') }}" class="px-3 py-1.5 text-xs font-semibold text-slate-500 hover:text-slate-800 dark:hover:text-slate-200">Limpar</a>
+        <span class="ml-auto text-xs text-slate-400 self-center">{{ filtros.inicio|date('d/m/Y') }} a {{ filtros.fim|date('d/m/Y') }}</span>
+    </form>
+
+    {% if k.pacientes == 0 %}
+        <div class="{{ card }} p-10 text-center">
+            <sl-icon name="inbox" class="text-4xl text-slate-400"></sl-icon>
+            <p class="mt-3 font-bold text-slate-700 dark:text-slate-200">Nenhuma anamnese encontrada para este recorte.</p>
+            <p class="text-sm text-slate-500 mt-1">Amplie o período ou rode a <a class="text-cyan-600 underline" href="{{ path('app_admin_anamnese_sincronizacao') }}">sincronização</a>.</p>
+        </div>
+    {% else %}
+
+    {# ---------- KPIs ---------- #}
+    <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
+        {% set tiles = [
+            {rotulo: 'Pacientes com anamnese', valor: k.pacientes|number_format(0, ',', '.'), nota: k.pacientesRetorno|number_format(0, ',', '.') ~ ' com mais de um exame (histórico)', icone: 'people'},
+            {rotulo: 'Exames com anamnese', valor: k.exames|number_format(0, ',', '.'), nota: 'no período filtrado', icone: 'clipboard2-check'},
+            {rotulo: 'Cobertura do preenchimento', valor: k.cobertura is null ? '—' : k.cobertura|number_format(1, ',', '.') ~ '%', nota: dados.cobertura.comAnamnese|number_format(0, ',', '.') ~ ' de ' ~ dados.cobertura.atendidos|number_format(0, ',', '.') ~ ' exames atendidos', icone: 'ui-checks'},
+            {rotulo: 'Comorbidades por paciente', valor: k.mediaComorbidades|number_format(2, ',', '.'), nota: 'média no período', icone: 'heart-pulse'},
+            {rotulo: 'Multimorbidade', valor: k.multimorbidadePct|number_format(1, ',', '.') ~ '%', nota: 'pacientes com 2 ou mais comorbidades', icone: 'diagram-3'},
+            {rotulo: 'Novos diagnósticos', valor: k.novosDiagnosticos|number_format(0, ',', '.'), nota: 'itens surgidos entre exames do mesmo paciente', icone: 'plus-circle'},
+        ] %}
+        {% for t in tiles %}
+            <div class="{{ card }} p-4 flex flex-col">
+                <div class="flex items-center justify-between gap-2">
+                    <span class="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider leading-tight">{{ t.rotulo }}</span>
+                    <sl-icon name="{{ t.icone }}" class="text-slate-400 shrink-0"></sl-icon>
+                </div>
+                <p class="text-3xl font-black text-slate-900 dark:text-white mt-2 tracking-tight">{{ t.valor }}</p>
+                <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-auto pt-1 leading-snug">{{ t.nota }}</p>
+            </div>
+        {% endfor %}
+    </div>
+
+    {# ---------- Prevalência + Multimorbidade ---------- #}
+    <div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
+        <section class="{{ card }} p-5 xl:col-span-7">
+            <header class="mb-3">
+                <h2 class="text-base font-bold text-slate-900 dark:text-white">Prevalência por item da anamnese</h2>
+                <p class="text-xs text-slate-500 dark:text-slate-400">% dos pacientes com anamnese no período que tiveram o item marcado. Cor = categoria do item.</p>
+            </header>
+            <div id="legendaCategorias" class="flex flex-wrap gap-x-4 gap-y-1 mb-2 text-xs text-slate-600 dark:text-slate-300"></div>
+            <div class="relative" style="height: {{ max(260, (dados.prevalencia|slice(0, 20)|length) * 26 + 40) }}px">
+                <canvas id="chPrevalencia" aria-label="Prevalência por item" role="img"></canvas>
+            </div>
+        </section>
+
+        <div class="xl:col-span-5 flex flex-col gap-6">
+            <section class="{{ card }} p-5">
+                <header class="mb-3">
+                    <h2 class="text-base font-bold text-slate-900 dark:text-white">Quantas comorbidades cada paciente tem</h2>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Pacientes por número de comorbidades marcadas (sem vacinas, hábitos e medicações).</p>
+                </header>
+                <div class="relative h-56"><canvas id="chMultimorbidade" aria-label="Distribuição de multimorbidade" role="img"></canvas></div>
+            </section>
+
+            <section class="{{ card }} p-5 flex-1">
+                <header class="mb-3">
+                    <h2 class="text-base font-bold text-slate-900 dark:text-white">Combinações mais frequentes</h2>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Conjuntos exatos de comorbidades (pacientes com 2 ou mais).</p>
+                </header>
+                {% set maxComb = dados.combinacoes|length ? dados.combinacoes|first.n : 1 %}
+                <ol class="space-y-2.5">
+                    {% for c in dados.combinacoes|slice(0, 8) %}
+                        <li>
+                            <div class="flex items-start justify-between gap-3">
+                                <div class="flex flex-wrap gap-1">
+                                    {% for it in c.itens %}<span class="px-2 py-0.5 rounded-md bg-sky-500/10 text-sky-700 dark:text-sky-300 text-[11px] font-semibold">{{ it }}</span>{% endfor %}
+                                </div>
+                                <span class="text-xs font-bold text-slate-700 dark:text-slate-200 tabular-nums whitespace-nowrap">{{ c.n }} <span class="font-medium text-slate-400">· {{ c.pct|number_format(1, ',', '.') }}%</span></span>
+                            </div>
+                            <div class="mt-1 h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                                <div class="h-full rounded-full bg-sky-500" style="width: {{ (c.n / maxComb * 100)|round(1) }}%"></div>
+                            </div>
+                        </li>
+                    {% else %}
+                        <li class="text-sm text-slate-400">Nenhum paciente com 2 ou mais comorbidades no recorte.</li>
+                    {% endfor %}
+                </ol>
+            </section>
+        </div>
+    </div>
+
+    {# ---------- Tendência ---------- #}
+    <section class="{{ card }} p-5">
+        <header class="mb-3 flex flex-wrap items-end justify-between gap-2">
+            <div>
+                <h2 class="text-base font-bold text-slate-900 dark:text-white">Evolução mensal das principais comorbidades</h2>
+                <p class="text-xs text-slate-500 dark:text-slate-400">% dos pacientes atendidos no mês com o item marcado. Meses com menos de 20 pacientes ficam em branco.</p>
+            </div>
+        </header>
+        <div class="relative h-72"><canvas id="chTendencia" aria-label="Evolução mensal" role="img"></canvas></div>
+    </section>
+
+    {# ---------- Perfil demográfico ---------- #}
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <section class="{{ card }} p-5">
+            <header class="mb-3">
+                <h2 class="text-base font-bold text-slate-900 dark:text-white">Pirâmide etária dos pacientes</h2>
+                <p class="text-xs text-slate-500 dark:text-slate-400">Pacientes com anamnese no período, pela idade no exame mais recente.</p>
+            </header>
+            <div class="relative h-72"><canvas id="chPiramide" aria-label="Pirâmide etária" role="img"></canvas></div>
+        </section>
+        <section class="{{ card }} p-5">
+            <header class="mb-3">
+                <h2 class="text-base font-bold text-slate-900 dark:text-white">Prevalência por sexo</h2>
+                <p class="text-xs text-slate-500 dark:text-slate-400">Os 10 itens mais frequentes (exceto vacinas), em % de cada sexo.</p>
+            </header>
+            <div class="relative h-72"><canvas id="chSexo" aria-label="Prevalência por sexo" role="img"></canvas></div>
+        </section>
+    </div>
+
+    {# ---------- Heatmap faixa etária ---------- #}
+    <section class="{{ card }} p-5">
+        <header class="mb-3">
+            <h2 class="text-base font-bold text-slate-900 dark:text-white">Prevalência por faixa etária</h2>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Cada célula: % dos pacientes da faixa com o item. Quanto mais escuro, mais frequente. Faixas com menos de 10 pacientes são omitidas.</p>
+        </header>
+        {{ _self.heatmap(dados.porFaixa.itens, dados.porFaixa.grupos|map(g => g ~ ' anos'), dados.porFaixa.totais, 'hmFaixa') }}
+    </section>
+
+    {# ---------- Co-ocorrência ---------- #}
+    <section class="{{ card }} p-5">
+        <header class="mb-3">
+            <h2 class="text-base font-bold text-slate-900 dark:text-white">Quem tem uma, tem a outra?</h2>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Linha = pacientes com a comorbidade; coluna = % deles que também têm a da coluna.</p>
+        </header>
+        {% if dados.coocorrencia.itens|length > 1 %}
+            {{ _self.heatmap(dados.coocorrencia.itens|map((nome, i) => {nome: nome, valores: dados.coocorrencia.matriz[i]}), dados.coocorrencia.itens, null, 'hmCo', true) }}
+        {% else %}
+            <p class="text-sm text-slate-400">Comorbidades insuficientes no recorte.</p>
+        {% endif %}
+    </section>
+
+    {# ---------- Vacina + Novos diagnósticos ---------- #}
+    <div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
+        <section class="{{ card }} p-5 xl:col-span-7">
+            <header class="mb-3 flex flex-wrap items-start justify-between gap-3">
+                <div>
+                    <h2 class="text-base font-bold text-slate-900 dark:text-white">Vacina da Covid — dose mais alta declarada</h2>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Distribuição em cada faixa etária (100% = pacientes da faixa).</p>
+                </div>
+                {% if dados.vacina.temDados %}
+                <div class="flex gap-6">
+                    <div class="text-right"><p class="text-2xl font-black text-slate-900 dark:text-white">{{ dados.vacina.pctDeclarada|number_format(1, ',', '.') }}%</p><p class="text-[11px] text-slate-500">declararam alguma dose</p></div>
+                    <div class="text-right"><p class="text-2xl font-black text-slate-900 dark:text-white">{{ dados.vacina.pctTresMais|number_format(1, ',', '.') }}%</p><p class="text-[11px] text-slate-500">com 3 doses ou mais</p></div>
+                </div>
+                {% endif %}
+            </header>
+            {% if dados.vacina.temDados and dados.vacina.faixas|length %}
+                <div class="relative h-72"><canvas id="chVacina" aria-label="Doses de vacina por faixa etária" role="img"></canvas></div>
+            {% else %}
+                <p class="text-sm text-slate-400">Sem itens de vacina (com “DOSE n” no nome) no catálogo ou no recorte.</p>
+            {% endif %}
+        </section>
+        <section class="{{ card }} p-5 xl:col-span-5">
+            <header class="mb-3">
+                <h2 class="text-base font-bold text-slate-900 dark:text-white">Novos diagnósticos</h2>
+                <p class="text-xs text-slate-500 dark:text-slate-400">Itens marcados pela primeira vez em pacientes que já tinham anamnese anterior sem eles.</p>
+            </header>
+            <div class="relative h-48"><canvas id="chNovos" aria-label="Novos diagnósticos por mês" role="img"></canvas></div>
+            {% set maxNovo = dados.novos.itens|length ? dados.novos.itens|first.n : 1 %}
+            <ul class="mt-4 space-y-1.5">
+                {% for it in dados.novos.itens|slice(0, 6) %}
+                    <li class="grid grid-cols-[1fr_auto] items-center gap-3 text-xs">
+                        <div>
+                            <span class="font-semibold text-slate-700 dark:text-slate-200">{{ it.nome }}</span>
+                            <div class="mt-0.5 h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden"><div class="h-full rounded-full bg-sky-500" style="width: {{ (it.n / maxNovo * 100)|round(1) }}%"></div></div>
+                        </div>
+                        <span class="font-bold tabular-nums text-slate-700 dark:text-slate-200">{{ it.n }}</span>
+                    </li>
+                {% else %}
+                    <li class="text-sm text-slate-400">Nenhum novo diagnóstico no período.</li>
+                {% endfor %}
+            </ul>
+        </section>
+    </div>
+
+    {# ---------- Tipo de atendimento + Cobertura mensal ---------- #}
+    <div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
+        <section class="{{ card }} p-5 xl:col-span-5">
+            <header class="mb-3">
+                <h2 class="text-base font-bold text-slate-900 dark:text-white">Por tipo de atendimento</h2>
+                <p class="text-xs text-slate-500 dark:text-slate-400">% dos exames de cada tipo com o item marcado.</p>
+            </header>
+            {% if dados.porTipo.grupos|length %}
+                <div class="relative h-72"><canvas id="chTipo" aria-label="Prevalência por tipo de atendimento" role="img"></canvas></div>
+            {% else %}
+                <p class="text-sm text-slate-400">Exames ainda sem agendamento vinculado (tipo de atendimento desconhecido).</p>
+            {% endif %}
+        </section>
+        <section class="{{ card }} p-5 xl:col-span-7">
+            <header class="mb-3">
+                <h2 class="text-base font-bold text-slate-900 dark:text-white">Exames atendidos com e sem anamnese</h2>
+                <p class="text-xs text-slate-500 dark:text-slate-400">Por mês. Considera os agendamentos atendidos já sincronizados.</p>
+            </header>
+            <div class="relative h-64"><canvas id="chCobertura" aria-label="Cobertura mensal" role="img"></canvas></div>
+        </section>
+    </div>
+
+    {# ---------- Heatmap procedimento ---------- #}
+    <section class="{{ card }} p-5">
+        <header class="mb-3">
+            <h2 class="text-base font-bold text-slate-900 dark:text-white">Perfil por procedimento</h2>
+            <p class="text-xs text-slate-500 dark:text-slate-400">% dos exames de cada procedimento com o item marcado (8 procedimentos mais realizados).</p>
+        </header>
+        {{ _self.heatmap(dados.porProcedimento.itens, dados.porProcedimento.grupos, dados.porProcedimento.totais, 'hmProc') }}
+    </section>
+
+    {# ---------- Qualidade do preenchimento ---------- #}
+    <section class="{{ card }} p-5">
+        <header class="mb-3">
+            <h2 class="text-base font-bold text-slate-900 dark:text-white">Preenchimento por procedimento e por médico</h2>
+            <p class="text-xs text-slate-500 dark:text-slate-400">% dos exames atendidos que têm anamnese.</p>
+        </header>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-6">
+            {% for bloco in [{t: 'Procedimento', l: dados.cobertura.porProcedimento}, {t: 'Médico', l: dados.cobertura.porMedico}] %}
+            <div>
+                <h3 class="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">{{ bloco.t }}</h3>
+                <ul class="space-y-2">
+                    {% for r in bloco.l|slice(0, 8) %}
+                        <li class="text-xs">
+                            <div class="flex justify-between gap-2">
+                                <span class="font-semibold text-slate-700 dark:text-slate-200 truncate" title="{{ r.nome }}">{{ r.nome }}</span>
+                                <span class="tabular-nums text-slate-500 whitespace-nowrap"><b class="text-slate-800 dark:text-slate-100">{{ r.pct|number_format(0) }}%</b> · {{ r.com }}/{{ r.total }}</span>
+                            </div>
+                            <div class="mt-1 h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden"><div class="h-full rounded-full bg-sky-500" style="width: {{ r.pct }}%"></div></div>
+                        </li>
+                    {% else %}
+                        <li class="text-sm text-slate-400">Sem dados.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    {# ---------- Tabela completa ---------- #}
+    <section class="{{ card }} p-5">
+        <header class="mb-3 flex items-end justify-between">
+            <div>
+                <h2 class="text-base font-bold text-slate-900 dark:text-white">Tabela completa</h2>
+                <p class="text-xs text-slate-500 dark:text-slate-400">Todos os itens da anamnese no recorte, com número de pacientes e prevalência.</p>
+            </div>
+            <span class="text-xs text-slate-400">{{ dados.prevalencia|length }} itens</span>
+        </header>
+        {% set maxPct = dados.prevalencia|length ? dados.prevalencia|first.pct : 1 %}
+        <div class="overflow-x-auto">
+            <table class="w-full text-xs">
+                <thead>
+                    <tr class="text-left text-[10px] uppercase tracking-wider text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                        <th class="py-2 pr-2">Item</th><th class="py-2 px-2">Categoria</th><th class="py-2 px-2 text-right">Pacientes</th><th class="py-2 px-2 text-right">Prevalência</th><th class="py-2 pl-2 w-1/3"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in dados.prevalencia %}
+                        <tr class="border-b border-slate-100 dark:border-slate-800/60">
+                            <td class="py-1.5 pr-2 font-semibold text-slate-700 dark:text-slate-200">{{ p.nome }}</td>
+                            <td class="py-1.5 px-2"><span class="inline-flex items-center gap-1.5 text-slate-500"><span class="w-2 h-2 rounded-sm cat-dot" data-cat="{{ p.categoria }}"></span>{{ dados.categorias[p.categoria] ?? p.categoria }}</span></td>
+                            <td class="py-1.5 px-2 text-right tabular-nums">{{ p.n|number_format(0, ',', '.') }}</td>
+                            <td class="py-1.5 px-2 text-right tabular-nums font-bold text-slate-800 dark:text-slate-100">{{ p.pct|number_format(1, ',', '.') }}%</td>
+                            <td class="py-1.5 pl-2"><div class="h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden"><div class="h-full rounded-full cat-bar" data-cat="{{ p.categoria }}" style="width: {{ maxPct ? (p.pct / maxPct * 100)|round(1) : 0 }}%"></div></div></td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <p class="text-[11px] text-slate-400 mt-3">
+            Como ler: a ausência de um item na anamnese não prova que o paciente não tem a condição — por isso o denominador considera apenas pacientes com anamnese registrada no período.
+        </p>
+    </section>
+
+    {% endif %}
+</div>
+
+<div id="vizTooltip" role="tooltip" class="pointer-events-none fixed z-50 hidden rounded-lg px-2.5 py-1.5 text-xs shadow-lg bg-slate-900 text-white dark:bg-white dark:text-slate-900"></div>
+
+<style>
+    .anamnese-root {
+        --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4; --neutro: #a8a69f;
+        --tinta: #0f172a; --tinta2: #475569; --muted: #898781; --grade: #e2e8f0; --eixo: #cbd5e1; --superficie: #ffffff;
+    }
+    html.dark .anamnese-root {
+        --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --neutro: #5b5a55;
+        --tinta: #f8fafc; --tinta2: #cbd5e1; --muted: #898781; --grade: #1e293b; --eixo: #334155; --superficie: #0f172a;
+    }
+    .hm td.cel { transition: outline-color .1s; outline: 2px solid transparent; outline-offset: -2px; }
+    .hm td.cel:hover { outline-color: var(--tinta); }
+</style>
+{% endblock %}
+
+{% macro heatmap(linhas, colunas, totais, id, diagonalVazia = false) %}
+    <div class="overflow-x-auto">
+        <table class="hm w-full text-xs border-separate" style="border-spacing: 2px" id="{{ id }}">
+            <thead>
+                <tr>
+                    <th></th>
+                    {% for c in colunas %}
+                        <th class="px-1 pb-1 font-semibold text-slate-500 dark:text-slate-400 text-center align-bottom leading-tight min-w-[4.5rem]">
+                            {{ c }}
+                            {% if totais is not null %}<span class="block text-[10px] font-normal text-slate-400">n={{ totais[loop.index0] }}</span>{% endif %}
+                        </th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for l in linhas %}
+                    <tr>
+                        <th class="pr-3 text-left font-semibold text-slate-600 dark:text-slate-300 whitespace-nowrap">{{ l.nome }}</th>
+                        {% for v in l.valores %}
+                            {% if v is null %}
+                                <td class="rounded-md bg-slate-50 dark:bg-slate-800/40 text-center text-slate-300 dark:text-slate-600 h-8">{{ diagonalVazia ? '—' : '' }}</td>
+                            {% else %}
+                                <td class="cel rounded-md text-center tabular-nums font-semibold h-8" data-v="{{ v }}" data-tip="{{ l.nome }} · {{ colunas[loop.index0] }}: {{ v|number_format(1, ',', '.') }}%">{{ v|number_format(0) }}%</td>
+                            {% endif %}
+                        {% endfor %}
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endmacro %}
+
+{% block javascripts %}
+    {{ parent() }}
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const D = {{ dados|json_encode|raw }};
+        const CATS = ['comorbidade', 'fator_risco', 'vacina', 'medicacao', 'sintoma', 'outros'];
+        const root = document.querySelector('.anamnese-root');
+        const periodo = document.getElementById('filtroPeriodo');
+        if (periodo) periodo.addEventListener('change', () => document.getElementById('filtroDatas').classList.toggle('hidden', periodo.value !== 'personalizado'));
+        if (!D.kpis.pacientes || typeof Chart === 'undefined') return;
+
+        const css = n => getComputedStyle(root).getPropertyValue(n).trim();
+        const fmt = (v, d = 1) => v == null ? '—' : Number(v).toLocaleString('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d });
+        // Rampa sequencial (azul, claro → escuro)
+        const RAMPA = ['#cde2fb', '#b7d3f6', '#9ec5f4', '#86b6ef', '#6da7ec', '#5598e7', '#3987e5', '#2a78d6', '#256abf', '#1c5cab', '#184f95', '#104281', '#0d366b'];
+        const rampa = t => RAMPA[Math.max(0, Math.min(RAMPA.length - 1, Math.round(t * (RAMPA.length - 1))))];
+        const ordinal = n => Array.from({ length: n }, (_, i) => RAMPA[Math.round(3 + (i * (RAMPA.length - 5)) / Math.max(1, n - 1))]);
+
+        let charts = [];
+
+        function cores() {
+            const serie = [css('--s1'), css('--s2'), css('--s3'), css('--s4'), css('--s5')];
+            const cat = { comorbidade: serie[0], fator_risco: serie[1], vacina: serie[2], medicacao: serie[3], sintoma: serie[4], outros: css('--neutro') };
+            return { serie, cat, neutro: css('--neutro'), tinta: css('--tinta'), tinta2: css('--tinta2'), muted: css('--muted'), grade: css('--grade'), eixo: css('--eixo'), sup: css('--superficie') };
+        }
+
+        function base(c) {
+            Chart.defaults.font.family = 'system-ui, -apple-system, "Segoe UI", sans-serif';
+            Chart.defaults.font.size = 11;
+            Chart.defaults.color = c.muted;
+            Chart.defaults.animation.duration = 350;
+        }
+
+        const tooltip = c => ({
+            backgroundColor: c.tinta, titleColor: c.sup, bodyColor: c.sup, padding: 10, cornerRadius: 8,
+            displayColors: true, boxPadding: 4, usePointStyle: true,
+        });
+
+        const eixos = (c, opts = {}) => ({
+            x: { grid: { color: c.grade, drawTicks: false }, border: { color: c.eixo }, ticks: { padding: 6, maxRotation: 0, autoSkipPadding: 14 }, ...opts.x },
+            y: { grid: { color: c.grade, drawTicks: false }, border: { color: c.eixo }, ticks: { padding: 6 }, ...opts.y },
+        });
+
+        const legenda = c => ({ position: 'top', align: 'start', labels: { color: c.tinta2, usePointStyle: true, pointStyle: 'rectRounded', boxWidth: 10, boxHeight: 10, padding: 14 } });
+
+        const barra = { borderRadius: 4, borderSkipped: 'start', maxBarThickness: 18 };
+
+        function desenhar() {
+            charts.forEach(ch => ch.destroy());
+            charts = [];
+            const c = cores();
+            base(c);
+
+            // Legenda das categorias (cor = categoria)
+            const presentes = [...new Set(D.prevalencia.slice(0, 20).map(p => p.categoria))];
+            document.getElementById('legendaCategorias').innerHTML = CATS.filter(k => presentes.includes(k))
+                .map(k => `<span class="inline-flex items-center gap-1.5"><span style="width:10px;height:10px;border-radius:3px;background:${c.cat[k]}"></span>${D.categorias[k] || k}</span>`).join('');
+            document.querySelectorAll('.cat-dot, .cat-bar').forEach(el => el.style.background = c.cat[el.dataset.cat] || c.neutro);
+
+            // 1. Prevalência
+            const top = D.prevalencia.slice(0, 20);
+            charts.push(new Chart(document.getElementById('chPrevalencia'), {
+                type: 'bar',
+                data: { labels: top.map(p => p.nome), datasets: [{ data: top.map(p => p.pct), backgroundColor: top.map(p => c.cat[p.categoria] || c.neutro), ...barra, maxBarThickness: 16 }] },
+                options: {
+                    indexAxis: 'y', maintainAspectRatio: false,
+                    plugins: { legend: { display: false }, tooltip: { ...tooltip(c), displayColors: false, callbacks: { label: ctx => `${fmt(ctx.raw)}% dos pacientes (${top[ctx.dataIndex].n.toLocaleString('pt-BR')})` } } },
+                    scales: eixos(c, { x: { ticks: { callback: v => v + '%' }, beginAtZero: true }, y: { grid: { display: false }, ticks: { color: c.tinta2, autoSkip: false } } }),
+                },
+                plugins: [rotuloFinal(c, v => fmt(v) + '%')],
+            }));
+
+            // 2. Multimorbidade (ordinal)
+            const mm = D.multimorbidade;
+            charts.push(new Chart(document.getElementById('chMultimorbidade'), {
+                type: 'bar',
+                data: { labels: mm.rotulos.map(r => String(r) === '0' ? 'Nenhuma' : String(r) === '1' ? '1 comorbidade' : r + ' comorbidades'), datasets: [{ data: mm.valores, backgroundColor: ordinal(mm.valores.length), ...barra, maxBarThickness: 44 }] },
+                options: {
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false }, tooltip: { ...tooltip(c), displayColors: false, callbacks: { label: ctx => `${ctx.raw.toLocaleString('pt-BR')} pacientes (${fmt(mm.pct[ctx.dataIndex])}%)` } } },
+                    scales: eixos(c, { x: { grid: { display: false } }, y: { beginAtZero: true } }),
+                },
+            }));
+
+            // 3. Tendência
+            const tend = D.tendencia;
+            charts.push(new Chart(document.getElementById('chTendencia'), {
+                type: 'line',
+                data: { labels: tend.meses, datasets: tend.series.map((s, i) => ({ label: s.nome, data: s.valores, borderColor: c.serie[i], backgroundColor: c.serie[i], borderWidth: 2, pointRadius: 0, pointHoverRadius: 5, pointHoverBorderWidth: 2, pointHoverBorderColor: c.sup, tension: 0.25, spanGaps: true })) },
+                options: {
+                    maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
+                    plugins: { legend: legenda(c), tooltip: { ...tooltip(c), callbacks: { label: ctx => ` ${ctx.dataset.label}: ${fmt(ctx.raw)}%` } } },
+                    scales: eixos(c, { y: { beginAtZero: true, ticks: { callback: v => v + '%' } }, x: { grid: { display: false } } }),
+                },
+                plugins: [linhaCruzada(c)],
+            }));
+
+            // 4. Pirâmide etária (espelhada)
+            const pir = D.piramide;
+            const faixasInv = [...pir.faixas].reverse();
+            charts.push(new Chart(document.getElementById('chPiramide'), {
+                type: 'bar',
+                data: {
+                    labels: faixasInv,
+                    datasets: [
+                        { label: 'Feminino', data: [...pir.Feminino].reverse().map(v => -v), backgroundColor: c.serie[0], ...barra, borderSkipped: 'end', maxBarThickness: 22 },
+                        { label: 'Masculino', data: [...pir.Masculino].reverse(), backgroundColor: c.serie[1], ...barra, maxBarThickness: 22 },
+                    ],
+                },
+                options: {
+                    indexAxis: 'y', maintainAspectRatio: false,
+                    plugins: { legend: legenda(c), tooltip: { ...tooltip(c), callbacks: { label: ctx => ` ${ctx.dataset.label}: ${Math.abs(ctx.raw).toLocaleString('pt-BR')} pacientes` } } },
+                    scales: eixos(c, { x: { stacked: true, ticks: { callback: v => Math.abs(v).toLocaleString('pt-BR') } }, y: { stacked: true, grid: { display: false }, ticks: { color: c.tinta2 } } }),
+                },
+            }));
+
+            // 5. Sexo
+            const sx = D.porSexo;
+            charts.push(new Chart(document.getElementById('chSexo'), {
+                type: 'bar',
+                data: { labels: sx.itens.map(i => i.nome), datasets: sx.grupos.map((g, gi) => ({ label: `${g} (n=${sx.totais[gi].toLocaleString('pt-BR')})`, data: sx.itens.map(i => i.valores[gi]), backgroundColor: c.serie[gi], ...barra, maxBarThickness: 12, categoryPercentage: 0.7, barPercentage: 0.9 })) },
+                options: {
+                    indexAxis: 'y', maintainAspectRatio: false,
+                    plugins: { legend: legenda(c), tooltip: { ...tooltip(c), callbacks: { label: ctx => ` ${sx.grupos[ctx.datasetIndex]}: ${fmt(ctx.raw)}%` } } },
+                    scales: eixos(c, { x: { beginAtZero: true, ticks: { callback: v => v + '%' } }, y: { grid: { display: false }, ticks: { color: c.tinta2, autoSkip: false } } }),
+                },
+            }));
+
+            // 6. Novos diagnósticos
+            charts.push(new Chart(document.getElementById('chNovos'), {
+                type: 'bar',
+                data: { labels: D.novos.meses, datasets: [{ data: D.novos.valores, backgroundColor: c.serie[0], ...barra, maxBarThickness: 22 }] },
+                options: {
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false }, tooltip: { ...tooltip(c), displayColors: false, callbacks: { label: ctx => `${ctx.raw} novos diagnósticos` } } },
+                    scales: eixos(c, { x: { grid: { display: false } }, y: { beginAtZero: true, ticks: { precision: 0 } } }),
+                },
+            }));
+
+            // 7. Vacina — 100% empilhado por faixa (ordinal: não declarada em cinza + doses em rampa)
+            const vac = D.vacina;
+            const elVac = document.getElementById('chVacina');
+            if (elVac) {
+                const coresDose = [c.neutro, ...ordinal(vac.rotulos.length - 1)];
+                charts.push(new Chart(elVac, {
+                    type: 'bar',
+                    data: { labels: vac.faixas.map(f => f + ' anos'), datasets: vac.rotulos.map((r, i) => ({ label: r, data: vac.series[i], backgroundColor: coresDose[i], borderColor: c.sup, borderWidth: { left: 2 }, borderSkipped: false, maxBarThickness: 22 })) },
+                    options: {
+                        indexAxis: 'y', maintainAspectRatio: false,
+                        plugins: { legend: legenda(c), tooltip: { ...tooltip(c), callbacks: { label: ctx => ` ${ctx.dataset.label}: ${fmt(ctx.raw)}%` } } },
+                        scales: eixos(c, { x: { stacked: true, max: 100, ticks: { callback: v => v + '%' } }, y: { stacked: true, grid: { display: false }, ticks: { color: c.tinta2 } } }),
+                    },
+                }));
+            }
+
+            // 8. Tipo de atendimento
+            const tp = D.porTipo;
+            const elTipo = document.getElementById('chTipo');
+            if (elTipo) {
+                charts.push(new Chart(elTipo, {
+                    type: 'bar',
+                    data: { labels: tp.itens.map(i => i.nome), datasets: tp.grupos.map((g, gi) => ({ label: `${g} (n=${tp.totais[gi].toLocaleString('pt-BR')})`, data: tp.itens.map(i => i.valores[gi]), backgroundColor: c.serie[gi], ...barra, maxBarThickness: 10, categoryPercentage: 0.75, barPercentage: 0.9 })) },
+                    options: {
+                        indexAxis: 'y', maintainAspectRatio: false,
+                        plugins: { legend: legenda(c), tooltip: { ...tooltip(c), callbacks: { label: ctx => ` ${tp.grupos[ctx.datasetIndex]}: ${fmt(ctx.raw)}%` } } },
+                        scales: eixos(c, { x: { beginAtZero: true, ticks: { callback: v => v + '%' } }, y: { grid: { display: false }, ticks: { color: c.tinta2, autoSkip: false } } }),
+                    },
+                }));
+            }
+
+            // 9. Cobertura mensal (empilhado: com anamnese x sem anamnese)
+            const cob = D.cobertura.mensal;
+            charts.push(new Chart(document.getElementById('chCobertura'), {
+                type: 'bar',
+                data: {
+                    labels: cob.meses,
+                    datasets: [
+                        { label: 'Com anamnese', data: cob.com, backgroundColor: c.serie[0], borderColor: c.sup, borderWidth: { top: 2 }, borderSkipped: false, maxBarThickness: 26 },
+                        { label: 'Sem anamnese', data: cob.sem, backgroundColor: c.neutro, borderRadius: { topLeft: 4, topRight: 4 }, borderSkipped: false, maxBarThickness: 26 },
+                    ],
+                },
+                options: {
+                    maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: legenda(c),
+                        tooltip: { ...tooltip(c), callbacks: {
+                            label: ctx => ` ${ctx.dataset.label}: ${ctx.raw.toLocaleString('pt-BR')}`,
+                            footer: items => { const t = cob.com[items[0].dataIndex] + cob.sem[items[0].dataIndex]; return t ? `Cobertura: ${fmt(cob.com[items[0].dataIndex] * 100 / t)}%` : ''; },
+                        } },
+                    },
+                    scales: eixos(c, { x: { stacked: true, grid: { display: false } }, y: { stacked: true, beginAtZero: true, ticks: { precision: 0 } } }),
+                },
+            }));
+
+            // Heatmaps (tabelas HTML): cor pela rampa sequencial
+            document.querySelectorAll('.hm').forEach(tab => {
+                const cels = [...tab.querySelectorAll('td.cel')];
+                const max = Math.max(1, ...cels.map(td => parseFloat(td.dataset.v)));
+                cels.forEach(td => {
+                    const t = parseFloat(td.dataset.v) / max;
+                    td.style.background = rampa(0.05 + t * 0.95);
+                    td.style.color = t > 0.5 ? '#ffffff' : '#0d366b';
+                });
+            });
+        }
+
+        // Rótulo só no fim de cada barra (seletivo: barras horizontais de série única)
+        function rotuloFinal(c, formato) {
+            return {
+                id: 'rotuloFinal',
+                afterDatasetsDraw(chart) {
+                    const { ctx } = chart;
+                    ctx.save();
+                    ctx.font = '600 11px system-ui, sans-serif';
+                    ctx.fillStyle = c.tinta2;
+                    ctx.textBaseline = 'middle';
+                    chart.getDatasetMeta(0).data.forEach((bar, i) => ctx.fillText(formato(chart.data.datasets[0].data[i]), bar.x + 6, bar.y));
+                    ctx.restore();
+                },
+            };
+        }
+
+        // Linha vertical de referência no hover (gráfico de linha)
+        function linhaCruzada(c) {
+            return {
+                id: 'linhaCruzada',
+                afterDraw(chart) {
+                    const act = chart.tooltip?.getActiveElements?.() || [];
+                    if (!act.length) return;
+                    const x = act[0].element.x;
+                    const { top, bottom } = chart.chartArea;
+                    const ctx = chart.ctx;
+                    ctx.save();
+                    ctx.beginPath(); ctx.moveTo(x, top); ctx.lineTo(x, bottom);
+                    ctx.lineWidth = 1; ctx.strokeStyle = c.eixo; ctx.stroke();
+                    ctx.restore();
+                },
+            };
+        }
+
+        // Tooltip das células de heatmap
+        const tip = document.getElementById('vizTooltip');
+        document.addEventListener('mousemove', e => {
+            const td = e.target.closest && e.target.closest('td.cel');
+            if (!td) { tip.classList.add('hidden'); return; }
+            tip.textContent = td.dataset.tip;
+            tip.classList.remove('hidden');
+            tip.style.left = Math.min(window.innerWidth - tip.offsetWidth - 8, e.clientX + 12) + 'px';
+            tip.style.top = (e.clientY + 14) + 'px';
+        });
+
+        desenhar();
+        // Redesenha ao alternar claro/escuro
+        new MutationObserver(() => desenhar()).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    });
+    </script>
+{% endblock %}

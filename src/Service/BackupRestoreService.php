@@ -21,6 +21,10 @@ class BackupRestoreService
         'atendimento_etapa_historico' => 'etapasHistorico',
         'senha_atendimento' => 'senhas',
         'chamada_telao' => 'chamadas',
+        'classificacao_estudo' => 'classificacoesEstudo',
+        'exame_classificacao' => 'examesClassificacao',
+        'paciente_historico' => 'pacientesHistorico',
+        'anamnese_sync_execucao' => 'anamneseSyncExecucoes',
     ];
 
     public function __construct(
@@ -311,6 +315,7 @@ class BackupRestoreService
         $conn->executeStatement('SET FOREIGN_KEY_CHECKS=0;');
 
         $tables = [
+            'exame_classificacao', 'paciente_historico', 'classificacao_estudo', 'anamnese_sync_execucao',
             'chamada_telao', 'senha_atendimento', 'atendimento_etapa_historico',
             'agendamento', 'paciente', 'procedimento_sla', 'setor_sala',
             'medico_unidade', 'medico', 'especialidade', 'unidade',
