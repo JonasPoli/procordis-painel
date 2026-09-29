@@ -1,15 +1,18 @@
 #!/bin/bash
 set -e
 
+# PHP a usar (ex.: PHP=/RunCloud/Packages/php83rc/bin/php ./build.sh)
+PHP="${PHP:-php}"
+
 echo "==> Limpando assets compilados e caches anteriores..."
 rm -rf public/assets
 rm -f var/tailwind/*.css
-php bin/console cache:clear
+"$PHP" bin/console cache:clear
 
 echo "==> Compilando Tailwind CSS (minificado)..."
-php bin/console tailwind:build --minify
+"$PHP" bin/console tailwind:build --minify
 
 echo "==> Compilando AssetMapper..."
-php bin/console asset-map:compile
+"$PHP" bin/console asset-map:compile
 
 echo "==> Build concluído com sucesso!"
