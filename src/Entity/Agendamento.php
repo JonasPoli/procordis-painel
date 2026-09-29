@@ -10,6 +10,7 @@ use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: AgendamentoRepository::class)]
 #[ORM\Table(name: 'agendamento')]
+#[ORM\Index(name: 'idx_agendamento_codigo', columns: ['codigo_agendamento'])]
 class Agendamento
 {
     #[ORM\Id]

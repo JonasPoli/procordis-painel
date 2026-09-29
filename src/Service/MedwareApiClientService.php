@@ -37,7 +37,9 @@ class MedwareApiClientService
         private UnidadeRepository $unidadeRepo,
         private ProcedimentoSlaRepository $slaRepo,
         private SenhaAtendimentoRepository $senhaRepo,
-        private ChamadaTelaoRepository $chamadaRepo
+        private ChamadaTelaoRepository $chamadaRepo,
+        private PacienteRegistroService $pacienteRegistro,
+        private ApiCapturaService $captura
     ) {
     }
 
@@ -156,7 +158,12 @@ class MedwareApiClientService
                 $tempoMs = (int) ((microtime(true) - $inicio) * 1000);
 
                 if ($status === 200) {
-                    $items = $response->toArray();
+                    $corpo = $response->getContent();
+                    $items = json_decode($corpo, true) ?? [];
+                    $this->captura->registrar('/Medware/Agendamento/Listar', [
+                        'dataInicio' => $dataInicio->format('d/m/Y'),
+                        'dataFim' => $dataFim->format('d/m/Y'),
+                    ], $corpo, 200, is_array($items) ? count($items) : 0);
                     // Se veio com dados, grava o log de sucesso e retorna imediatamente
                     if (!empty($items)) {
                         $this->registrarLog('/Medware/Agendamento/Listar', 'GET', 200, $tempoMs, null, count($items));
@@ -227,42 +234,35 @@ class MedwareApiClientService
                 continue;
             }
 
-            // 1. Paciente
+            // 1. Paciente — identificado SEMPRE pelo codPaciente (nunca pelo nome: há homônimos).
             $pacienteData = $item['paciente'] ?? [];
-            $codPac = (string) ($pacienteData['codPaciente'] ?? '');
-            $nomePac = trim($pacienteData['nome'] ?? 'Paciente ' . $codAgendamento);
+            $codPac = (int) ($pacienteData['codPaciente'] ?? 0);
+            $nomePac = trim($pacienteData['nome'] ?? '');
             $cpfPac = trim($pacienteData['cpf'] ?? '');
+            $dadosPac = [
+                'nome' => $nomePac !== '' ? $nomePac : null,
+                'cpf' => $cpfPac !== '' ? $cpfPac : null,
+                'celular' => $pacienteData['telefone'] ?? null,
+                'sexo' => $pacienteData['sexo'] ?? null,
+                'dataNascimento' => !empty($pacienteData['dataNascimento']) ? $this->parseDateTime($pacienteData['dataNascimento']) : null,
+            ];
 
-            $paciente = null;
-            if (!empty($codPac)) {
-                $paciente = $this->pacienteRepo->findOneBy(['codigoExterno' => 'PAC-' . $codPac]);
-            }
-            if (!$paciente && !empty($cpfPac)) {
-                $paciente = $this->pacienteRepo->findOneBy(['cpf' => $cpfPac]);
-            }
-            if (!$paciente && !empty($nomePac)) {
-                $paciente = $this->pacienteRepo->findOneBy(['nomeCompleto' => $nomePac]);
-            }
-            if (!$paciente) {
-                $paciente = new Paciente();
-                $paciente->setNomeCompleto($nomePac);
-                $paciente->setCodigoExterno(!empty($codPac) ? 'PAC-' . $codPac : 'PAC-' . rand(10000, 99999));
-                $this->em->persist($paciente);
-            }
-
-            if (!empty($cpfPac)) {
-                $paciente->setCpf(mb_substr($cpfPac, 0, 50));
-            }
-            if (!empty($pacienteData['telefone'])) {
-                $paciente->setCelular(mb_substr(trim($pacienteData['telefone']), 0, 250));
-            }
-            if (!empty($pacienteData['sexo'])) {
-                $paciente->setSexo(mb_substr(trim($pacienteData['sexo']), 0, 20));
-            }
-            if (!empty($pacienteData['dataNascimento'])) {
-                $dtNasc = $this->parseDateTime($pacienteData['dataNascimento']);
-                if ($dtNasc) {
-                    $paciente->setDataNascimento($dtNasc);
+            if ($codPac > 0) {
+                $paciente = $this->pacienteRegistro->sincronizarPorCodigo($codPac, $dadosPac, '/Medware/Agendamento/Listar');
+            } else {
+                $paciente = $this->agendamentoRepo->findOneBy(['codigoAgendamento' => $codAgendamento])?->getPaciente();
+                if (!$paciente && $cpfPac !== '') {
+                    $paciente = $this->pacienteRepo->findOneBy(['cpf' => $cpfPac]);
+                }
+                if (!$paciente) {
+                    $paciente = new Paciente();
+                    $paciente->setNomeCompleto($nomePac !== '' ? $nomePac : 'Paciente ' . $codAgendamento);
+                    $paciente->setCodigoExterno('AG-' . $codAgendamento);
+                    $paciente->setPrimeiroVistoEm(new \DateTime());
+                    if ($cpfPac !== '') {
+                        $paciente->setCpf(mb_substr($cpfPac, 0, 50));
+                    }
+                    $this->em->persist($paciente);
                 }
             }
 
@@ -458,6 +458,7 @@ class MedwareApiClientService
 
         // Liberar objetos hidratados do Doctrine UnitOfWork para evitar acúmulo de RAM em syncs históricos volumosos
         $this->em->clear();
+        $this->pacienteRegistro->limparCache();
 
         return $res;
     }

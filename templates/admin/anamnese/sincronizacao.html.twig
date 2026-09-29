@@ -1,0 +1,137 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}Anamnese — Sincronização{% endblock %}
+
+{% set card = 'bg-white/80 dark:bg-slate-900/80 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm' %}
+
+{% block body %}
+<div class="space-y-6">
+    {% for label, messages in app.flashes %}
+        {% for message in messages %}
+            <sl-alert variant="{{ label == 'success' ? 'success' : (label == 'warning' ? 'warning' : 'danger') }}" open closable>
+                <sl-icon slot="icon" name="{{ label == 'success' ? 'check-circle' : 'exclamation-triangle' }}"></sl-icon>
+                {{ message }}
+            </sl-alert>
+        {% endfor %}
+    {% endfor %}
+
+    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 {{ card }} p-5">
+        <div>
+            <div class="flex items-center gap-2">
+                <sl-icon name="arrow-repeat" class="text-cyan-500 text-2xl"></sl-icon>
+                <h1 class="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Sincronização da anamnese</h1>
+            </div>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                Automática: <b>incremental</b> às 7h, 12h e 18h (dados novos dos últimos 7 dias) e <b>completa</b> às 2h (todo o histórico, remoções e agendamentos que faltam).
+            </p>
+            {% if modoSimulacao %}
+                <p class="text-xs mt-1 text-amber-600 dark:text-amber-400 font-semibold">Integração em modo simulação: as execuções geram dados simulados em vez de consultar a API.</p>
+            {% endif %}
+        </div>
+        <div class="flex flex-wrap gap-2">
+            <form method="POST" action="{{ path('app_admin_anamnese_sincronizacao_executar') }}">
+                <input type="hidden" name="_token" value="{{ csrf_token('anamnese_sync') }}">
+                <input type="hidden" name="modo" value="incremental">
+                <button class="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white font-bold rounded-xl text-xs flex items-center gap-2 shadow-sm transition disabled:opacity-50" {{ emAndamento ? 'disabled' }}>
+                    <sl-icon name="lightning"></sl-icon> Rodar incremental agora
+                </button>
+            </form>
+            <form method="POST" action="{{ path('app_admin_anamnese_sincronizacao_executar') }}" onsubmit="return confirm('A sincronização completa relê todo o histórico e pode levar vários minutos. Continuar?')">
+                <input type="hidden" name="_token" value="{{ csrf_token('anamnese_sync') }}">
+                <input type="hidden" name="modo" value="completo">
+                <button class="px-4 py-2 bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 text-white font-bold rounded-xl text-xs flex items-center gap-2 shadow-sm transition disabled:opacity-50" {{ emAndamento ? 'disabled' }}>
+                    <sl-icon name="database"></sl-icon> Rodar completa agora
+                </button>
+            </form>
+            {% if modoSimulacao %}
+                <form method="POST" action="{{ path('app_admin_anamnese_simulacao_regerar') }}" onsubmit="return confirm('Apagar e gerar novamente os dados SIMULADOS de anamnese?')">
+                    <input type="hidden" name="_token" value="{{ csrf_token('anamnese_sync') }}">
+                    <button class="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl text-xs flex items-center gap-2 shadow-sm transition">
+                        <sl-icon name="shuffle"></sl-icon> Regerar dados simulados
+                    </button>
+                </form>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if emAndamento %}
+        <sl-alert variant="primary" open>
+            <sl-icon slot="icon" name="hourglass-split"></sl-icon>
+            Sincronização #{{ emAndamento.id }} ({{ emAndamento.modo }}) em andamento desde {{ emAndamento.iniciadoEm|date('d/m/Y H:i') }}. Esta página se atualiza sozinha.
+        </sl-alert>
+        <script>setTimeout(() => location.reload(), 15000);</script>
+    {% endif %}
+
+    <div class="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-4">
+        {% set t = totais %}
+        {% for item in [
+            {r: 'Exames com anamnese', v: t.exames|number_format(0, ',', '.')},
+            {r: 'Pacientes', v: t.pacientes|number_format(0, ',', '.')},
+            {r: 'Marcações ativas', v: t.marcacoes|number_format(0, ',', '.')},
+            {r: 'Marcações removidas', v: t.removidas|number_format(0, ',', '.')},
+            {r: 'Exames sem agendamento local', v: t.semAgendamento|number_format(0, ',', '.')},
+            {r: 'Alterações cadastrais', v: t.alteracoesPaciente|number_format(0, ',', '.')},
+            {r: 'Respostas brutas guardadas', v: t.capturas|number_format(0, ',', '.') ~ ' (' ~ t.capturasMb|number_format(1, ',', '.') ~ ' MB)'},
+            {r: 'Período coberto', v: t.primeiroExame ? t.primeiroExame|date('m/Y') ~ ' – ' ~ t.ultimoExame|date('m/Y') : '—'},
+        ] %}
+            <div class="{{ card }} p-4">
+                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider leading-tight">{{ item.r }}</p>
+                <p class="text-lg font-black text-slate-900 dark:text-white mt-1">{{ item.v }}</p>
+            </div>
+        {% endfor %}
+    </div>
+
+    <section class="{{ card }} p-5">
+        <h2 class="text-base font-bold text-slate-900 dark:text-white mb-3">Execuções</h2>
+        <div class="overflow-x-auto">
+            <table class="w-full text-xs">
+                <thead>
+                    <tr class="text-left text-[10px] uppercase tracking-wider text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                        <th class="py-2 pr-2">#</th><th class="py-2 px-2">Início</th><th class="py-2 px-2">Modo</th><th class="py-2 px-2">Origem</th><th class="py-2 px-2">Status</th><th class="py-2 px-2 text-right">Duração</th>
+                        <th class="py-2 px-2 text-right">Lidos</th><th class="py-2 px-2 text-right">Novos</th><th class="py-2 px-2 text-right">Atualizados</th><th class="py-2 px-2 text-right">Removidos</th><th class="py-2 pl-2">Observações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for e in execucoes %}
+                        {% set j = e.resumo.janelas ?? [] %}
+                        {% set soma = {lidos: 0, novos: 0, atualizados: 0, removidos: 0} %}
+                        {% for w in j %}
+                            {% set soma = {lidos: soma.lidos + w.lidos, novos: soma.novos + w.novos, atualizados: soma.atualizados + w.atualizados + (w.reaparecidos ?? 0), removidos: soma.removidos + w.removidos} %}
+                        {% endfor %}
+                        {% set cor = {sucesso: 'text-emerald-600 dark:text-emerald-400', parcial: 'text-amber-600 dark:text-amber-400', erro: 'text-rose-600 dark:text-rose-400', em_andamento: 'text-cyan-600 dark:text-cyan-400'} %}
+                        {% set icone = {sucesso: 'check-circle-fill', parcial: 'exclamation-circle-fill', erro: 'x-circle-fill', em_andamento: 'hourglass-split'} %}
+                        <tr class="border-b border-slate-100 dark:border-slate-800/60 align-top">
+                            <td class="py-2 pr-2 text-slate-400 tabular-nums">{{ e.id }}</td>
+                            <td class="py-2 px-2 whitespace-nowrap">{{ e.iniciadoEm|date('d/m/Y H:i') }}</td>
+                            <td class="py-2 px-2 font-semibold">{{ e.modo }}</td>
+                            <td class="py-2 px-2 text-slate-500">{{ e.origem }}</td>
+                            <td class="py-2 px-2 font-bold whitespace-nowrap {{ cor[e.status] ?? '' }}"><sl-icon name="{{ icone[e.status] ?? 'circle' }}" class="align-[-2px]"></sl-icon> {{ e.status|replace({'_': ' '}) }}</td>
+                            <td class="py-2 px-2 text-right tabular-nums">{{ e.duracaoSegundos is not null ? (e.duracaoSegundos >= 60 ? (e.duracaoSegundos // 60) ~ 'min ' : '') ~ (e.duracaoSegundos % 60) ~ 's' : '—' }}</td>
+                            <td class="py-2 px-2 text-right tabular-nums">{{ soma.lidos|number_format(0, ',', '.') }}</td>
+                            <td class="py-2 px-2 text-right tabular-nums">{{ soma.novos|number_format(0, ',', '.') }}</td>
+                            <td class="py-2 px-2 text-right tabular-nums">{{ soma.atualizados|number_format(0, ',', '.') }}</td>
+                            <td class="py-2 px-2 text-right tabular-nums">{{ soma.removidos|number_format(0, ',', '.') }}</td>
+                            <td class="py-2 pl-2 text-slate-500 max-w-md">
+                                {% if e.resumo.simulacao is defined %}Simulação: {{ e.resumo.simulacao.exames ?? 0 }} exames gerados.{% endif %}
+                                {% if e.resumo.backfill.dias is defined and e.resumo.backfill.dias > 0 %}Agendamentos antigos: {{ e.resumo.backfill.dias }} dias carregados ({{ e.resumo.backfill.pendentes }} pendentes). {% endif %}
+                                {% if e.resumo.vinculados is defined and e.resumo.vinculados > 0 %}{{ e.resumo.vinculados }} exames ligados a agendamentos. {% endif %}
+                                {% if e.erros %}<details class="mt-1"><summary class="cursor-pointer text-rose-600 font-semibold">Ver avisos</summary><pre class="whitespace-pre-wrap text-[11px] mt-1">{{ e.erros }}</pre></details>{% endif %}
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr><td colspan="11" class="py-6 text-center text-slate-400">Nenhuma execução ainda.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="{{ card }} p-5 text-xs text-slate-600 dark:text-slate-300 space-y-2">
+        <h2 class="text-base font-bold text-slate-900 dark:text-white">Como funciona</h2>
+        <p><b>Nada é apagado.</b> Cada marcação guarda quando apareceu e quando foi vista pela última vez. Se some da API numa leitura completa do período, recebe a data de remoção; se voltar, a marcação é reativada.</p>
+        <p><b>Resposta bruta:</b> todo JSON recebido da API é guardado. Respostas idênticas não se repetem — só a data de verificação é atualizada.</p>
+        <p><b>Cadastro do paciente:</b> identificado sempre pelo código Medware. Mudanças de nome, CPF, telefone, sexo ou nascimento ficam no histórico do paciente.</p>
+        <p><b>Sexo, idade e procedimento</b> vêm dos agendamentos. A sincronização completa busca, a cada noite, até 300 dias de agendamentos que ainda faltam para ligar aos exames com anamnese.</p>
+    </section>
+</div>
+{% endblock %}

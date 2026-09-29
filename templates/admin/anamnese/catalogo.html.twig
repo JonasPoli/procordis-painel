@@ -1,0 +1,82 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}Anamnese — Catálogo de Itens{% endblock %}
+
+{% set card = 'bg-white/80 dark:bg-slate-900/80 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm' %}
+
+{% block body %}
+<div class="space-y-6">
+    {% for label, messages in app.flashes %}
+        {% for message in messages %}
+            <sl-alert variant="{{ label == 'success' ? 'success' : 'warning' }}" open closable>
+                <sl-icon slot="icon" name="{{ label == 'success' ? 'check-circle' : 'exclamation-triangle' }}"></sl-icon>
+                {{ message }}
+            </sl-alert>
+        {% endfor %}
+    {% endfor %}
+
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 {{ card }} p-5">
+        <div>
+            <div class="flex items-center gap-2">
+                <sl-icon name="tags" class="text-cyan-500 text-2xl"></sl-icon>
+                <h1 class="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Catálogo de itens da anamnese</h1>
+            </div>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                Classificações de estudo vindas de <code>/api/ClassificacaoEstudo</code>. A categoria agrupa os gráficos; itens inativos saem das estatísticas (os dados continuam guardados).
+            </p>
+        </div>
+        <a href="{{ path('app_admin_anamnese_painel') }}" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-xl text-xs flex items-center gap-2 transition">
+            <sl-icon name="bar-chart"></sl-icon> Voltar ao painel
+        </a>
+    </div>
+
+    <form method="POST" action="{{ path('app_admin_anamnese_catalogo_salvar') }}" class="{{ card }} p-5">
+        <input type="hidden" name="_token" value="{{ csrf_token('anamnese_catalogo') }}">
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="text-left text-[10px] uppercase tracking-wider text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                        <th class="py-2 pr-2">Cód.</th>
+                        <th class="py-2 px-2">Item</th>
+                        <th class="py-2 px-2">Código / Tipo (API)</th>
+                        <th class="py-2 px-2">Categoria</th>
+                        <th class="py-2 px-2 text-right">Marcações</th>
+                        <th class="py-2 px-2 text-right">Pacientes</th>
+                        <th class="py-2 px-2">Último exame</th>
+                        <th class="py-2 px-2">Na API</th>
+                        <th class="py-2 pl-2 text-center">Ativo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in itens %}
+                        {% set ct = contagens[c.id] ?? null %}
+                        <tr class="border-b border-slate-100 dark:border-slate-800/60 {{ not c.ativo ? 'opacity-50' }}">
+                            <td class="py-2 pr-2 tabular-nums text-slate-400">{{ c.codClassificacao }}</td>
+                            <td class="py-2 px-2 font-semibold text-slate-800 dark:text-slate-100">{{ c.nome }}</td>
+                            <td class="py-2 px-2 text-xs text-slate-500">{{ c.codigo ?? '—' }} / {{ c.tipo ?? '—' }}</td>
+                            <td class="py-2 px-2">
+                                <select name="categoria[{{ c.id }}]" class="bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-800 dark:text-slate-200">
+                                    {% for v, l in categorias %}<option value="{{ v }}" {{ c.categoria == v ? 'selected' }}>{{ l }}</option>{% endfor %}
+                                </select>
+                                {% if c.categoriaManual %}<span class="ml-1 text-[10px] text-slate-400" title="Definida manualmente; o sync não altera">manual</span>{% endif %}
+                            </td>
+                            <td class="py-2 px-2 text-right tabular-nums">{{ ct ? ct.n|number_format(0, ',', '.') : 0 }}</td>
+                            <td class="py-2 px-2 text-right tabular-nums">{{ ct ? ct.pac|number_format(0, ',', '.') : 0 }}</td>
+                            <td class="py-2 px-2 text-xs text-slate-500">{{ ct and ct.ultimo ? ct.ultimo|date('d/m/Y') : '—' }}</td>
+                            <td class="py-2 px-2 text-xs">
+                                {% if c.presenteNaApi %}<span class="text-emerald-600 dark:text-emerald-400 font-semibold">sim</span>{% else %}<span class="text-amber-600 font-semibold" title="Não veio no último sync do catálogo">não</span>{% endif %}
+                            </td>
+                            <td class="py-2 pl-2 text-center"><input type="checkbox" name="ativo[{{ c.id }}]" value="1" {{ c.ativo ? 'checked' }} class="w-4 h-4 accent-cyan-600"></td>
+                        </tr>
+                    {% else %}
+                        <tr><td colspan="9" class="py-6 text-center text-slate-400">Catálogo vazio. Rode a sincronização.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="flex justify-end mt-4">
+            <button type="submit" class="px-5 py-2 bg-cyan-600 hover:bg-cyan-700 text-white font-bold text-xs rounded-xl transition shadow-sm">Salvar alterações</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

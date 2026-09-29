@@ -15,7 +15,8 @@ class PacienteAdminController extends AbstractController
 {
     public function __construct(
         private PacienteRepository $pacienteRepo,
-        private AgendamentoRepository $agendamentoRepo
+        private AgendamentoRepository $agendamentoRepo,
+        private \Doctrine\ORM\EntityManagerInterface $em
     ) {
     }
 
@@ -73,9 +74,37 @@ class PacienteAdminController extends AbstractController
             ->getQuery()
             ->getResult();
 
+        // Anamnese (classificações de estudo) por exame, incluindo as que saíram da API
+        $conn = $this->em->getConnection();
+        $linhas = $conn->fetchAllAssociative(
+            'SELECT ec.cod_agendamento, ec.data_exame, ec.removido_em, ec.primeiro_visto_em, c.nome, c.categoria
+               FROM exame_classificacao ec JOIN classificacao_estudo c ON c.id = ec.classificacao_id
+              WHERE ec.paciente_id = ?
+              ORDER BY ec.data_exame DESC, c.nome',
+            [$paciente->getId()]
+        );
+        $anamnese = [];
+        foreach ($linhas as $l) {
+            $k = $l['cod_agendamento'];
+            $anamnese[$k] ??= ['codAgendamento' => $k, 'data' => new \DateTime($l['data_exame']), 'itens' => []];
+            $anamnese[$k]['itens'][] = [
+                'nome' => $l['nome'],
+                'categoria' => $l['categoria'],
+                'removidoEm' => $l['removido_em'] ? new \DateTime($l['removido_em']) : null,
+                'primeiroVistoEm' => new \DateTime($l['primeiro_visto_em']),
+            ];
+        }
+
+        $historicoCadastro = $conn->fetchAllAssociative(
+            'SELECT campo, valor_anterior, valor_novo, origem, registrado_em FROM paciente_historico WHERE paciente_id = ? ORDER BY registrado_em DESC',
+            [$paciente->getId()]
+        );
+
         return $this->render('admin/paciente/prontuario.html.twig', [
             'paciente' => $paciente,
             'agendamentos' => $agendamentos,
+            'anamnese' => array_values($anamnese),
+            'historicoCadastro' => $historicoCadastro,
         ]);
     }
 }
