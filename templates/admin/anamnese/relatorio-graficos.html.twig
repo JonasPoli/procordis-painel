@@ -73,8 +73,8 @@
     </svg>
 {% endmacro %}
 
-{# Barras horizontais agrupadas. itens = [{nome, valores[]}] em %; grupos = rótulos; classes = uma por grupo #}
-{% macro barras_agrupadas(itens, grupos, classes, descricao) %}
+{# Barras horizontais agrupadas. itens = [{nome, valores[]}] em %; grupos = rótulos; classes = uma por grupo; x0 = largura dos rótulos #}
+{% macro barras_agrupadas(itens, grupos, classes, descricao, x0 = 232) %}
     {% set maior = 0 %}
     {% for it in itens %}{% for v in it.valores %}{% if v is not null and v > maior %}{% set maior = v %}{% endif %}{% endfor %}{% endfor %}
     {% set e = escala_eixo(maior, 5, 100) %}
@@ -83,8 +83,7 @@
     {% set vao = 2 %}
     {% set bloco = g * bt + (g - 1) * vao %}
     {% set rh = bloco + 9 %}
-    {% set x0 = 232 %}
-    {% set lw = 388 %}
+    {% set lw = 620 - x0 %}
     {% set topo = 2 %}
     {% set base = topo + itens|length * rh %}
     <svg class="grafico" viewBox="0 0 680 {{ base + 18 }}" role="img" aria-label="{{ descricao }}">

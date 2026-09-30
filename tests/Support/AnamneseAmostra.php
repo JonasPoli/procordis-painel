@@ -26,6 +26,8 @@ final class AnamneseAmostra
 
     private const PROCEDIMENTOS = ['ELETROCARDIOGRAMA', 'ELETROCARDIOGRAMA', 'ELETROCARDIOGRAMA', 'ECOCARDIOGRAMA TRANSTORÁCICO', 'ECOCARDIOGRAMA TRANSTORÁCICO', 'TESTE ERGOMÉTRICO', 'HOLTER 24 HORAS', 'MAPA 24 HORAS', 'ECOCARDIOGRAMA COM ESTRESSE FARMACOLÓGICO', 'CINTILOGRAFIA DE PERFUSÃO MIOCÁRDICA'];
 
+    private const MEDICOS = ['Dra. Ana Beatriz Figueiredo', 'Dr. Carlos Eduardo Nogueira', 'Dra. Helena Vasconcelos', 'Dr. Marcos Antônio Pereira de Albuquerque', 'Dra. Renata Sampaio', 'Dr. Tiago Lacerda'];
+
     private const FAIXA_DE_IDADE = [[18, '0–17'], [30, '18–29'], [40, '30–39'], [50, '40–49'], [60, '50–59'], [70, '60–69'], [80, '70–79'], [200, '80+']];
 
     private int $semente = 20260930;
@@ -100,7 +102,8 @@ final class AnamneseAmostra
                         'faixa' => $semIdade ? 'Sem idade' : $this->faixa($idade),
                         'proc' => $vinculado ? ($r === 0 || $this->sorteio(2) ? $proc : 'ELETROCARDIOGRAMA') : 'SEM AGENDAMENTO VINCULADO',
                         'tipo' => $vinculado ? ['sus', 'sus', 'convenio', 'particular'][$this->sorteio(4)] : 'nd',
-                        'medico' => $vinculado && $this->sorteio(100) >= 4 ? 1 + $this->sorteio(6) : null,
+                        'medico' => $medico = $vinculado && $this->sorteio(100) >= 4 ? 1 + $this->sorteio(6) : null,
+                        'medicoNome' => $medico ? self::MEDICOS[$medico - 1] : null,
                         'temAgendamento' => $vinculado,
                         'temProcedimento' => $vinculado,
                         'cids' => $cids,

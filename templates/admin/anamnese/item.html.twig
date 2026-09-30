@@ -1,0 +1,310 @@
+{% extends 'admin/base.html.twig' %}
+{% import 'admin/anamnese/painel-complementar.html.twig' as c %}
+{% import 'admin/anamnese/relatorio-graficos.html.twig' as g %}
+
+{% block title %}Anamnese — {{ p.item ? p.item.nome : 'Panorama do item' }}{% endblock %}
+
+{% set card = 'bg-white/80 dark:bg-slate-900/80 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm' %}
+{% set th = 'py-2 px-2 text-[10px] uppercase tracking-wider text-slate-400 font-bold' %}
+{% set td = 'py-1.5 px-2 tabular-nums' %}
+{% set linha = 'border-b border-slate-100 dark:border-slate-800/60' %}
+{% set botao = 'px-4 py-2 font-bold rounded-xl text-xs flex items-center gap-2 transition' %}
+{% set consulta = app.request ? app.request.query.all : {} %}
+
+{# Tabela "grupo | pacientes com o item | % do grupo" (procedimento, atendimento, médico, sexo) #}
+{% macro grupos(titulo, coluna, linhas, th, td, linha, limite = 10) %}
+    <div>
+        <h3 class="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">{{ titulo }}</h3>
+        <table class="w-full text-xs">
+            <thead><tr class="text-left border-b border-slate-200 dark:border-slate-800"><th class="{{ th }} pl-0">{{ coluna }}</th><th class="{{ th }} text-right">Com o item / pacientes</th><th class="{{ th }} text-right">%</th><th class="{{ th }} w-1/4"></th></tr></thead>
+            <tbody>
+                {% for r in linhas|slice(0, limite) %}
+                    <tr class="{{ linha }}">
+                        <td class="{{ td }} pl-0 font-semibold text-slate-700 dark:text-slate-200">{{ r.nome }}{% if r.pequena %}<span class="text-amber-500" title="Menos de 10 pacientes: leia com cautela">*</span>{% endif %}</td>
+                        <td class="{{ td }} text-right">{{ r.n|number_format(0, ',', '.') }} / {{ r.total|number_format(0, ',', '.') }}</td>
+                        <td class="{{ td }} text-right font-bold text-slate-800 dark:text-slate-100">{{ r.pct|number_format(1, ',', '.') }}%</td>
+                        <td class="{{ td }}"><div class="h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden"><div class="h-full rounded-full bg-sky-500" style="width: {{ r.pct }}%"></div></div></td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="4" class="py-3 text-sm text-slate-400">Sem dados no recorte.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% if linhas|length > limite %}<p class="text-[11px] text-slate-400 mt-2">Mostrando {{ limite }} de {{ linhas|length }}; a lista completa está no CSV.</p>{% endif %}
+    </div>
+{% endmacro %}
+
+{% block body %}
+<div class="space-y-6 panorama-item">
+
+    {# ---------- Cabeçalho ---------- #}
+    <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-4 {{ card }} p-5 backdrop-blur">
+        <div>
+            <p class="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2"><sl-icon name="clipboard2-pulse" class="text-rose-500 text-base"></sl-icon> Anamnese · Panorama do item</p>
+            <h1 class="text-2xl font-black text-slate-900 dark:text-white tracking-tight mt-1">{{ p.item ? p.item.nome : 'Escolha um item' }}</h1>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                {% if p.item %}{{ p.item.categoriaRotulo }} · {% endif %}Tudo o que a base permite medir sobre um item da anamnese, comparando quem tem o item registrado com quem não tem. Nenhum paciente é identificado.
+                {% if modoSimulacao %}<span class="ml-2 px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 font-bold text-xs">Dados simulados</span>{% endif %}
+            </p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+            <form method="GET" action="{{ path('app_admin_anamnese_item') }}" class="flex items-center gap-2">
+                {% for nome, valor in consulta|filter((v, k) => k != 'item') %}<input type="hidden" name="{{ nome }}" value="{{ valor }}">{% endfor %}
+                <label class="sr-only" for="itemEscolhido">Item da anamnese</label>
+                <select name="item" id="itemEscolhido" onchange="this.form.submit()" class="bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 font-bold max-w-[18rem]">
+                    <option value="">Escolher item…</option>
+                    {% for chave, rotulo in p.categorias %}
+                        {% set doGrupo = p.opcoes|filter(o => o.categoria == chave) %}
+                        {% if doGrupo|length %}
+                            <optgroup label="{{ rotulo }}">
+                                {% for o in doGrupo %}<option value="{{ o.id }}" {{ p.item and p.item.id == o.id ? 'selected' }}>{{ o.nome }} ({{ o.n|number_format(0, ',', '.') }})</option>{% endfor %}
+                            </optgroup>
+                        {% endif %}
+                    {% endfor %}
+                </select>
+            </form>
+            <a href="{{ path('app_admin_anamnese_painel', consulta|filter((v, k) => k != 'item')) }}" class="{{ botao }} bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200">
+                <sl-icon name="arrow-left"></sl-icon> Panorama geral
+            </a>
+            {% if p.item and p.com > 0 %}
+                <a href="{{ path('app_admin_anamnese_item_relatorio', consulta) }}" target="_blank" rel="noopener" class="{{ botao }} bg-cyan-600 hover:bg-cyan-700 text-white shadow-sm">
+                    <sl-icon name="file-earmark-text"></sl-icon> Gerar relatório (A4)
+                </a>
+                <a href="{{ path('app_admin_anamnese_item_exportar', consulta) }}" class="{{ botao }} bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm">
+                    <sl-icon name="download"></sl-icon> CSV
+                </a>
+            {% endif %}
+        </div>
+    </div>
+
+    {% include 'admin/anamnese/filtros.html.twig' with {acao: path('app_admin_anamnese_item'), limpar: path('app_admin_anamnese_item', p.item ? {item: p.item.id} : {}), ocultos: p.item ? {item: p.item.id} : {}} %}
+
+    {% if not p.item %}
+        <div class="{{ card }} p-10 text-center">
+            <sl-icon name="search" class="text-4xl text-slate-400"></sl-icon>
+            <p class="mt-3 font-bold text-slate-700 dark:text-slate-200">Escolha um item da anamnese no seletor acima.</p>
+            <p class="text-sm text-slate-500 mt-1">A lista mostra os itens registrados no recorte, com o número de pacientes entre parênteses.</p>
+        </div>
+    {% elseif p.com == 0 %}
+        <div class="{{ card }} p-10 text-center">
+            <sl-icon name="inbox" class="text-4xl text-slate-400"></sl-icon>
+            <p class="mt-3 font-bold text-slate-700 dark:text-slate-200">Nenhum paciente com “{{ p.item.nome }}” registrado neste recorte.</p>
+            <p class="text-sm text-slate-500 mt-1">Amplie o período ou retire filtros.</p>
+        </div>
+    {% else %}
+    {% set a = p.perfilCom %}
+    {% set b = p.perfilSem %}
+    {% set nome = p.item.nome %}
+
+    {% if p.semelhantes|length %}
+        <p class="rounded-xl border border-amber-300 bg-amber-50 dark:bg-amber-500/10 dark:border-amber-500/40 px-4 py-2.5 text-xs text-amber-800 dark:text-amber-300">
+            <sl-icon name="exclamation-triangle" class="align-middle"></sl-icon>
+            O catálogo tem item com nome parecido, e a contagem pode estar dividida entre eles:
+            {% for s in p.semelhantes %}<a class="font-bold underline" href="{{ path('app_admin_anamnese_item', consulta|merge({item: s.id})) }}">{{ s.nome }}</a> ({{ s.n|number_format(0, ',', '.') }} pacientes){{ not loop.last ? ', ' }}{% endfor %}.
+            Os itens não são somados automaticamente.
+        </p>
+    {% endif %}
+
+    {# ---------- Indicadores ---------- #}
+    <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
+        {{ c.indicador('Pacientes com o item', p.com|number_format(0, ',', '.'), p.prevalencia|number_format(1, ',', '.') ~ '% dos ' ~ p.pacientes|number_format(0, ',', '.') ~ ' pacientes com anamnese', 'Pacientes com o item marcado em algum exame do período ÷ pacientes com anamnese no período (prevalência).') }}
+        {{ c.indicador('Posição entre os itens', p.posicao ~ 'º', 'de ' ~ p.totalItens ~ ' itens registrados no recorte', 'Ordem pelo número de pacientes, entre todos os itens da anamnese registrados no recorte.') }}
+        {{ c.indicador('Exames com o item', p.examesCom|number_format(0, ',', '.'), p.pctExames|number_format(1, ',', '.') ~ '% dos ' ~ p.exames|number_format(0, ',', '.') ~ ' exames com anamnese', 'Exames (agendamentos) em que o item foi marcado. Um paciente pode ter vários.') }}
+        {{ c.indicador('Idade mediana', c.num(a.idadeMediana, 0) ~ ' anos', 'sem o item: ' ~ c.num(b.idadeMediana, 0) ~ ' anos', 'Idade no exame mais recente do período, entre os pacientes com data de nascimento.') }}
+        {{ c.indicador('Outras comorbidades', c.num(a.outrasMedia, 2), 'média por paciente · sem o item: ' ~ c.num(b.outrasMedia, 2), 'Comorbidades registradas além deste item. A comparação é com os pacientes que não têm o item.') }}
+        {{ c.indicador('Novos registros', p.novos|number_format(0, ',', '.'), 'vezes em que o item surgiu entre exames do mesmo paciente', 'Item marcado pela primeira vez em paciente que já tinha anamnese anterior sem ele (vacinas não entram).') }}
+    </div>
+
+    {# ---------- Comparação + outras comorbidades ---------- #}
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <section class="{{ card }} p-5">
+            {{ c.titulo('Quem tem e quem não tem o item', 'Perfil dos ' ~ p.com|number_format(0, ',', '.') ~ ' pacientes com o item, ao lado dos ' ~ p.sem|number_format(0, ',', '.') ~ ' pacientes sem ele no mesmo recorte.', 'Diferenças entre os grupos descrevem os registros; não indicam causa. Pacientes mais velhos tendem a ter mais registros de tudo.') }}
+            <table class="w-full text-xs">
+                <thead><tr class="text-left border-b border-slate-200 dark:border-slate-800"><th class="{{ th }} pl-0">Indicador</th><th class="{{ th }} text-right">Com {{ nome }}</th><th class="{{ th }} text-right">Sem</th></tr></thead>
+                <tbody>
+                    {% set linhas = [
+                        ['Pacientes', a.n|number_format(0, ',', '.'), b.n|number_format(0, ',', '.')],
+                        ['Idade média', c.num(a.idadeMedia, 1) ~ ' anos', c.num(b.idadeMedia, 1) ~ ' anos'],
+                        ['Idade mediana', c.num(a.idadeMediana, 0) ~ ' anos', c.num(b.idadeMediana, 0) ~ ' anos'],
+                        ['Com 60 anos ou mais', c.num(a.pct60, 1, '%'), c.num(b.pct60, 1, '%')],
+                        ['Sexo feminino', c.num(a.pctFeminino, 1, '%'), c.num(b.pctFeminino, 1, '%')],
+                        ['Outras comorbidades (média)', c.num(a.outrasMedia, 2), c.num(b.outrasMedia, 2)],
+                        ['Outras comorbidades (mediana)', c.num(a.outrasMediana, 1), c.num(b.outrasMediana, 1)],
+                        ['Com 2 ou mais outras comorbidades', c.num(a.pct2Outras, 1, '%'), c.num(b.pct2Outras, 1, '%')],
+                        [p.ehHistorico ? 'Histórico cardiovascular (inclui este item)' : 'Com histórico cardiovascular registrado', c.num(a.pctEvento, 1, '%'), c.num(b.pctEvento, 1, '%')],
+                        ['Exames com anamnese por paciente', c.num(a.examesPorPaciente, 2), c.num(b.examesPorPaciente, 2)],
+                    ] %}
+                    {% for l in linhas %}
+                        <tr class="{{ linha }}"><td class="{{ td }} pl-0 font-semibold text-slate-700 dark:text-slate-200">{{ l[0] }}</td><td class="{{ td }} text-right font-bold text-slate-800 dark:text-slate-100">{{ l[1] }}</td><td class="{{ td }} text-right text-slate-500">{{ l[2] }}</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <p class="text-[11px] text-slate-400 mt-2">Histórico cardiovascular = infarto, AVC, cateterismo ou angioplastia registrado.</p>
+        </section>
+
+        <section class="{{ card }} p-5">
+            {{ c.titulo('Outras comorbidades de quem tem o item', 'Quantas comorbidades, além deste item, cada paciente tem registradas — com e sem o item (cada grupo soma 100%).', 'Conta só itens da categoria comorbidade, sem contar o próprio item.') }}
+            {{ g.legenda([{classe: 'f-s1', rotulo: 'Com ' ~ nome, extra: '(n = ' ~ p.com|number_format(0, ',', '.') ~ ')'}, {classe: 'f-neutro', rotulo: 'Sem', extra: '(n = ' ~ p.sem|number_format(0, ',', '.') ~ ')'}]) }}
+            {{ g.barras_agrupadas(p.outras.rotulos|map((r, i) => {nome: r == 'Nenhuma' ? 'Nenhuma outra comorbidade' : r ~ (r == '1' ? ' outra' : ' outras'), valores: [p.outras.com.pct[i], p.outras.sem.pct[i]]}), ['Com o item', 'Sem o item'], ['f-s1', 'f-neutro'], 'Outras comorbidades com e sem o item', 160) }}
+        </section>
+    </div>
+
+    {# ---------- Sexo e faixa etária ---------- #}
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <section class="{{ card }} p-5">
+            {{ c.titulo('Prevalência por faixa etária e sexo', 'Pacientes do grupo com o item ÷ pacientes do grupo. Grupos com menos de ' ~ p.minGrupo ~ ' pacientes ficam sem percentual (—).', 'Faixa etária pela idade no exame mais recente do período. Pacientes sem idade ou sem sexo no cadastro não entram neste cruzamento.') }}
+            {{ g.legenda(p.porSexo|filter(s => s.nome != 'Não informado')|map((s, i) => {classe: 'f-' ~ (s.nome == 'Feminino' ? 's1' : 's2'), rotulo: s.nome, extra: '(' ~ s.pct|number_format(1, ',', '.') ~ '% · ' ~ s.n|number_format(0, ',', '.') ~ ' de ' ~ s.total|number_format(0, ',', '.') ~ ')'})) }}
+            {{ g.barras_agrupadas(p.porFaixa|map(f => {nome: f.faixa ~ ' anos (' ~ f.geral.n ~ ' de ' ~ f.geral.total ~ ')', valores: [f.Feminino.pct, f.Masculino.pct]}), ['Feminino', 'Masculino'], ['f-s1', 'f-s2'], 'Prevalência do item por faixa etária e sexo', 160) }}
+        </section>
+        <section class="{{ card }} p-5">
+            {{ c.titulo('Quem são os pacientes com o item', 'Número de pacientes com o item, por sexo e faixa etária.', 'Mostra onde estão os pacientes em números absolutos; a prevalência ao lado mostra a proporção dentro de cada grupo.') }}
+            {{ g.piramide(p.piramide.faixas, p.piramide.Feminino, p.piramide.Masculino, 'Pacientes com o item por sexo e faixa etária') }}
+        </section>
+    </div>
+
+    {# ---------- Evolução mensal ---------- #}
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <section class="{{ card }} p-5">
+            {{ c.titulo('Evolução mensal da prevalência', '% dos pacientes atendidos no mês com o item marcado. Meses com menos de ' ~ p.minMes ~ ' pacientes não são medidos.', 'Em cada mês entram só os pacientes que fizeram exame com anamnese naquele mês.') }}
+            {{ g.linhas(p.mensal.meses, [{nome: nome, valores: p.mensal.pct}], ['s1'], 'Prevalência mensal do item') }}
+        </section>
+        <section class="{{ card }} p-5">
+            {{ c.titulo('Novos registros por mês', 'Vezes em que o item foi marcado pela primeira vez em paciente que já tinha anamnese anterior sem ele.', 'Usa todo o histórico do paciente para saber se o item já tinha aparecido antes.') }}
+            {{ g.colunas(p.mensal.meses, p.mensal.novos, 'Novos registros do item por mês', p.mensal.meses|length <= 14 ? p.mensal.novos : null, null, '', 200) }}
+        </section>
+    </div>
+
+    {# ---------- Itens associados ---------- #}
+    <section class="{{ card }} p-5">
+        {{ c.titulo('O que mais aparece junto', 'Para cada outro item: % dos pacientes com ' ~ nome ~ ' que também têm o item, ao lado do % entre quem não tem ' ~ nome ~ '. A diferença é em pontos percentuais.', 'Associação não é causa: mostra apenas registros que aparecem juntos no mesmo paciente. Vacinas ficam de fora.') }}
+        <table class="w-full text-xs">
+            <thead><tr class="text-left border-b border-slate-200 dark:border-slate-800"><th class="{{ th }} pl-0">Item</th><th class="{{ th }}">Categoria</th><th class="{{ th }} text-right">Entre quem tem {{ nome }}</th><th class="{{ th }} w-1/6"></th><th class="{{ th }} text-right">Entre quem não tem</th><th class="{{ th }} w-1/6"></th><th class="{{ th }} text-right">Diferença</th></tr></thead>
+            <tbody>
+                {% for it in p.associados|slice(0, 15) %}
+                    <tr class="{{ linha }}">
+                        <td class="{{ td }} pl-0 font-semibold text-slate-700 dark:text-slate-200">{{ it.nome }}</td>
+                        <td class="{{ td }} text-slate-500">{{ it.categoria }}</td>
+                        <td class="{{ td }} text-right"><b class="text-slate-800 dark:text-slate-100">{{ it.pctCom|number_format(1, ',', '.') }}%</b> <span class="text-slate-400">({{ it.nCom|number_format(0, ',', '.') }})</span></td>
+                        <td class="{{ td }}"><div class="h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden"><div class="h-full rounded-full bg-sky-500" style="width: {{ it.pctCom }}%"></div></div></td>
+                        <td class="{{ td }} text-right">{{ c.num(it.pctSem, 1, '%') }} <span class="text-slate-400">({{ it.nSem|number_format(0, ',', '.') }})</span></td>
+                        <td class="{{ td }}"><div class="h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden"><div class="h-full rounded-full bg-slate-400" style="width: {{ it.pctSem ?? 0 }}%"></div></div></td>
+                        <td class="{{ td }} text-right font-semibold">{% if it.diferenca is null %}—{% else %}{{ it.diferenca > 0 ? '+' }}{{ it.diferenca|number_format(1, ',', '.') }} p.p.{% endif %}</td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="7" class="py-3 text-sm text-slate-400">Nenhum outro item registrado nesses pacientes.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% if p.associados|length > 15 %}<p class="text-[11px] text-slate-400 mt-2">Mostrando 15 de {{ p.associados|length }} itens; a lista completa está no CSV. Entre parênteses, o número de pacientes.</p>{% endif %}
+    </section>
+
+    {# ---------- Combinações + perfis ---------- #}
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <section class="{{ card }} p-5">
+            {{ c.titulo('Combinações mais frequentes', 'Conjuntos exatos das outras comorbidades dos pacientes com o item.', '“Nenhuma outra comorbidade” = o paciente só tem este item entre as comorbidades.') }}
+            {% set maxComb = p.combinacoes|length ? (p.combinacoes|first).n : 1 %}
+            <ol class="space-y-2.5">
+                {% for cb in p.combinacoes %}
+                    <li>
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="flex flex-wrap gap-1">
+                                {% for it in cb.itens %}<span class="px-2 py-0.5 rounded-md bg-sky-500/10 text-sky-700 dark:text-sky-300 text-[11px] font-semibold">{{ it }}</span>{% else %}<span class="px-2 py-0.5 rounded-md bg-slate-500/10 text-slate-600 dark:text-slate-300 text-[11px] font-semibold">Nenhuma outra comorbidade</span>{% endfor %}
+                            </div>
+                            <span class="text-xs font-bold text-slate-700 dark:text-slate-200 tabular-nums whitespace-nowrap">{{ cb.n|number_format(0, ',', '.') }} <span class="font-medium text-slate-400">· {{ cb.pct|number_format(1, ',', '.') }}%</span></span>
+                        </div>
+                        <div class="mt-1 h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden"><div class="h-full rounded-full bg-sky-500" style="width: {{ (cb.n / maxComb * 100)|round(1) }}%"></div></div>
+                    </li>
+                {% endfor %}
+            </ol>
+        </section>
+        <section class="{{ card }} p-5">
+            {{ c.titulo('Perfis clínicos de quem tem o item', 'Distribuição dos pacientes com o item nos perfis clínicos agrupados (mutuamente exclusivos).', 'Mesmos critérios do bloco “Perfis clínicos agrupados” do panorama geral. Não substituem diagnóstico médico.') }}
+            <table class="w-full text-xs">
+                <thead><tr class="text-left border-b border-slate-200 dark:border-slate-800"><th class="{{ th }} pl-0">Perfil</th><th class="{{ th }} text-right">Pacientes</th><th class="{{ th }} text-right">%</th><th class="{{ th }} w-1/4"></th></tr></thead>
+                <tbody>
+                    {% for pf in p.perfis %}
+                        <tr class="{{ linha }}">
+                            <td class="{{ td }} pl-0 font-semibold text-slate-700 dark:text-slate-200">{{ pf.nome }}</td>
+                            <td class="{{ td }} text-right">{{ pf.n|number_format(0, ',', '.') }}</td>
+                            <td class="{{ td }} text-right font-bold text-slate-800 dark:text-slate-100">{{ pf.pct|number_format(1, ',', '.') }}%</td>
+                            <td class="{{ td }}"><div class="h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden"><div class="h-full rounded-full bg-sky-500" style="width: {{ pf.pct }}%"></div></div></td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+    </div>
+
+    {# ---------- Procedimento, atendimento e médico ---------- #}
+    <section class="{{ card }} p-5">
+        {{ c.titulo('Onde o item aparece', 'Prevalência do item entre os pacientes de cada procedimento, tipo de atendimento e médico. O paciente conta uma vez em cada grupo em que foi atendido.', 'Por médico, mostra com que frequência o item é registrado nos pacientes atendidos por cada um — reflete o perfil dos pacientes e também o hábito de preenchimento.') }}
+        <div class="grid grid-cols-1 xl:grid-cols-3 gap-x-10 gap-y-6">
+            {{ _self.grupos('Por procedimento', 'Procedimento', p.porProcedimento, th, td, linha) }}
+            {{ _self.grupos('Por tipo de atendimento', 'Atendimento', p.porTipo, th, td, linha) }}
+            {{ _self.grupos('Por médico', 'Médico', p.porMedico, th, td, linha) }}
+        </div>
+        <p class="text-[11px] text-slate-400 mt-3">* menos de {{ p.minGrupo }} pacientes no grupo.</p>
+    </section>
+
+    {# ---------- Consistência do registro ---------- #}
+    {% set k = p.consistencia %}
+    <section class="{{ card }} p-5">
+        {{ c.titulo('Consistência do registro entre anamneses', 'Entre os pacientes com o item e anamnese em dois ou mais dias do período: o item foi marcado sempre, surgiu depois ou deixou de ser marcado?', 'Um item que deixa de ser marcado não significa cura: costuma ser anamnese preenchida de forma diferente. Para condições permanentes, é um indicador de qualidade do preenchimento.') }}
+        {% if k.acompanhados == 0 %}
+            <p class="text-sm text-slate-400">Nenhum paciente com o item e anamnese em mais de um dia no período.</p>
+        {% else %}
+            <div class="grid grid-cols-2 xl:grid-cols-4 gap-3">
+                {{ c.indicador('Pacientes acompanhados', k.acompanhados|number_format(0, ',', '.'), 'com o item e anamnese em 2 ou mais dias', 'Anamneses do mesmo dia contam como um só momento.') }}
+                {{ c.indicador('Marcado em todas', k.pctEmTodas|number_format(1, ',', '.') ~ '%', k.emTodas|number_format(0, ',', '.') ~ ' pacientes com o item em todas as anamneses', 'O item aparece em todas as anamneses do paciente no período.') }}
+                {{ c.indicador('Surgiu depois', k.pctApareceuDepois|number_format(1, ',', '.') ~ '%', k.apareceuDepois|number_format(0, ',', '.') ~ ' pacientes' ~ (k.diasAteAparecer is not null ? ' · mediana de ' ~ c.num(k.diasAteAparecer, 0) ~ ' dias após a primeira' : ''), 'O item não estava na primeira anamnese do período e apareceu em uma seguinte.') }}
+                {{ c.indicador('Não repetido', k.pctNaoRepetido|number_format(1, ',', '.') ~ '%', k.naoRepetido|number_format(0, ',', '.') ~ ' pacientes · não indica cura', 'O item estava na primeira anamnese e não foi marcado em alguma seguinte.') }}
+            </div>
+        {% endif %}
+    </section>
+
+    <p class="text-[11px] text-slate-400">
+        Como ler: cada paciente conta uma vez no período (itens = tudo o que foi marcado nos exames do período; sexo e idade do exame mais recente).
+        A ausência de um item na anamnese não prova que o paciente não tem a condição. Nada aqui é diagnóstico nem medida de risco clínico.
+    </p>
+    {% endif %}
+</div>
+
+<style>
+    .panorama-item {
+        --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4; --neutro: #a8a69f;
+        --tinta: #0f172a; --tinta2: #475569; --muted: #898781; --grade: #e2e8f0; --fio: #cbd5e1; --papel: #ffffff; --trilho: #eef2f6;
+    }
+    html.dark .panorama-item {
+        --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --neutro: #5b5a55;
+        --tinta: #f8fafc; --tinta2: #cbd5e1; --muted: #898781; --grade: #1e293b; --fio: #334155; --papel: #0f172a; --trilho: #1e293b;
+    }
+    .panorama-item .grafico { display: block; width: 100%; height: auto; overflow: visible; }
+    .panorama-item .grafico text { font-size: 11px; fill: var(--tinta2); }
+    .panorama-item .grafico .g-eixo { font-size: 10.5px; fill: var(--muted); }
+    .panorama-item .grafico .g-val { font-weight: 600; fill: var(--tinta); font-variant-numeric: tabular-nums; }
+    .panorama-item .grafico .g-tit { font-weight: 700; fill: var(--tinta); }
+    .panorama-item .grafico .g-peq { font-size: 10px; }
+    .panorama-item .grafico .g-grade { stroke: var(--grade); stroke-width: 1; }
+    .panorama-item .grafico .g-base { stroke: var(--fio); stroke-width: 1; }
+    .panorama-item .grafico .g-linha { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+    .panorama-item .grafico .g-ponto { stroke: var(--papel); stroke-width: 2; }
+    .panorama-item .grafico path:hover, .panorama-item .grafico rect:hover { opacity: .8; }
+    .panorama-item .f-s1 { fill: var(--s1); } .panorama-item .f-s2 { fill: var(--s2); } .panorama-item .f-s3 { fill: var(--s3); }
+    .panorama-item .f-neutro { fill: var(--neutro); } .panorama-item .f-trilho { fill: var(--trilho); }
+    .panorama-item .t-s1 { stroke: var(--s1); } .panorama-item .t-s2 { stroke: var(--s2); }
+    .panorama-item .legenda { display: flex; flex-wrap: wrap; gap: .25rem 1rem; margin: 0 0 .5rem; padding: 0; list-style: none; font-size: .75rem; color: var(--tinta2); }
+    .panorama-item .legenda li { display: inline-flex; align-items: center; gap: .375rem; }
+    .panorama-item .legenda svg { width: .625rem; height: .625rem; flex: none; }
+    .panorama-item .legenda .v { color: var(--muted); }
+</style>
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const periodo = document.getElementById('filtroPeriodo');
+        if (periodo) periodo.addEventListener('change', () => document.getElementById('filtroDatas').classList.toggle('hidden', periodo.value !== 'personalizado'));
+    });
+    </script>
+{% endblock %}

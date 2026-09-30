@@ -51,11 +51,12 @@ class AnamneseEstatisticaService
         // Todas as marcações ativas (histórico inteiro — necessário para "novos diagnósticos").
         $rows = $this->em->getConnection()->fetchAllAssociative(
             'SELECT ec.paciente_id AS pid, ec.cod_agendamento AS ag, ec.data_exame AS dt, ec.classificacao_id AS cid, ec.agendamento_id AS aid,
-                    p.sexo, p.data_nascimento AS nasc, a.procedimento_nome AS proc, a.tipo_atendimento AS tipo, a.medico_id AS mid
+                    p.sexo, p.data_nascimento AS nasc, a.procedimento_nome AS proc, a.tipo_atendimento AS tipo, a.medico_id AS mid, m.nome AS medico
                FROM exame_classificacao ec
                JOIN classificacao_estudo c ON c.id = ec.classificacao_id AND c.ativo = 1
                JOIN paciente p ON p.id = ec.paciente_id
                LEFT JOIN agendamento a ON a.id = ec.agendamento_id
+               LEFT JOIN medico m ON m.id = a.medico_id
               WHERE ec.removido_em IS NULL
               ORDER BY ec.data_exame'
         );
@@ -77,6 +78,7 @@ class AnamneseEstatisticaService
                     'proc' => $r['proc'] ? mb_strtoupper(trim($r['proc'])) : 'SEM AGENDAMENTO VINCULADO',
                     'tipo' => $r['tipo'] ?: 'nd',
                     'medico' => $r['mid'] !== null ? (int) $r['mid'] : null,
+                    'medicoNome' => $r['mid'] !== null ? (string) $r['medico'] : null,
                     'temAgendamento' => $r['aid'] !== null,
                     'temProcedimento' => (bool) $r['proc'],
                     'cids' => [],
