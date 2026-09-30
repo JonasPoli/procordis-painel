@@ -241,7 +241,7 @@ class AnamneseSyncService
             }
 
             $tamanho = max(1, $r['tamanhoPagina']);
-            if (!$itens || count($itens) < $tamanho || ($total !== null && $pagina * $tamanho >= $total)) {
+            if (!$itens || !($r['paginado'] ?? true) || count($itens) < $tamanho || ($total !== null && $pagina * $tamanho >= $total)) {
                 $completa = true;
                 break;
             }

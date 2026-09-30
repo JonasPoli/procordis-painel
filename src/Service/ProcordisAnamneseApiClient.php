@@ -56,8 +56,10 @@ class ProcordisAnamneseApiClient
 
     /**
      * Uma página de classificações por período.
+     * A API pode devolver o objeto paginado ({pagina, tamanhoPagina, total, itens}) ou uma lista simples com o
+     * período inteiro, ignorando a paginação; nesse caso "paginado" vem false e não há próxima página.
      *
-     * @return array{ok: bool, itens: array, total: ?int, pagina: int, tamanhoPagina: int, erro: ?string}
+     * @return array{ok: bool, itens: array, total: ?int, pagina: int, tamanhoPagina: int, paginado: bool, erro: ?string}
      */
     public function listarPorPeriodo(\DateTimeInterface $inicio, \DateTimeInterface $fim, int $pagina = 1, int $tamanhoPagina = self::TAMANHO_PAGINA_PADRAO): array
     {
@@ -69,17 +71,23 @@ class ProcordisAnamneseApiClient
         ]);
 
         if (!$r['ok']) {
-            return ['ok' => false, 'itens' => [], 'total' => null, 'pagina' => $pagina, 'tamanhoPagina' => $tamanhoPagina, 'erro' => $r['erro']];
+            return ['ok' => false, 'itens' => [], 'total' => null, 'pagina' => $pagina, 'tamanhoPagina' => $tamanhoPagina, 'paginado' => false, 'erro' => $r['erro']];
         }
 
         $dados = $r['dados'];
+        $itens = $this->extrairItens($dados);
+
+        if (is_array($dados) && array_is_list($dados)) {
+            return ['ok' => true, 'itens' => $itens, 'total' => count($itens), 'pagina' => 1, 'tamanhoPagina' => $tamanhoPagina, 'paginado' => false, 'erro' => null];
+        }
 
         return [
             'ok' => true,
-            'itens' => $this->extrairItens($dados),
+            'itens' => $itens,
             'total' => is_array($dados) && isset($dados['total']) ? (int) $dados['total'] : null,
             'pagina' => (int) ($dados['pagina'] ?? $pagina),
             'tamanhoPagina' => (int) ($dados['tamanhoPagina'] ?? $tamanhoPagina),
+            'paginado' => true,
             'erro' => null,
         ];
     }
