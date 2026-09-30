@@ -58,14 +58,13 @@ O fuso do cron deve ser o de São Paulo (ou ajuste as horas para UTC).
 
 ## Painel
 
-`/admin/anamnese` — somente dados agregados, sem nome de paciente. Filtros: período, sexo, faixa etária, tipo de atendimento, procedimento.
+`/admin/anamnese` — somente dados agregados, sem nome de paciente. Filtros: período, sexo, faixa etária, tipo de atendimento, procedimento e médico.
 
 - Indicadores: pacientes e exames com anamnese, cobertura do preenchimento, comorbidades por paciente, multimorbidade, novos diagnósticos
 - Prevalência por item (cor por categoria) e tabela completa
 - Multimorbidade e combinações mais frequentes de comorbidades
 - Evolução mensal das principais comorbidades
 - Pirâmide etária, prevalência por sexo e mapa de calor por faixa etária
-- Co-ocorrência ("quem tem uma, tem a outra?")
 - Novos diagnósticos por mês e por item
 - Vacina Covid: dose mais alta declarada por faixa etária
 - Perfil por tipo de atendimento e por procedimento
@@ -74,9 +73,45 @@ O fuso do cron deve ser o de São Paulo (ou ajuste as horas para UTC).
 **Como ler:** prevalência = pacientes com o item marcado em algum exame do período ÷ pacientes com anamnese no período.
 A ausência da marcação não prova ausência da condição.
 
+### Análises complementares
+
+Calculadas por `AnamneseAnaliseService` sobre a mesma base e os mesmos filtros do painel (`AnamneseEstatisticaService::base()`).
+Aparecem no painel e no relatório A4; cada bloco tem um link **CSV** (`/admin/anamnese/exportar-tabela.csv?tabela=…`).
+
+| Bloco | O que mostra | `tabela=` |
+|---|---|---|
+| Perfil cardiovascular registrado | Pacientes por nº de condições (hipertensão, diabetes, infarto, AVC, cateterismo, angioplastia), por faixa etária, sexo e procedimento | `perfil-cardiovascular` |
+| Evolução entre anamneses | Pacientes com anamnese em 2+ dias: sem alteração, com novo item, tempo entre anamneses, itens que mais aparecem depois | `evolucao-itens` |
+| Multimorbidade por faixa etária / por sexo | Distribuição, média, mediana, % com 2+ e 4+ comorbidades | `multimorbidade-faixa`, `multimorbidade-sexo` |
+| Perfil por sexo e faixa etária | Prevalência dentro de cada grupo sexo × faixa, para as 6 condições ou qualquer item | `sexo-faixa` |
+| Perfis clínicos agrupados | 7 grupos mutuamente exclusivos (vale o primeiro critério atendido) | `perfis` |
+| Carga clínica por procedimento | Pacientes, exames, média, mediana, 2+, 4+ e histórico cardiovascular | `carga-procedimento` |
+| Matriz de associação | Nº de pacientes, % condicional e % do total entre as 10 comorbidades mais frequentes | `associacao` |
+| Evolução mensal da carga clínica | Média de comorbidades e % com 2+, 4+, histórico e condição cardiovascular | `carga-mensal` |
+| Novos registros por tipo | Novos diagnósticos separados em cardiometabólicos, cardiovasculares, infecciosos/históricos e outros | `novos-tipo` |
+| Qualidade e completude | Campos sem preenchimento, anamneses repetidas, possíveis duplicidades, várias doses de vacina, itens parecidos | `qualidade` |
+
+Regras:
+
+- **Paciente** conta uma vez no período (itens = união dos exames do período; sexo e faixa etária do exame mais recente);
+  **exame** = agendamento com anamnese; **ocorrência de item** = uma marcação num exame.
+- **Condições e tipos são reconhecidos pelo nome do item** (`AnamneseCondicoes`), porque o catálogo não tem campo estruturado para isso.
+  O painel lista os itens considerados em cada condição e avisa quando nenhum é encontrado. Se o catálogo usar outro nome
+  (ex.: "PRESSÃO ALTA"), ajuste os padrões nessa classe. "Derrame" **não** é somado ao AVC: só é sinalizado para conferência.
+- Histórico cardiovascular = infarto, AVC, cateterismo ou angioplastia registrado.
+- Grupos com menos de 10 pacientes ficam sem percentual nos mapas de calor e marcados com `*` nas tabelas; meses com menos de 20 pacientes não são medidos.
+- Nada é diagnóstico nem escore clínico, e nenhum dado é corrigido automaticamente.
+
+## Relatório A4
+
+`/admin/anamnese/relatorio` (botão **Gerar relatório (A4)** no painel, com os mesmos filtros) abre em nova aba um documento formal
+em folhas A4 para imprimir ou salvar em PDF. É uma página independente (`templates/admin/anamnese/relatorio.html.twig`), com CSS próprio
+(`assets/styles/relatorio-a4.css`) e gráficos em SVG desenhados no servidor (`relatorio-graficos.html.twig`), sem JavaScript.
+Cada `<section class="folha">` é uma página de 297 mm: ao mudar o conteúdo de uma folha, confira se ainda cabe.
+
 Outras telas: `/admin/anamnese/catalogo` (categorias e itens ativos), `/admin/anamnese/sincronizacao` (execuções, totais e botões
 para rodar agora) e `/admin/anamnese/exportar.csv` (uma linha por exame, paciente pseudonimizado, 0/1 por item — para pesquisa e
-para cruzar com os ECGs pelo `cod_agendamento`). O prontuário do paciente mostra a anamnese exame a exame e as alterações cadastrais.
+para cruzar com os ECGs pelo `cod_agendamento`; inclui médico, nº de comorbidades, nº de condições cardiovasculares e histórico cardiovascular). O prontuário do paciente mostra a anamnese exame a exame e as alterações cadastrais.
 
 ## Implantação
 

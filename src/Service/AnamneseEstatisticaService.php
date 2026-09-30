@@ -25,20 +25,33 @@ class AnamneseEstatisticaService
     {
     }
 
+    /** @var array<string, array> */
+    private array $bases = [];
+
     /**
-     * @param array{inicio: \DateTimeInterface, fim: \DateTimeInterface, sexo?: ?string, faixa?: ?string, tipo?: ?string, procedimento?: ?string} $f
+     * Base comum a todas as estatísticas: exames (marcações agregadas por exame), o recorte do período
+     * e os novos diagnósticos. Fica guardada durante a requisição, para o painel e as análises
+     * complementares não lerem o banco duas vezes.
+     *
+     * @param array{inicio: \DateTimeInterface, fim: \DateTimeInterface, sexo?: ?string, faixa?: ?string, tipo?: ?string, procedimento?: ?string, medico?: ?int} $f
+     *
+     * @return array{catalogo: array, exames: array, examesP: array, porPaciente: array, novos: array, meses: array, ini: string, fim: string}
      */
-    public function obterPainel(array $f): array
+    public function base(array $f): array
     {
-        $conn = $this->em->getConnection();
-        $catalogo = $this->catalogo();
         $ini = $f['inicio']->format('Y-m-d 00:00:00');
         $fim = $f['fim']->format('Y-m-d 23:59:59');
+        $chave = md5(serialize([$ini, $fim, $f['sexo'] ?? null, $f['faixa'] ?? null, $f['tipo'] ?? null, $f['procedimento'] ?? null, $f['medico'] ?? null]));
+        if (isset($this->bases[$chave])) {
+            return $this->bases[$chave];
+        }
+
+        $catalogo = $this->catalogo();
 
         // Todas as marcações ativas (histórico inteiro — necessário para "novos diagnósticos").
-        $rows = $conn->fetchAllAssociative(
-            'SELECT ec.paciente_id AS pid, ec.cod_agendamento AS ag, ec.data_exame AS dt, ec.classificacao_id AS cid,
-                    p.sexo, p.data_nascimento AS nasc, a.procedimento_nome AS proc, a.tipo_atendimento AS tipo
+        $rows = $this->em->getConnection()->fetchAllAssociative(
+            'SELECT ec.paciente_id AS pid, ec.cod_agendamento AS ag, ec.data_exame AS dt, ec.classificacao_id AS cid, ec.agendamento_id AS aid,
+                    p.sexo, p.data_nascimento AS nasc, a.procedimento_nome AS proc, a.tipo_atendimento AS tipo, a.medico_id AS mid
                FROM exame_classificacao ec
                JOIN classificacao_estudo c ON c.id = ec.classificacao_id AND c.ativo = 1
                JOIN paciente p ON p.id = ec.paciente_id
@@ -48,7 +61,7 @@ class AnamneseEstatisticaService
         );
 
         // ---- 1. Exames (agregando as marcações por exame) -------------------------------
-        $exames = [];          // ag => [pid, dt, mes, sexo, idade, faixa, proc, tipo, cids[]]
+        $exames = [];          // ag => [pid, dt, mes, sexo, idade, faixa, proc, tipo, medico, cids[]]
         foreach ($rows as $r) {
             $ag = $r['ag'];
             if (!isset($exames[$ag])) {
@@ -63,6 +76,9 @@ class AnamneseEstatisticaService
                     'faixa' => $this->faixa($idade),
                     'proc' => $r['proc'] ? mb_strtoupper(trim($r['proc'])) : 'SEM AGENDAMENTO VINCULADO',
                     'tipo' => $r['tipo'] ?: 'nd',
+                    'medico' => $r['mid'] !== null ? (int) $r['mid'] : null,
+                    'temAgendamento' => $r['aid'] !== null,
+                    'temProcedimento' => (bool) $r['proc'],
                     'cids' => [],
                 ];
             }
@@ -70,7 +86,7 @@ class AnamneseEstatisticaService
         }
 
         // ---- 2. Novos diagnósticos (histórico completo por paciente) -------------------
-        $novos = [];           // lista de [mes, cid, exame]
+        $novos = [];           // lista de [ag, cid]
         $porPaciente = [];
         foreach ($exames as $ag => $e) {
             $porPaciente[$e['pid']][] = $ag;
@@ -88,8 +104,26 @@ class AnamneseEstatisticaService
         }
 
         // ---- 3. Filtro do período e dos recortes --------------------------------------
-        $noFiltro = fn (array $e) => $e['dt'] >= $ini && $e['dt'] <= $fim && $this->passaRecorte($e, $f);
-        $examesP = array_filter($exames, $noFiltro);
+        $examesP = array_filter($exames, fn (array $e) => $e['dt'] >= $ini && $e['dt'] <= $fim && $this->passaRecorte($e, $f));
+
+        return $this->bases[$chave] = [
+            'catalogo' => $catalogo,
+            'exames' => $exames,
+            'examesP' => $examesP,
+            'porPaciente' => $porPaciente,
+            'novos' => array_values(array_filter($novos, fn ($n) => isset($examesP[$n['ag']]))),
+            'meses' => $this->mesesEntre($f['inicio'], $f['fim']),
+            'ini' => $ini,
+            'fim' => $fim,
+        ];
+    }
+
+    /**
+     * @param array{inicio: \DateTimeInterface, fim: \DateTimeInterface, sexo?: ?string, faixa?: ?string, tipo?: ?string, procedimento?: ?string, medico?: ?int} $f
+     */
+    public function obterPainel(array $f): array
+    {
+        ['catalogo' => $catalogo, 'examesP' => $examesP, 'porPaciente' => $porPaciente, 'novos' => $novosP, 'meses' => $meses, 'ini' => $ini, 'fim' => $fim] = $this->base($f);
 
         // Paciente no período: união dos itens + dados do exame mais recente
         $pacientes = [];
@@ -210,7 +244,6 @@ class AnamneseEstatisticaService
         $vacina = $this->vacinas($pacientes, $catalogo);
 
         // ---- 9. Série mensal: prevalência dos principais itens + volume ------------------
-        $meses = $this->mesesEntre($f['inicio'], $f['fim']);
         $pacMes = [];
         foreach ($examesP as $e) {
             $pm = &$pacMes[$e['mes']][$e['pid']];
@@ -230,7 +263,6 @@ class AnamneseEstatisticaService
         }
 
         // ---- 10. Novos diagnósticos no período ------------------------------------------
-        $novosP = array_values(array_filter($novos, fn ($n) => isset($examesP[$n['ag']])));
         $novosMes = array_fill_keys($meses, 0);
         $novosItem = [];
         foreach ($novosP as $n) {
@@ -285,10 +317,14 @@ class AnamneseEstatisticaService
         $procs = $conn->fetchFirstColumn(
             'SELECT DISTINCT UPPER(a.procedimento_nome) FROM exame_classificacao ec JOIN agendamento a ON a.id = ec.agendamento_id WHERE a.procedimento_nome IS NOT NULL ORDER BY 1'
         );
+        $medicos = $conn->fetchAllKeyValue(
+            'SELECT DISTINCT m.id, m.nome FROM exame_classificacao ec JOIN agendamento a ON a.id = ec.agendamento_id JOIN medico m ON m.id = a.medico_id WHERE ec.removido_em IS NULL ORDER BY m.nome'
+        );
         $datas = $conn->fetchAssociative('SELECT MIN(data_exame) AS ini, MAX(data_exame) AS fim FROM exame_classificacao WHERE removido_em IS NULL');
 
         return [
             'procedimentos' => $procs,
+            'medicos' => $medicos,
             'faixas' => self::FAIXAS,
             'tipos' => self::TIPOS_ATENDIMENTO,
             'primeiraData' => $datas['ini'] ? substr($datas['ini'], 0, 10) : null,
@@ -308,23 +344,42 @@ class AnamneseEstatisticaService
         $conn = $this->em->getConnection();
         $rows = $conn->fetchAllAssociative(
             'SELECT ec.cod_agendamento AS ag, ec.cod_paciente AS codpac, ec.data_exame AS dt, ec.classificacao_id AS cid,
-                    p.sexo, p.data_nascimento AS nasc, a.procedimento_nome AS proc, a.tipo_atendimento AS tipo
+                    p.sexo, p.data_nascimento AS nasc, a.procedimento_nome AS proc, a.tipo_atendimento AS tipo, a.medico_id AS mid, m.nome AS medico
                FROM exame_classificacao ec
                JOIN paciente p ON p.id = ec.paciente_id
                LEFT JOIN agendamento a ON a.id = ec.agendamento_id
+               LEFT JOIN medico m ON m.id = a.medico_id
               WHERE ec.removido_em IS NULL AND ec.data_exame BETWEEN ? AND ?
               ORDER BY ec.data_exame, ec.cod_agendamento',
             [$f['inicio']->format('Y-m-d 00:00:00'), $f['fim']->format('Y-m-d 23:59:59')]
         );
 
-        yield array_merge(['cod_agendamento', 'paciente_pseudonimo', 'data_exame', 'sexo', 'idade_no_exame', 'faixa_etaria', 'procedimento', 'tipo_atendimento', 'qtd_itens'], array_map(fn ($c) => $c['nome'], $catalogo));
+        // Condição cardiovascular de cada item (pelo nome — ver AnamneseCondicoes)
+        $condicaoDoItem = [];
+        foreach (AnamneseCondicoes::itensPorCondicao($catalogo) as $condicao => $cids) {
+            $condicaoDoItem += array_fill_keys($cids, $condicao);
+        }
+
+        yield array_merge(
+            ['cod_agendamento', 'paciente_pseudonimo', 'data_exame', 'sexo', 'idade_no_exame', 'faixa_etaria', 'procedimento', 'tipo_atendimento', 'medico', 'qtd_itens', 'qtd_comorbidades', 'qtd_condicoes_cardiovasculares', 'historico_cardiovascular'],
+            array_map(fn ($c) => $c['nome'], $catalogo)
+        );
 
         $atual = null;
-        $flush = function (?array $e) use ($catalogo, $f) {
+        $flush = function (?array $e) use ($catalogo, $condicaoDoItem, $f) {
             if (!$e || !$this->passaRecorte($e, $f)) {
                 return null;
             }
-            $linha = [$e['ag'], $e['pseudo'], $e['dt'], $e['sexo'], $e['idade'] ?? '', $e['faixa'] ?? '', $e['proc'], $e['tipo'], count($e['cids'])];
+            $comorbidades = 0;
+            $condicoes = [];
+            foreach ($e['cids'] as $cid => $_) {
+                $comorbidades += ($catalogo[$cid]['categoria'] ?? '') === 'comorbidade' ? 1 : 0;
+                if (isset($condicaoDoItem[$cid])) {
+                    $condicoes[$condicaoDoItem[$cid]] = true;
+                }
+            }
+            $historico = array_intersect_key($condicoes, array_flip(AnamneseCondicoes::HISTORICO_CARDIOVASCULAR)) ? 1 : 0;
+            $linha = [$e['ag'], $e['pseudo'], $e['dt'], $e['sexo'], $e['idade'] ?? '', $e['faixa'] ?? '', $e['proc'], $e['tipo'], $e['medicoNome'], count($e['cids']), $comorbidades, count($condicoes), $historico];
             foreach ($catalogo as $cid => $_) {
                 $linha[] = isset($e['cids'][$cid]) ? 1 : 0;
             }
@@ -343,6 +398,7 @@ class AnamneseEstatisticaService
                     'ag' => $r['ag'], 'pseudo' => substr(hash_hmac('sha256', (string) $r['codpac'], $segredo), 0, 16), 'dt' => $dt,
                     'sexo' => $this->normalizarSexo($r['sexo']), 'idade' => $idade, 'faixa' => $this->faixa($idade),
                     'proc' => $r['proc'] ? mb_strtoupper(trim($r['proc'])) : '', 'tipo' => $r['tipo'] ?: '', 'cids' => [],
+                    'medico' => $r['mid'] !== null ? (int) $r['mid'] : null, 'medicoNome' => (string) $r['medico'],
                 ];
             }
             $atual['cids'][(int) $r['cid']] = true;
@@ -359,7 +415,7 @@ class AnamneseEstatisticaService
         $conn = $this->em->getConnection();
         $atendidos = $conn->fetchAllAssociative(
             "SELECT a.codigo_agendamento AS ag, a.data_hora_agendada AS dt, a.procedimento_nome AS proc, a.tipo_atendimento AS tipo,
-                    p.sexo, p.data_nascimento AS nasc, m.nome AS medico
+                    p.sexo, p.data_nascimento AS nasc, m.nome AS medico, a.medico_id AS mid
                FROM agendamento a
                JOIN paciente p ON p.id = a.paciente_id
                LEFT JOIN medico m ON m.id = a.medico_id
@@ -377,7 +433,7 @@ class AnamneseEstatisticaService
         foreach ($atendidos as $a) {
             $dt = substr((string) $a['dt'], 0, 19);
             $idade = $a['nasc'] ? (new \DateTime(substr($a['nasc'], 0, 10)))->diff(new \DateTime($dt))->y : null;
-            $e = ['sexo' => $this->normalizarSexo($a['sexo']), 'faixa' => $this->faixa($idade), 'tipo' => $a['tipo'] ?: 'nd', 'proc' => $a['proc'] ? mb_strtoupper(trim($a['proc'])) : 'SEM PROCEDIMENTO'];
+            $e = ['sexo' => $this->normalizarSexo($a['sexo']), 'faixa' => $this->faixa($idade), 'tipo' => $a['tipo'] ?: 'nd', 'proc' => $a['proc'] ? mb_strtoupper(trim($a['proc'])) : 'SEM PROCEDIMENTO', 'medico' => $a['mid'] !== null ? (int) $a['mid'] : null];
             if (!$this->passaRecorte($e, $f)) {
                 continue;
             }
@@ -536,6 +592,9 @@ class AnamneseEstatisticaService
         if (!empty($f['procedimento']) && $e['proc'] !== mb_strtoupper($f['procedimento'])) {
             return false;
         }
+        if (!empty($f['medico']) && ($e['medico'] ?? null) !== (int) $f['medico']) {
+            return false;
+        }
 
         return true;
     }
@@ -587,14 +646,14 @@ class AnamneseEstatisticaService
         return $meses;
     }
 
-    private function rotuloMes(string $ym): string
+    public static function rotuloMes(string $ym): string
     {
         $n = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
 
         return $n[(int) substr($ym, 5, 2) - 1] . '/' . substr($ym, 2, 2);
     }
 
-    private function titulo(string $s): string
+    public static function titulo(string $s): string
     {
         $s = mb_convert_case(mb_strtolower(trim($s)), MB_CASE_TITLE, 'UTF-8');
 

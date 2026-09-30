@@ -35,6 +35,9 @@
             <a href="{{ path('app_admin_anamnese_sincronizacao') }}" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-xl text-xs flex items-center gap-2 transition">
                 <sl-icon name="arrow-repeat"></sl-icon> Sincronização
             </a>
+            <a href="{{ path('app_admin_anamnese_relatorio', app.request.query.all) }}" target="_blank" rel="noopener" class="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white font-bold rounded-xl text-xs flex items-center gap-2 shadow-sm transition">
+                <sl-icon name="file-earmark-text"></sl-icon> Gerar relatório (A4)
+            </a>
             <a href="{{ path('app_admin_anamnese_exportar', app.request.query.all) }}" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center gap-2 shadow-sm transition">
                 <sl-icon name="download"></sl-icon> Exportar dados para pesquisa (CSV)
             </a>
@@ -87,6 +90,13 @@
             <select name="procedimento" class="{{ campo }} max-w-[16rem]">
                 <option value="">Todos</option>
                 {% for p in opcoes.procedimentos %}<option value="{{ p }}" {{ filtros.procedimento == p ? 'selected' }}>{{ p }}</option>{% endfor %}
+            </select>
+        </label>
+        <label class="flex flex-col gap-1 min-w-0">
+            <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Médico</span>
+            <select name="medico" class="{{ campo }} max-w-[14rem]">
+                <option value="">Todos</option>
+                {% for id, nome in opcoes.medicos %}<option value="{{ id }}" {{ filtros.medico == id ? 'selected' }}>{{ nome }}</option>{% endfor %}
             </select>
         </label>
         <button type="submit" class="px-4 py-1.5 bg-cyan-600 hover:bg-cyan-700 text-white font-bold text-xs rounded-xl transition shadow-sm">Aplicar</button>
@@ -211,19 +221,6 @@
         {{ _self.heatmap(dados.porFaixa.itens, dados.porFaixa.grupos|map(g => g ~ ' anos'), dados.porFaixa.totais, 'hmFaixa') }}
     </section>
 
-    {# ---------- Co-ocorrência ---------- #}
-    <section class="{{ card }} p-5">
-        <header class="mb-3">
-            <h2 class="text-base font-bold text-slate-900 dark:text-white">Quem tem uma, tem a outra?</h2>
-            <p class="text-xs text-slate-500 dark:text-slate-400">Linha = pacientes com a comorbidade; coluna = % deles que também têm a da coluna.</p>
-        </header>
-        {% if dados.coocorrencia.itens|length > 1 %}
-            {{ _self.heatmap(dados.coocorrencia.itens|map((nome, i) => {nome: nome, valores: dados.coocorrencia.matriz[i]}), dados.coocorrencia.itens, null, 'hmCo', true) }}
-        {% else %}
-            <p class="text-sm text-slate-400">Comorbidades insuficientes no recorte.</p>
-        {% endif %}
-    </section>
-
     {# ---------- Vacina + Novos diagnósticos ---------- #}
     <div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
         <section class="{{ card }} p-5 xl:col-span-7">
@@ -327,6 +324,9 @@
         </div>
     </section>
 
+    {# ---------- Análises complementares ---------- #}
+    {% include 'admin/anamnese/painel-complementar.html.twig' %}
+
     {# ---------- Tabela completa ---------- #}
     <section class="{{ card }} p-5">
         <header class="mb-3 flex items-end justify-between">
@@ -418,6 +418,7 @@
     <script>
     document.addEventListener('DOMContentLoaded', function () {
         const D = {{ dados|json_encode|raw }};
+        const A = {{ analise|json_encode|raw }};
         const CATS = ['comorbidade', 'fator_risco', 'vacina', 'medicacao', 'sintoma', 'outros'];
         const root = document.querySelector('.anamnese-root');
         const periodo = document.getElementById('filtroPeriodo');
@@ -436,7 +437,8 @@
         function cores() {
             const serie = [css('--s1'), css('--s2'), css('--s3'), css('--s4'), css('--s5')];
             const cat = { comorbidade: serie[0], fator_risco: serie[1], vacina: serie[2], medicacao: serie[3], sintoma: serie[4], outros: css('--neutro') };
-            return { serie, cat, neutro: css('--neutro'), tinta: css('--tinta'), tinta2: css('--tinta2'), muted: css('--muted'), grade: css('--grade'), eixo: css('--eixo'), sup: css('--superficie') };
+            const tipo = { cardiometabolico: serie[0], cardiovascular: serie[1], infeccioso_historico: serie[2], outros: css('--neutro') };
+            return { serie, cat, tipo, neutro: css('--neutro'), tinta: css('--tinta'), tinta2: css('--tinta2'), muted: css('--muted'), grade: css('--grade'), eixo: css('--eixo'), sup: css('--superficie') };
         }
 
         function base(c) {
@@ -607,16 +609,93 @@
                 },
             }));
 
+            desenharComplementar(c);
+
             // Heatmaps (tabelas HTML): cor pela rampa sequencial
-            document.querySelectorAll('.hm').forEach(tab => {
-                const cels = [...tab.querySelectorAll('td.cel')];
-                const max = Math.max(1, ...cels.map(td => parseFloat(td.dataset.v)));
-                cels.forEach(td => {
-                    const t = parseFloat(td.dataset.v) / max;
-                    td.style.background = rampa(0.05 + t * 0.95);
-                    td.style.color = t > 0.5 ? '#ffffff' : '#0d366b';
-                });
+            document.querySelectorAll('.hm').forEach(colorir);
+        }
+
+        function colorir(tab) {
+            const cels = [...tab.querySelectorAll('td.cel')];
+            const max = Math.max(1, ...cels.map(td => parseFloat(td.dataset.v)));
+            cels.forEach(td => {
+                const t = parseFloat(td.dataset.v) / max;
+                td.style.background = rampa(0.05 + t * 0.95);
+                td.style.color = t > 0.5 ? '#ffffff' : '#0d366b';
             });
+        }
+
+        // ---- Análises complementares (AnamneseAnaliseService) ----
+        function desenharComplementar(c) {
+            document.querySelectorAll('.tipo-dot').forEach(el => el.style.background = c.tipo[el.dataset.tipo] || c.neutro);
+            const linha = (rotulo, dados, cor) => ({ label: rotulo, data: dados, borderColor: cor, backgroundColor: cor, borderWidth: 2, pointRadius: 0, pointHoverRadius: 5, pointHoverBorderWidth: 2, pointHoverBorderColor: c.sup, tension: 0.25, spanGaps: true });
+            const pacientesDoMes = items => `${A.mensal.pacientes[items[0].dataIndex].toLocaleString('pt-BR')} pacientes no mês`;
+
+            // Perfil cardiovascular registrado (ordinal)
+            const elCardio = document.getElementById('chCardio');
+            if (elCardio) {
+                const cd = A.cardio;
+                charts.push(new Chart(elCardio, {
+                    type: 'bar',
+                    data: { labels: cd.rotulos.map(r => r === '0' ? 'Nenhuma' : r), datasets: [{ data: cd.valores, backgroundColor: ordinal(cd.valores.length), ...barra, maxBarThickness: 44 }] },
+                    options: {
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false }, tooltip: { ...tooltip(c), displayColors: false, callbacks: { label: ctx => `${ctx.raw.toLocaleString('pt-BR')} pacientes (${fmt(cd.pct[ctx.dataIndex])}%)` } } },
+                        scales: eixos(c, { x: { grid: { display: false } }, y: { beginAtZero: true, ticks: { precision: 0 } } }),
+                    },
+                }));
+            }
+
+            // Carga clínica mês a mês: média (uma série) e percentuais (quatro séries), em gráficos separados
+            const elMedia = document.getElementById('chCargaMedia');
+            if (elMedia) {
+                charts.push(new Chart(elMedia, {
+                    type: 'line',
+                    data: { labels: A.mensal.meses, datasets: [linha('Média de comorbidades', A.mensal.media, c.serie[0])] },
+                    options: {
+                        maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
+                        plugins: { legend: { display: false }, tooltip: { ...tooltip(c), callbacks: { label: ctx => ` ${fmt(ctx.raw, 2)} comorbidades por paciente`, footer: pacientesDoMes } } },
+                        scales: eixos(c, { y: { beginAtZero: true, ticks: { callback: v => fmt(v, 1) } }, x: { grid: { display: false } } }),
+                    },
+                    plugins: [linhaCruzada(c)],
+                }));
+            }
+            const elPct = document.getElementById('chCargaPct');
+            if (elPct) {
+                charts.push(new Chart(elPct, {
+                    type: 'line',
+                    data: { labels: A.mensal.meses, datasets: [
+                        linha('Com 2 ou mais comorbidades', A.mensal.pct2, c.serie[0]),
+                        linha('Com 4 ou mais comorbidades', A.mensal.pct4, c.serie[1]),
+                        linha('Com histórico cardiovascular', A.mensal.pctEvento, c.serie[2]),
+                        linha('Com condição cardiovascular', A.mensal.pctCardio, c.serie[3]),
+                    ] },
+                    options: {
+                        maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
+                        plugins: { legend: legenda(c), tooltip: { ...tooltip(c), callbacks: { label: ctx => ` ${ctx.dataset.label}: ${fmt(ctx.raw)}%`, footer: pacientesDoMes } } },
+                        scales: eixos(c, { y: { beginAtZero: true, ticks: { callback: v => v + '%' } }, x: { grid: { display: false } } }),
+                    },
+                    plugins: [linhaCruzada(c)],
+                }));
+            }
+
+            // Novos registros por tipo de condição (empilhado por mês)
+            const elNovosTipo = document.getElementById('chNovosTipo');
+            if (elNovosTipo) {
+                const nt = A.novosTipo;
+                charts.push(new Chart(elNovosTipo, {
+                    type: 'bar',
+                    data: { labels: nt.meses, datasets: nt.grupos.map(g => ({ label: g.nome, data: g.valores, backgroundColor: c.tipo[g.chave] || c.neutro, borderColor: c.sup, borderWidth: { top: 2 }, borderSkipped: false, maxBarThickness: 26 })) },
+                    options: {
+                        maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
+                        plugins: { legend: legenda(c), tooltip: { ...tooltip(c), callbacks: {
+                            label: ctx => ` ${ctx.dataset.label}: ${ctx.raw.toLocaleString('pt-BR')}`,
+                            footer: items => `Total: ${items.reduce((s, i) => s + i.raw, 0).toLocaleString('pt-BR')} novos registros`,
+                        } } },
+                        scales: eixos(c, { x: { stacked: true, grid: { display: false } }, y: { stacked: true, beginAtZero: true, ticks: { precision: 0 } } }),
+                    },
+                }));
+            }
         }
 
         // Rótulo só no fim de cada barra (seletivo: barras horizontais de série única)
@@ -663,6 +742,57 @@
             tip.style.left = Math.min(window.innerWidth - tip.offsetWidth - 8, e.clientX + 12) + 'px';
             tip.style.top = (e.clientY + 14) + 'px';
         });
+
+        // Perfil cardiovascular: troca o recorte da distribuição
+        const cardioPor = document.getElementById('cardioPor');
+        if (cardioPor) cardioPor.addEventListener('change', () => document.querySelectorAll('[data-cardio-vista]').forEach(el => el.classList.toggle('hidden', el.dataset.cardioVista !== cardioPor.value)));
+
+        // Sexo + faixa etária: detalhe de um item escolhido
+        const esc = s => String(s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+        const sfItem = document.getElementById('sfItem');
+        if (sfItem) sfItem.addEventListener('change', () => {
+            const SF = A.sexoFaixa;
+            const item = SF.itens.find(i => i.chave === sfItem.value);
+            const detalhe = document.getElementById('sfDetalhe');
+            document.getElementById('sfGeral').classList.toggle('hidden', !!item);
+            detalhe.classList.toggle('hidden', !item);
+            if (!item) return;
+            const cab = SF.sexos.map(s => `<th class="px-1 pb-1 font-semibold text-slate-500 dark:text-slate-400 text-center min-w-[7rem]">${esc(s)}</th>`).join('');
+            const linhas = SF.faixas.map((fx, i) => '<tr><th class="pr-3 text-left font-semibold text-slate-600 dark:text-slate-300 whitespace-nowrap">' + esc(fx) + ' anos</th>' + SF.sexos.map((sexo, s) => {
+                const n = item.n[s][i], total = SF.totais[s][i], pct = item.pct[s][i];
+                const fracao = `${n.toLocaleString('pt-BR')} de ${total.toLocaleString('pt-BR')}`;
+                return pct === null
+                    ? `<td class="rounded-md bg-slate-50 dark:bg-slate-800/40 text-center text-slate-400 dark:text-slate-500 h-8" title="Grupo com menos de ${A.minGrupo} pacientes: percentual não calculado">— <span class="font-normal">(${fracao})</span></td>`
+                    : `<td class="cel rounded-md text-center tabular-nums font-semibold h-8" data-v="${pct}" data-tip="${esc(item.nome)} · ${esc(sexo)}, ${esc(fx)} anos: ${fmt(pct)}% (${fracao} pacientes)">${fmt(pct)}% <span class="font-normal">(${fracao})</span></td>`;
+            }).join('') + '</tr>').join('');
+            detalhe.innerHTML = `<table class="hm w-full text-xs border-separate" style="border-spacing: 2px"><thead><tr><th class="text-left text-slate-500 dark:text-slate-400 font-semibold pb-1">${esc(item.nome)}</th>${cab}</tr></thead><tbody>${linhas}</tbody></table>`;
+            colorir(detalhe.querySelector('table'));
+        });
+
+        // Matriz de associação: troca a medida mostrada nas células
+        const assocMedida = document.getElementById('assocMedida');
+        if (assocMedida) assocMedida.addEventListener('change', () => {
+            const tab = document.getElementById('hmAssociacao'), medida = assocMedida.value;
+            tab.querySelectorAll('td.cel').forEach(td => {
+                td.dataset.v = td.dataset[medida];
+                td.textContent = medida === 'n' ? Number(td.dataset.n).toLocaleString('pt-BR') : Math.round(td.dataset[medida]) + '%';
+            });
+            colorir(tab);
+        });
+
+        // Carga clínica por procedimento: ordena pela coluna clicada
+        const tabProc = document.getElementById('tabProcedimentos');
+        if (tabProc) tabProc.querySelectorAll('[data-ordenar]').forEach(btn => btn.addEventListener('click', () => {
+            const i = Number(btn.dataset.ordenar), corpo = tabProc.tBodies[0];
+            const desc = i === 0 ? btn.dataset.sentido === 'asc' : btn.dataset.sentido !== 'desc';
+            const valor = tr => i === 0 ? tr.cells[i].dataset.v : (tr.cells[i].dataset.v === '' ? -Infinity : Number(tr.cells[i].dataset.v));
+            [...corpo.rows]
+                .sort((x, y) => (i === 0 ? valor(x).localeCompare(valor(y), 'pt-BR') : valor(x) - valor(y)) * (desc ? -1 : 1))
+                .forEach(tr => corpo.appendChild(tr));
+            tabProc.querySelectorAll('[data-ordenar]').forEach(b => { b.querySelector('.seta').textContent = ''; if (b !== btn) delete b.dataset.sentido; });
+            btn.querySelector('.seta').textContent = desc ? '↓' : '↑';
+            btn.dataset.sentido = desc ? 'desc' : 'asc';
+        }));
 
         desenhar();
         // Redesenha ao alternar claro/escuro
