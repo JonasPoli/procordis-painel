@@ -262,6 +262,8 @@
         {% endif %}
     </section>
 
+    {% include 'admin/anamnese/item-aprofundamento.html.twig' %}
+
     <p class="text-[11px] text-slate-400">
         Como ler: cada paciente conta uma vez no período (itens = tudo o que foi marcado nos exames do período; sexo e idade do exame mais recente).
         A ausência de um item na anamnese não prova que o paciente não tem a condição. Nada aqui é diagnóstico nem medida de risco clínico.
@@ -296,6 +298,15 @@
     .panorama-item .legenda li { display: inline-flex; align-items: center; gap: .375rem; }
     .panorama-item .legenda svg { width: .625rem; height: .625rem; flex: none; }
     .panorama-item .legenda .v { color: var(--muted); }
+    .panorama-item .matriz { width: 100%; table-layout: fixed; border-collapse: separate; border-spacing: 2px; font-size: .75rem; font-variant-numeric: tabular-nums; }
+    .panorama-item .matriz col.rot { width: 11rem; }
+    .panorama-item .matriz thead th { padding: 0 .25rem .25rem; vertical-align: bottom; font-weight: 600; line-height: 1.2; color: var(--tinta2); text-align: center; }
+    .panorama-item .matriz thead th:first-child { text-align: left; font-size: .625rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+    .panorama-item .matriz small { display: block; font-size: .625rem; font-weight: 400; color: var(--muted); }
+    .panorama-item .matriz tbody th { padding-right: .75rem; text-align: left; font-weight: 600; color: var(--tinta2); line-height: 1.2; }
+    .panorama-item .matriz tbody th small { display: inline; margin-left: .25rem; }
+    .panorama-item .matriz td { height: 2rem; text-align: center; font-weight: 600; border-radius: .375rem; }
+    .panorama-item .matriz td.sem { background: var(--trilho); color: var(--muted); font-weight: 400; }
 </style>
 {% endblock %}
 
@@ -305,6 +316,10 @@
     document.addEventListener('DOMContentLoaded', function () {
         const periodo = document.getElementById('filtroPeriodo');
         if (periodo) periodo.addEventListener('change', () => document.getElementById('filtroDatas').classList.toggle('hidden', periodo.value !== 'personalizado'));
+        // Seletores que alternam vistas de um mesmo bloco (antecedente, pacientes/exames)
+        document.querySelectorAll('select[data-alterna]').forEach(sel => sel.addEventListener('change', () => {
+            document.querySelectorAll(`[data-vista-de="${sel.dataset.alterna}"]`).forEach(el => el.classList.toggle('hidden', el.dataset.vista !== sel.value));
+        }));
     });
     </script>
 {% endblock %}

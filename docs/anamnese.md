@@ -109,7 +109,14 @@ tabela completa. Usa os mesmos filtros e compara os pacientes **com** o item reg
 (`AnamneseItemService`): prevalência e posição, idade e sexo, outras comorbidades, prevalência por faixa etária e sexo, evolução
 mensal e novos registros, itens que mais aparecem junto, combinações, perfis clínicos, prevalência por procedimento, tipo de
 atendimento e médico, e consistência do registro entre anamneses. Avisa quando o catálogo tem item de nome parecido
-(a contagem pode estar dividida). Versão A4 em `/admin/anamnese/item/relatorio` e CSV em `/admin/anamnese/item/exportar.csv`.
+(a contagem pode estar dividida).
+
+Blocos de aprofundamento (só pacientes com o item): multimorbidade por faixa etária; carga cardiovascular registrada (quantos entre
+infarto, AVC, cateterismo e angioplastia — contagem de registros, não medida de risco); subgrupo sem × com hipertensão (para a própria
+hipertensão, sem × com diabetes); histórico cardiovascular por faixa etária, com × sem o item; matriz de condições; volume mensal de
+pacientes e exames; procedimentos em que esses pacientes são atendidos; e acompanhamento longitudinal (momentos, intervalos, novos
+registros após a primeira anamnese e mudança na quantidade de comorbidades). Quando o item é ele mesmo um antecedente cardiovascular,
+ele não entra na própria contagem. Versão A4 em `/admin/anamnese/item/relatorio` e CSV em `/admin/anamnese/item/exportar.csv`.
 
 ## Relatório A4
 

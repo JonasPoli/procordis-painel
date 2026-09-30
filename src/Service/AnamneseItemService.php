@@ -355,6 +355,290 @@ class AnamneseItemService
                 'diasAteAparecer' => $this->mediana($intervalos),
             ],
             'semelhantes' => $semelhantes,
+        ] + $this->aprofundamento($catalogo, $examesP, $meses, $x, $condicaoDoX, $pacientes);
+    }
+
+    /**
+     * Blocos de aprofundamento do panorama: multimorbidade por faixa etária, carga cardiovascular registrada,
+     * subgrupo com hipertensão, histórico cardiovascular por faixa etária, matriz de condições, volume mensal,
+     * distribuição por procedimento e acompanhamento longitudinal.
+     *
+     * "Carga cardiovascular registrada" conta infarto, AVC, cateterismo e angioplastia (sem o próprio item,
+     * quando ele é uma dessas condições). É uma contagem de registros, não uma medida de risco.
+     */
+    private function aprofundamento(array $catalogo, array $examesP, array $meses, int $x, ?string $condicaoDoX, array $pacientes): array
+    {
+        $min = AnamneseAnaliseService::MIN_GRUPO;
+        $titulo = fn (int $cid) => AnamneseEstatisticaService::titulo($catalogo[$cid]['nome'] ?? '?');
+        $categoria = fn (int $cid) => $catalogo[$cid]['categoria'] ?? 'outros';
+        $rotulo = fn (string $c) => AnamneseCondicoes::CONDICOES[$c]['rotulo'];
+        $itensPorCondicao = AnamneseCondicoes::itensPorCondicao($catalogo);
+        $eventos = array_values(array_diff(AnamneseCondicoes::HISTORICO_CARDIOVASCULAR, [$condicaoDoX]));
+        $parceiro = $condicaoDoX === 'hipertensao' ? 'diabetes' : 'hipertensao';
+        $itensParceiro = array_flip($itensPorCondicao[$parceiro]);
+
+        foreach ($pacientes as $pid => $p) {
+            $pacientes[$pid]['ev'] = count(array_intersect_key($p['cond'], array_flip($eventos)));
+            $pacientes[$pid]['outrasSemParceiro'] = count(array_filter(
+                array_keys($p['cids']),
+                fn ($cid) => $cid !== $x && !isset($itensParceiro[$cid]) && $categoria($cid) === 'comorbidade'
+            ));
+        }
+        $com = array_values(array_filter($pacientes, fn ($p) => $p['tem']));
+        $sem = array_values(array_filter($pacientes, fn ($p) => !$p['tem']));
+        $nCom = count($com);
+
+        $media = fn (array $v, int $casas) => $v ? round(array_sum($v) / count($v), $casas) : null;
+        $idades = fn (array $lista) => array_values(array_filter(array_column($lista, 'idade'), fn ($i) => $i !== null));
+        $quantos = fn (array $lista, callable $criterio) => count(array_filter($lista, $criterio));
+        $parte = fn (int $n, int $total) => ['n' => $n, 'pct' => $total ? $this->pct($n, $total) : null];
+
+        // ---- 1. Multimorbidade por faixa etária (só pacientes com o item) ---------------
+        $porFaixa = array_fill_keys(AnamneseEstatisticaService::FAIXAS, []) + ['Sem idade' => []];
+        foreach ($com as $p) {
+            $porFaixa[$p['faixa']][] = $p;
+        }
+        $multiFaixa = [];
+        foreach ($porFaixa as $faixa => $lista) {
+            if ($faixa === 'Sem idade' && !$lista) {
+                continue;
+            }
+            $n = count($lista);
+            $outras = array_column($lista, 'outras');
+            $celulas = [];
+            foreach (self::CLASSES_OUTRAS as $i => $_) {
+                $celulas[] = $parte($quantos($lista, fn ($p) => min(4, $p['outras']) === $i), $n);
+            }
+            $multiFaixa[] = [
+                'faixa' => (string) $faixa,
+                'n' => $n,
+                'celulas' => $celulas,
+                'media' => $media($outras, 2),
+                'mediana' => $this->mediana($outras),
+                'dois' => $parte($quantos($lista, fn ($p) => $p['outras'] >= 2), $n),
+                'quatro' => $parte($quantos($lista, fn ($p) => $p['outras'] >= 4), $n),
+                'pequena' => $n < $min,
+            ];
+        }
+
+        // ---- 2. Carga cardiovascular registrada ----------------------------------------
+        $classes = [];
+        foreach (range(0, count($eventos)) as $i) {
+            $lista = array_values(array_filter($com, fn ($p) => $p['ev'] === $i));
+            $classes[] = ['rotulo' => $i === 0 ? 'Nenhum' : (string) $i] + $parte(count($lista), $nCom) + [
+                'idadeMedia' => $media($idades($lista), 1),
+                'idadeMediana' => $this->mediana($idades($lista)),
+                'outrasMedia' => $media(array_column($lista, 'outras'), 2),
+                'pequena' => count($lista) < $min,
+            ];
+        }
+        $linhasEventos = [];
+        foreach ($eventos as $e) {
+            $linhasEventos[] = ['chave' => $e, 'rotulo' => $rotulo($e), 'itens' => array_map($titulo, $itensPorCondicao[$e])] + $parte($quantos($com, fn ($p) => isset($p['cond'][$e])), $nCom);
+        }
+
+        // ---- 3. Subgrupo: com e sem hipertensão (ou diabetes, quando o item é a hipertensão) ----
+        $descrever = function (array $lista) use ($nCom, $eventos, $idades, $media, $quantos, $parte, $min): array {
+            $n = count($lista);
+            $sexoConhecido = $quantos($lista, fn ($p) => $p['sexo'] !== 'Não informado');
+            $porEvento = [];
+            foreach ($eventos as $e) {
+                $porEvento[$e] = $parte($quantos($lista, fn ($p) => isset($p['cond'][$e])), $n);
+            }
+
+            return [
+                'n' => $n,
+                'pct' => $this->pct($n, $nCom),
+                'idadeMedia' => $media($idades($lista), 1),
+                'idadeMediana' => $this->mediana($idades($lista)),
+                'pctFeminino' => $sexoConhecido ? $this->pct($quantos($lista, fn ($p) => $p['sexo'] === 'Feminino'), $sexoConhecido) : null,
+                'pctMasculino' => $sexoConhecido ? $this->pct($quantos($lista, fn ($p) => $p['sexo'] === 'Masculino'), $sexoConhecido) : null,
+                'outrasMedia' => $media(array_column($lista, 'outrasSemParceiro'), 2),
+                'eventos' => $porEvento,
+                'algum' => $parte($quantos($lista, fn ($p) => $p['ev'] > 0), $n),
+                'pequena' => $n < $min,
+            ];
+        };
+        $subgrupo = [
+            'parceiro' => $rotulo($parceiro),
+            'itens' => array_map($titulo, array_keys($itensParceiro)),
+            'disponivel' => (bool) $itensParceiro,
+            'sem' => $descrever(array_values(array_filter($com, fn ($p) => !isset($p['cond'][$parceiro])))),
+            'com' => $descrever(array_values(array_filter($com, fn ($p) => isset($p['cond'][$parceiro])))),
+        ];
+
+        // ---- 4. Histórico cardiovascular por faixa etária: com x sem o item --------------
+        $faixasAdultas = array_slice(AnamneseEstatisticaService::FAIXAS, 1);
+        $criterios = ['algum' => ['Algum histórico cardiovascular', fn ($p) => $p['ev'] > 0]];
+        foreach ($eventos as $e) {
+            $criterios[$e] = [$rotulo($e), fn ($p) => isset($p['cond'][$e])];
+        }
+        $estratificado = [];
+        foreach ($criterios as $chave => [$nomeCriterio, $criterio]) {
+            $linhas = [];
+            foreach ($faixasAdultas as $faixa) {
+                $a = array_filter($com, fn ($p) => $p['faixa'] === $faixa);
+                $b = array_filter($sem, fn ($p) => $p['faixa'] === $faixa);
+                $ka = $quantos($a, $criterio);
+                $kb = $quantos($b, $criterio);
+                $pa = count($a) >= $min ? $this->pct($ka, count($a)) : null;
+                $pb = count($b) >= $min ? $this->pct($kb, count($b)) : null;
+                $linhas[] = [
+                    'faixa' => $faixa,
+                    'comN' => count($a), 'comK' => $ka, 'comPct' => $pa,
+                    'semN' => count($b), 'semK' => $kb, 'semPct' => $pb,
+                    'diferenca' => $pa === null || $pb === null ? null : round($pa - $pb, 1),
+                ];
+            }
+            $estratificado[] = ['chave' => $chave, 'rotulo' => $nomeCriterio, 'linhas' => $linhas];
+        }
+
+        // ---- 5. Matriz de condições entre os pacientes com o item ----------------------
+        $condicoes = array_values(array_diff(array_keys(AnamneseCondicoes::CONDICOES), [$condicaoDoX]));
+        $totais = array_map(fn ($c) => $quantos($com, fn ($p) => isset($p['cond'][$c])), $condicoes);
+        $matrizN = [];
+        $matrizPct = [];
+        foreach ($condicoes as $i => $a) {
+            foreach ($condicoes as $j => $b) {
+                $ambos = $i === $j ? null : $quantos($com, fn ($p) => isset($p['cond'][$a], $p['cond'][$b]));
+                $matrizN[$i][$j] = $ambos;
+                $matrizPct[$i][$j] = $ambos === null || $totais[$i] < $min ? null : $this->pct($ambos, $totais[$i]);
+            }
+        }
+
+        // ---- 6. Volume mensal (pacientes e exames) -------------------------------------
+        $porMes = [];
+        foreach ($examesP as $e) {
+            $m = &$porMes[$e['mes']];
+            $m ??= ['pacientes' => [], 'com' => [], 'exames' => 0, 'examesCom' => 0];
+            $m['pacientes'][$e['pid']] = true;
+            $m['exames']++;
+            if (isset($e['cids'][$x])) {
+                $m['com'][$e['pid']] = true;
+                $m['examesCom']++;
+            }
+            unset($m);
+        }
+        $volume = ['meses' => [], 'pacientesCom' => [], 'pacientesTotal' => [], 'pct' => [], 'examesCom' => [], 'examesTotal' => []];
+        foreach ($meses as $mes) {
+            $m = $porMes[$mes] ?? ['pacientes' => [], 'com' => [], 'exames' => 0, 'examesCom' => 0];
+            $volume['meses'][] = AnamneseEstatisticaService::rotuloMes($mes);
+            $volume['pacientesCom'][] = count($m['com']);
+            $volume['pacientesTotal'][] = count($m['pacientes']);
+            $volume['pct'][] = $m['pacientes'] ? $this->pct(count($m['com']), count($m['pacientes'])) : null;
+            $volume['examesCom'][] = $m['examesCom'];
+            $volume['examesTotal'][] = $m['exames'];
+        }
+
+        // ---- 7. Onde os pacientes com o item são atendidos ------------------------------
+        $porProc = [];
+        foreach ($examesP as $e) {
+            if ($pacientes[$e['pid']]['tem']) {
+                $porProc[$e['proc']] ??= ['pacientes' => [], 'exames' => 0];
+                $porProc[$e['proc']]['pacientes'][$e['pid']] = true;
+                $porProc[$e['proc']]['exames']++;
+            }
+        }
+        $procedimentos = [];
+        foreach ($porProc as $proc => $g) {
+            $procedimentos[] = ['nome' => AnamneseEstatisticaService::titulo((string) $proc)] + $parte(count($g['pacientes']), $nCom) + ['exames' => $g['exames']];
+        }
+        usort($procedimentos, fn ($a, $b) => [$b['n'], $b['exames']] <=> [$a['n'], $a['exames']]);
+
+        // ---- 8. Acompanhamento longitudinal dos pacientes com o item --------------------
+        $momentos = [];
+        $intervalos = [];
+        $mudanca = ['Mesma quantidade' => 0, '+1 item registrado' => 0, '+2 ou mais' => 0, 'Menos itens na última anamnese' => 0];
+        $apareceu = [];
+        foreach ($pacientes as $p) {
+            if (!$p['tem']) {
+                continue;
+            }
+            $dias = [];
+            foreach ($p['ags'] as $ag) {
+                $dia = substr($examesP[$ag]['dt'], 0, 10);
+                $dias[$dia] = ($dias[$dia] ?? []) + array_filter($examesP[$ag]['cids'], fn ($cid) => $categoria($cid) !== 'vacina', ARRAY_FILTER_USE_KEY);
+            }
+            if (count($dias) < 2) {
+                continue;
+            }
+            ksort($dias);
+            $datas = array_keys($dias);
+            $momentos[] = count($dias);
+            $intervalos[] = (new \DateTime($datas[0]))->diff(new \DateTime(end($datas)))->days;
+
+            $primeira = $dias[$datas[0]];
+            $vistos = $primeira;
+            foreach (array_slice($datas, 1) as $data) {
+                foreach (array_diff_key($dias[$data], $vistos) as $cid => $_) {
+                    if ($cid !== $x) {
+                        $apareceu[$cid][] = (new \DateTime($datas[0]))->diff(new \DateTime($data))->days;
+                    }
+                }
+                $vistos += $dias[$data];
+            }
+
+            $contar = fn (array $cids) => count(array_filter(array_keys($cids), fn ($cid) => $categoria($cid) === 'comorbidade'));
+            $delta = $contar($dias[end($datas)]) - $contar($primeira);
+            $mudanca[match (true) {
+                $delta === 0 => 'Mesma quantidade',
+                $delta === 1 => '+1 item registrado',
+                $delta >= 2 => '+2 ou mais',
+                default => 'Menos itens na última anamnese',
+            }]++;
+        }
+        $acompanhados = count($momentos);
+
+        $condicaoDoItem = [];
+        foreach ($itensPorCondicao as $condicao => $cids) {
+            $condicaoDoItem += array_fill_keys($cids, $condicao);
+        }
+        $novosItens = [];
+        foreach ($apareceu as $cid => $dias) {
+            $novosItens[] = [
+                'nome' => $titulo($cid),
+                'categoria' => ClassificacaoEstudo::CATEGORIAS[$categoria($cid)] ?? 'Outros',
+                'destaque' => isset($condicaoDoItem[$cid]),
+                'n' => count($dias),
+                'pct' => $this->pct(count($dias), $acompanhados),
+                'diasMediana' => $this->mediana($dias),
+            ];
+        }
+        usort($novosItens, fn ($a, $b) => [$b['destaque'], $b['n'], $a['nome']] <=> [$a['destaque'], $a['n'], $b['nome']]);
+
+        $distribuicao = [];
+        foreach (['2 momentos' => fn ($m) => $m === 2, '3 momentos' => fn ($m) => $m === 3, '4 ou mais momentos' => fn ($m) => $m >= 4] as $nome => $criterio) {
+            $distribuicao[] = ['rotulo' => $nome] + $parte($quantos($momentos, $criterio), $acompanhados);
+        }
+        $linhasMudanca = [];
+        foreach ($mudanca as $nome => $n) {
+            $linhasMudanca[] = ['rotulo' => $nome] + $parte($n, $acompanhados);
+        }
+
+        return [
+            'multiFaixa' => $multiFaixa,
+            'cardio' => [
+                'eventos' => $linhasEventos,
+                'classes' => $classes,
+                'comAlgum' => $parte($quantos($com, fn ($p) => $p['ev'] > 0), $nCom),
+                'semItem' => array_values(array_map(fn ($l) => $l['rotulo'], array_filter($linhasEventos, fn ($l) => !$l['itens']))),
+            ],
+            'subgrupo' => $subgrupo,
+            'estratificado' => $estratificado,
+            'matriz' => ['itens' => array_map($rotulo, $condicoes), 'totais' => $totais, 'n' => $matrizN, 'pct' => $matrizPct],
+            'volume' => $volume,
+            'procedimentos' => $procedimentos,
+            'longitudinal' => [
+                'acompanhados' => $acompanhados,
+                'momentosMedia' => $media($momentos, 2),
+                'momentosMediana' => $this->mediana($momentos),
+                'intervaloMedio' => $media($intervalos, 1),
+                'intervaloMediano' => $this->mediana($intervalos),
+                'intervaloMaior' => $intervalos ? max($intervalos) : null,
+                'distribuicao' => $distribuicao,
+                'novos' => $novosItens,
+                'mudanca' => $linhasMudanca,
+            ],
         ];
     }
 
@@ -444,6 +728,89 @@ class AnamneseItemService
         $l[] = ['apareceu_depois_da_primeira', $c['apareceuDepois']];
         $l[] = ['nao_repetido_em_anamnese_posterior', $c['naoRepetido']];
         $l[] = ['dias_ate_aparecer_mediana', $n($c['diasAteAparecer'])];
+
+        $l[] = [];
+        $l[] = array_merge(['multimorbidade_por_faixa_etaria', 'pacientes_com_o_item'], array_map(fn ($r) => 'n_' . $r, self::CLASSES_OUTRAS), array_map(fn ($r) => 'pct_' . $r, self::CLASSES_OUTRAS), ['media_outras_comorbidades', 'mediana', 'n_2_ou_mais', 'pct_2_ou_mais', 'n_4_ou_mais', 'pct_4_ou_mais']);
+        foreach ($p['multiFaixa'] as $f) {
+            $l[] = array_merge(
+                [$f['faixa'], $f['n']],
+                array_column($f['celulas'], 'n'),
+                array_map(fn ($cel) => $n($cel['pct']), $f['celulas']),
+                [$n($f['media'], 2), $n($f['mediana']), $f['dois']['n'], $n($f['dois']['pct']), $f['quatro']['n'], $n($f['quatro']['pct'])]
+            );
+        }
+
+        $l[] = [];
+        $l[] = ['carga_cardiovascular_registrada', 'pacientes', 'pct', 'idade_media', 'idade_mediana', 'media_outras_comorbidades'];
+        foreach ($p['cardio']['classes'] as $cl) {
+            $l[] = [$cl['rotulo'], $cl['n'], $n($cl['pct']), $n($cl['idadeMedia']), $n($cl['idadeMediana']), $n($cl['outrasMedia'], 2)];
+        }
+        $l[] = [];
+        $l[] = ['antecedente_cardiovascular', 'itens_do_catalogo_considerados', 'pacientes', 'pct_de_quem_tem_o_item'];
+        foreach ($p['cardio']['eventos'] as $e) {
+            $l[] = [$e['rotulo'], implode(' | ', $e['itens']), $e['n'], $n($e['pct'])];
+        }
+
+        $sg = $p['subgrupo'];
+        $l[] = [];
+        $l[] = ['subgrupo_' . $sg['parceiro'], 'sem_' . $sg['parceiro'], 'com_' . $sg['parceiro']];
+        foreach (['n' => 0, 'pct' => 1, 'idadeMedia' => 1, 'idadeMediana' => 1, 'pctFeminino' => 1, 'pctMasculino' => 1, 'outrasMedia' => 2] as $campo => $casas) {
+            $l[] = [$campo, $n($sg['sem'][$campo], $casas), $n($sg['com'][$campo], $casas)];
+        }
+        foreach ($p['cardio']['eventos'] as $e) {
+            $l[] = ['pct_' . $e['rotulo'], $n($sg['sem']['eventos'][$e['chave']]['pct']), $n($sg['com']['eventos'][$e['chave']]['pct'])];
+        }
+        $l[] = ['pct_algum_historico_cardiovascular', $n($sg['sem']['algum']['pct']), $n($sg['com']['algum']['pct'])];
+
+        $l[] = [];
+        $l[] = ['criterio', 'faixa_etaria', 'com_o_item_pacientes', 'com_o_item_com_o_criterio', 'com_o_item_pct', 'sem_o_item_pacientes', 'sem_o_item_com_o_criterio', 'sem_o_item_pct', 'diferenca_pontos_percentuais'];
+        foreach ($p['estratificado'] as $serie) {
+            foreach ($serie['linhas'] as $r) {
+                $l[] = [$serie['rotulo'], $r['faixa'], $r['comN'], $r['comK'], $n($r['comPct']), $r['semN'], $r['semK'], $n($r['semPct']), $n($r['diferenca'])];
+            }
+        }
+
+        $mz = $p['matriz'];
+        $l[] = [];
+        $l[] = ['condicao_da_linha', 'pacientes_com_a_condicao', 'condicao_da_coluna', 'pacientes_com_as_duas', 'pct_da_linha'];
+        foreach ($mz['itens'] as $i => $a) {
+            foreach ($mz['itens'] as $j => $b) {
+                if ($i !== $j) {
+                    $l[] = [$a, $mz['totais'][$i], $b, $mz['n'][$i][$j], $n($mz['pct'][$i][$j])];
+                }
+            }
+        }
+
+        $v = $p['volume'];
+        $l[] = [];
+        $l[] = ['mes', 'pacientes_com_o_item', 'total_de_pacientes', 'pct', 'exames_com_o_item', 'total_de_exames'];
+        foreach ($v['meses'] as $i => $mes) {
+            $l[] = [$mes, $v['pacientesCom'][$i], $v['pacientesTotal'][$i], $n($v['pct'][$i]), $v['examesCom'][$i], $v['examesTotal'][$i]];
+        }
+
+        $l[] = [];
+        $l[] = ['procedimento', 'pacientes_com_o_item', 'pct_de_quem_tem_o_item', 'exames'];
+        foreach ($p['procedimentos'] as $pr) {
+            $l[] = [$pr['nome'], $pr['n'], $n($pr['pct']), $pr['exames']];
+        }
+
+        $lg = $p['longitudinal'];
+        $l[] = [];
+        $l[] = ['acompanhamento_longitudinal', 'valor'];
+        $l[] = ['pacientes_acompanhados', $lg['acompanhados']];
+        $l[] = ['momentos_por_paciente_media', $n($lg['momentosMedia'], 2)];
+        $l[] = ['momentos_por_paciente_mediana', $n($lg['momentosMediana'])];
+        $l[] = ['dias_entre_primeira_e_ultima_media', $n($lg['intervaloMedio'])];
+        $l[] = ['dias_entre_primeira_e_ultima_mediana', $n($lg['intervaloMediano'])];
+        $l[] = ['dias_entre_primeira_e_ultima_maior', $lg['intervaloMaior']];
+        foreach (array_merge($lg['distribuicao'], $lg['mudanca']) as $r) {
+            $l[] = [$r['rotulo'], $r['n'], $n($r['pct'])];
+        }
+        $l[] = [];
+        $l[] = ['item_que_apareceu_depois', 'categoria', 'pacientes', 'pct_dos_acompanhados', 'mediana_de_dias_ate_aparecer'];
+        foreach ($lg['novos'] as $it) {
+            $l[] = [$it['nome'], $it['categoria'], $it['n'], $n($it['pct']), $n($it['diasMediana'])];
+        }
 
         return $l;
     }

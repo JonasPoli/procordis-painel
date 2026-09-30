@@ -139,7 +139,12 @@ class AnamneseAdminControllerTest extends WebTestCase
 
             return;
         }
-        $this->assertSame(5, substr_count($tela, '<svg class="grafico"'));
+        // 11 gráficos fixos + um por antecedente na análise por faixa etária (o próprio item não entra)
+        $this->assertSame(11 + count($panorama['estratificado']), substr_count($tela, '<svg class="grafico"'));
+        foreach (['bloco-multimorbidade-faixa', 'bloco-carga-cardiovascular', 'bloco-subgrupo', 'bloco-estratificado', 'bloco-matriz', 'bloco-volume', 'bloco-procedimentos-item', 'bloco-longitudinal'] as $bloco) {
+            $this->assertStringContainsString('id="' . $bloco . '"', $tela);
+        }
+        $this->assertStringNotContainsString('risco cardiovascular', mb_strtolower($tela));
         $this->assertStringContainsString('/admin/anamnese/item/relatorio?periodo=12m&amp;item=' . $item, $tela);
 
         $a4 = $container->get('twig')->render('admin/anamnese/item-relatorio.html.twig', [
@@ -153,16 +158,18 @@ class AnamneseAdminControllerTest extends WebTestCase
         ]);
         $this->assertSame($folhas, substr_count($a4, '<section class="folha">'));
         $this->assertStringContainsString("Página {$folhas} de {$folhas}", $a4);
-        $this->assertSame(5, substr_count($a4, '<svg class="grafico"'));
+        $this->assertSame(10, substr_count($a4, '<svg class="grafico"'));
+        $this->assertStringNotContainsString('risco cardiovascular', mb_strtolower($a4));
         $this->assertStringNotContainsString('chart.js', $a4);
     }
 
     public static function itensDoPanorama(): array
     {
         return [
-            'diabetes' => [2, 'Quem tem e quem não tem o item', 6],
-            'item com nome parecido no catálogo' => [6, 'O catálogo tem item com nome parecido', 6],
-            'fator de risco' => [17, 'Consistência do registro entre anamneses', 6],
+            'diabetes' => [2, 'Quem tem e quem não tem o item', 12],
+            'antecedente cardiovascular com nome parecido' => [6, 'O catálogo tem item com nome parecido', 12],
+            'hipertensão (subgrupo com diabetes)' => [1, 'Hipertensão associado à Diabetes', 12],
+            'fator de risco' => [17, 'Consistência do registro entre anamneses', 12],
             'nenhum item escolhido' => [null, 'Escolha um item da anamnese', 0],
         ];
     }

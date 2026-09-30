@@ -1,0 +1,311 @@
+{#
+    Blocos de aprofundamento do panorama do item (AnamneseItemService::aprofundamento), incluídos em item.html.twig.
+    Espera no contexto: p, nome, card, th, td, linha. Os gráficos são SVG (relatorio-graficos.html.twig).
+    Os seletores com data-alterna trocam as vistas [data-vista-de] (script no fim de item.html.twig).
+#}
+{% import 'admin/anamnese/painel-complementar.html.twig' as c %}
+{% import 'admin/anamnese/relatorio-graficos.html.twig' as g %}
+{% set seletor = 'bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-1.5 text-xs text-slate-800 dark:text-slate-200 font-medium' %}
+{% set sub = 'text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2' %}
+{% set rodape = 'text-[11px] text-slate-400 mt-2' %}
+{% set cabeca = 'text-left border-b border-slate-200 dark:border-slate-800' %}
+{% set forte = 'font-bold text-slate-800 dark:text-slate-100' %}
+{% set cv = p.cardio %}
+{% set sg = p.subgrupo %}
+{% set lg = p.longitudinal %}
+
+{# "12,3% (45)" ou travessão #}
+{% macro parte(x, casas = 1) -%}
+    {%- if x.pct is null -%}—{%- else -%}{{ x.pct|number_format(casas, ',', '.') }}% <span class="text-slate-400">({{ x.n|number_format(0, ',', '.') }})</span>{%- endif -%}
+{%- endmacro %}
+
+<div class="flex items-center gap-3 pt-2">
+    <h2 class="text-lg font-black text-slate-900 dark:text-white tracking-tight">Aprofundamento — pacientes com {{ nome }}</h2>
+    <span class="h-px flex-1 bg-slate-200 dark:bg-slate-800"></span>
+    <span class="text-xs text-slate-400">{{ p.com|number_format(0, ',', '.') }} pacientes com o item registrado</span>
+</div>
+<p class="text-xs text-slate-500 dark:text-slate-400 -mt-3">
+    Os blocos abaixo descrevem <b>registros de anamnese</b>, não diagnósticos confirmados. Antecedentes cardiovasculares registrados = {{ cv.eventos|map(e => e.rotulo)|join(', ') }}{% if p.ehHistorico %} (o próprio item não entra nessa contagem){% endif %}.
+    Grupos com menos de {{ p.minGrupo }} pacientes ficam sinalizados com * ou sem percentual.
+</p>
+{% if cv.semItem|length %}
+    <p class="rounded-xl border border-amber-300 bg-amber-50 dark:bg-amber-500/10 dark:border-amber-500/40 px-4 py-2.5 text-xs text-amber-800 dark:text-amber-300">
+        <sl-icon name="exclamation-triangle" class="align-middle"></sl-icon>
+        Nenhum item do catálogo foi reconhecido para: <b>{{ cv.semItem|join(', ') }}</b>. Essas condições aparecem zeradas nos blocos abaixo — confira os nomes no catálogo.
+    </p>
+{% endif %}
+
+{# ---------- 1. Multimorbidade por faixa etária ---------- #}
+<section class="{{ card }} p-5" id="bloco-multimorbidade-faixa">
+    {{ c.titulo('Multimorbidade dos pacientes com ' ~ nome ~ ' por faixa etária', 'Quantas outras comorbidades, além de ' ~ nome ~ ', os pacientes de cada faixa etária têm registradas. Cada linha soma 100% dos pacientes da faixa.', 'Considera só os pacientes com o item. Faixa etária pela idade no exame mais recente do período. Conta itens da categoria comorbidade, sem o próprio item.') }}
+    <div class="grid grid-cols-1 2xl:grid-cols-2 gap-x-10 gap-y-5">
+        <div>
+            {{ g.calor(
+                p.outras.rotulos|map(r => {nome: r == 'Nenhuma' ? 'Nenhuma outra' : r}),
+                p.multiFaixa|map(f => {nome: f.faixa ~ (f.faixa != 'Sem idade' ? ' anos'), sub: 'n = ' ~ f.n ~ (f.pequena and f.n > 0 ? '*'), celulas: f.celulas|map((cel, i) => {v: f.n > 0 ? cel.pct : null, texto: f.n > 0 ? cel.n ~ ' · ' ~ cel.pct|number_format(0) ~ '%' : '—', dica: f.faixa ~ ' · ' ~ p.outras.rotulos[i] ~ ': ' ~ cel.n ~ ' de ' ~ f.n ~ ' pacientes'})}),
+                'Outras comorbidades →'
+            ) }}
+            <p class="{{ rodape }}">Cada célula: número de pacientes · percentual dentro da faixa. * faixa com menos de {{ p.minGrupo }} pacientes: leia com cautela.</p>
+        </div>
+        <div>
+            <table class="w-full text-xs">
+                <thead><tr class="{{ cabeca }}"><th class="{{ th }} pl-0">Faixa etária</th><th class="{{ th }} text-right">Pacientes com {{ nome }}</th><th class="{{ th }} text-right">Média de outras</th><th class="{{ th }} text-right">Mediana</th><th class="{{ th }} text-right">Com 2 ou mais</th><th class="{{ th }} text-right">Com 4 ou mais</th></tr></thead>
+                <tbody>
+                    {% for f in p.multiFaixa %}
+                        <tr class="{{ linha }}">
+                            <td class="{{ td }} pl-0 font-semibold text-slate-700 dark:text-slate-200">{{ f.faixa }}{{ f.faixa != 'Sem idade' ? ' anos' }}</td>
+                            <td class="{{ td }} text-right">{{ f.n|number_format(0, ',', '.') }}{% if f.pequena and f.n > 0 %}<span class="text-amber-500" title="Menos de 10 pacientes: leia com cautela">*</span>{% endif %}</td>
+                            <td class="{{ td }} text-right {{ forte }}">{{ c.num(f.media, 2) }}</td>
+                            <td class="{{ td }} text-right">{{ c.num(f.mediana, 1) }}</td>
+                            <td class="{{ td }} text-right">{{ _self.parte(f.dois) }}</td>
+                            <td class="{{ td }} text-right">{{ _self.parte(f.quatro) }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <p class="{{ rodape }}">Entre parênteses, o número de pacientes.</p>
+        </div>
+    </div>
+</section>
+
+{# ---------- 2. Carga cardiovascular registrada ---------- #}
+<section class="{{ card }} p-5" id="bloco-carga-cardiovascular">
+    {{ c.titulo('Carga cardiovascular registrada', 'Quantos antecedentes cardiovasculares (' ~ cv.eventos|map(e => e.rotulo)|join(', ') ~ ') cada paciente com ' ~ nome ~ ' tem registrados. É uma contagem de registros, não uma medida de risco.', 'Cada condição vale como registrada se algum item do catálogo com esse nome foi marcado em algum exame do período.') }}
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-x-10 gap-y-5">
+        <div>
+            <h3 class="{{ sub }}">Pacientes por número de antecedentes registrados</h3>
+            {% set etiquetas = cv.classes|map(cl => cl.n|number_format(0, ',', '.') ~ ' (' ~ cl.pct|number_format(1, ',', '.') ~ '%)') %}
+            {{ g.colunas(cv.classes|map(cl => cl.rotulo), cv.classes|map(cl => cl.n), 'Pacientes por número de antecedentes cardiovasculares registrados', etiquetas, null, 'Antecedentes cardiovasculares registrados', 190) }}
+            <p class="{{ rodape }}">{{ _self.parte(cv.comAlgum) }} dos pacientes com {{ nome }} têm ao menos um antecedente cardiovascular registrado.</p>
+        </div>
+        <div>
+            <h3 class="{{ sub }}">Prevalência de cada antecedente entre os pacientes com {{ nome }}</h3>
+            {{ g.barras(cv.eventos|map(e => {nome: e.rotulo ~ ' (' ~ e.n ~ ')', valor: e.pct, classe: 'f-s1', dica: e.rotulo ~ ': ' ~ e.n ~ ' de ' ~ p.com ~ ' pacientes'}), 'Prevalência de cada antecedente cardiovascular') }}
+            <p class="{{ rodape }}">Itens do catálogo considerados: {% for e in cv.eventos %}{{ e.rotulo }} = {{ e.itens|length ? e.itens|join(', ') : 'nenhum item encontrado' }}{{ not loop.last ? '; ' : '.' }}{% endfor %}</p>
+        </div>
+    </div>
+    <table class="w-full text-xs mt-4">
+        <thead><tr class="{{ cabeca }}"><th class="{{ th }} pl-0">Carga cardiovascular</th><th class="{{ th }} text-right">Pacientes</th><th class="{{ th }} text-right">%</th><th class="{{ th }} text-right">Idade média</th><th class="{{ th }} text-right">Idade mediana</th><th class="{{ th }} text-right">Média de outras comorbidades</th></tr></thead>
+        <tbody>
+            {% for cl in cv.classes %}
+                <tr class="{{ linha }}">
+                    <td class="{{ td }} pl-0 font-semibold text-slate-700 dark:text-slate-200">{{ cl.rotulo == 'Nenhum' ? 'Nenhum antecedente' : cl.rotulo ~ (cl.rotulo == '1' ? ' antecedente' : ' antecedentes') }}</td>
+                    <td class="{{ td }} text-right">{{ cl.n|number_format(0, ',', '.') }}{% if cl.pequena and cl.n > 0 %}<span class="text-amber-500" title="Menos de 10 pacientes: leia com cautela">*</span>{% endif %}</td>
+                    <td class="{{ td }} text-right {{ forte }}">{{ c.num(cl.pct, 1, '%') }}</td>
+                    <td class="{{ td }} text-right">{{ c.num(cl.idadeMedia, 1) }}</td>
+                    <td class="{{ td }} text-right">{{ c.num(cl.idadeMediana, 0) }}</td>
+                    <td class="{{ td }} text-right">{{ c.num(cl.outrasMedia, 2) }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <p class="{{ rodape }}">Outras comorbidades = comorbidades registradas além de {{ nome }} (os antecedentes cardiovasculares entram nessa média quando são classificados como comorbidade).</p>
+</section>
+
+{# ---------- 3. Subgrupo com hipertensão ---------- #}
+<section class="{{ card }} p-5" id="bloco-subgrupo">
+    {{ c.titulo(nome ~ ' associado à ' ~ sg.parceiro, 'Os pacientes com ' ~ nome ~ ' divididos em dois grupos: sem e com ' ~ sg.parceiro ~ ' registrada. Percentuais calculados dentro de cada grupo.', 'As diferenças descrevem os registros e não indicam relação causal. Quem tem mais idade tende a ter mais registros de tudo.') }}
+    {% if not sg.disponivel %}
+        <p class="text-sm text-slate-400">Nenhum item do catálogo foi reconhecido como {{ sg.parceiro }}: não é possível formar os dois grupos.</p>
+    {% else %}
+        <div class="grid grid-cols-1 xl:grid-cols-2 gap-x-10 gap-y-5">
+            <table class="w-full text-xs self-start">
+                <thead><tr class="{{ cabeca }}"><th class="{{ th }} pl-0">Indicador</th><th class="{{ th }} text-right">{{ nome }} sem {{ sg.parceiro }}</th><th class="{{ th }} text-right">{{ nome }} + {{ sg.parceiro }}</th></tr></thead>
+                <tbody>
+                    {% set linhas = [
+                        ['Pacientes', sg.sem.n|number_format(0, ',', '.') ~ (sg.sem.pequena ? '*'), sg.com.n|number_format(0, ',', '.') ~ (sg.com.pequena ? '*')],
+                        ['% dos pacientes com ' ~ nome, c.num(sg.sem.pct, 1, '%'), c.num(sg.com.pct, 1, '%')],
+                        ['Idade média', c.num(sg.sem.idadeMedia, 1), c.num(sg.com.idadeMedia, 1)],
+                        ['Idade mediana', c.num(sg.sem.idadeMediana, 0), c.num(sg.com.idadeMediana, 0)],
+                        ['Sexo feminino', c.num(sg.sem.pctFeminino, 1, '%'), c.num(sg.com.pctFeminino, 1, '%')],
+                        ['Sexo masculino', c.num(sg.sem.pctMasculino, 1, '%'), c.num(sg.com.pctMasculino, 1, '%')],
+                        ['Média de outras comorbidades', c.num(sg.sem.outrasMedia, 2), c.num(sg.com.outrasMedia, 2)],
+                    ] %}
+                    {% for l in linhas %}
+                        <tr class="{{ linha }}"><td class="{{ td }} pl-0 font-semibold text-slate-700 dark:text-slate-200">{{ l[0] }}</td><td class="{{ td }} text-right">{{ l[1] }}</td><td class="{{ td }} text-right {{ forte }}">{{ l[2] }}</td></tr>
+                    {% endfor %}
+                    {% for e in cv.eventos %}
+                        <tr class="{{ linha }}"><td class="{{ td }} pl-0 font-semibold text-slate-700 dark:text-slate-200">{{ e.rotulo }}</td><td class="{{ td }} text-right">{{ _self.parte(sg.sem.eventos[e.chave]) }}</td><td class="{{ td }} text-right">{{ _self.parte(sg.com.eventos[e.chave]) }}</td></tr>
+                    {% endfor %}
+                    <tr class="{{ linha }}"><td class="{{ td }} pl-0 font-semibold text-slate-700 dark:text-slate-200">Algum antecedente cardiovascular</td><td class="{{ td }} text-right">{{ _self.parte(sg.sem.algum) }}</td><td class="{{ td }} text-right">{{ _self.parte(sg.com.algum) }}</td></tr>
+                </tbody>
+            </table>
+            <div>
+                <h3 class="{{ sub }}">Antecedentes cardiovasculares em cada grupo</h3>
+                {{ g.legenda([{classe: 'f-neutro', rotulo: 'Sem ' ~ sg.parceiro, extra: '(n = ' ~ sg.sem.n ~ ')'}, {classe: 'f-s1', rotulo: 'Com ' ~ sg.parceiro, extra: '(n = ' ~ sg.com.n ~ ')'}]) }}
+                {{ g.barras_agrupadas(cv.eventos|map(e => {nome: e.rotulo, valores: [sg.sem.eventos[e.chave].pct, sg.com.eventos[e.chave].pct]})|merge([{nome: 'Algum antecedente', valores: [sg.sem.algum.pct, sg.com.algum.pct]}]), ['Sem ' ~ sg.parceiro, 'Com ' ~ sg.parceiro], ['f-neutro', 'f-s1'], 'Antecedentes cardiovasculares com e sem ' ~ sg.parceiro, 130) }}
+                <p class="{{ rodape }}">Percentual dos pacientes de cada grupo com o antecedente registrado. Outras comorbidades = além de {{ nome }} e de {{ sg.parceiro }}. {{ sg.parceiro }} reconhecida pelos itens: {{ sg.itens|join(', ') }}. * grupo com menos de {{ p.minGrupo }} pacientes.</p>
+            </div>
+        </div>
+    {% endif %}
+</section>
+
+{# ---------- 4. Histórico cardiovascular por faixa etária ---------- #}
+<section class="{{ card }} p-5" id="bloco-estratificado">
+    {{ c.titulo('Histórico cardiovascular por faixa etária — ' ~ nome ~ ' × sem ' ~ nome, 'Em cada faixa etária, o percentual dos pacientes com e sem ' ~ nome ~ ' que têm o antecedente registrado. Comparar dentro da mesma faixa reduz o efeito da idade.', 'Associação observada nos registros, não causalidade. Faixas com menos de 10 pacientes em um dos grupos ficam sem percentual.') }}
+    <label class="flex flex-wrap items-center gap-3 mb-3">
+        <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Antecedente</span>
+        <select data-alterna="estratificado" class="{{ seletor }}">
+            {% for serie in p.estratificado %}<option value="{{ serie.chave }}">{{ serie.rotulo }}</option>{% endfor %}
+        </select>
+    </label>
+    {% for serie in p.estratificado %}
+        <div data-vista-de="estratificado" data-vista="{{ serie.chave }}" class="grid grid-cols-1 xl:grid-cols-2 gap-x-10 gap-y-5 {{ not loop.first ? 'hidden' }}">
+            <div>
+                {{ g.legenda([{classe: 'f-s1', rotulo: 'Com ' ~ nome}, {classe: 'f-neutro', rotulo: 'Sem ' ~ nome}]) }}
+                {{ g.barras_agrupadas(serie.linhas|map(r => {nome: r.faixa ~ ' anos', valores: [r.comPct, r.semPct]}), ['Com ' ~ nome, 'Sem ' ~ nome], ['f-s1', 'f-neutro'], serie.rotulo ~ ' por faixa etária, com e sem ' ~ nome, 90) }}
+            </div>
+            <table class="w-full text-xs self-start">
+                <thead><tr class="{{ cabeca }}"><th class="{{ th }} pl-0">Faixa</th><th class="{{ th }} text-right">Com {{ nome }}: pacientes</th><th class="{{ th }} text-right">Com: %</th><th class="{{ th }} text-right">Sem: pacientes</th><th class="{{ th }} text-right">Sem: %</th><th class="{{ th }} text-right">Diferença</th></tr></thead>
+                <tbody>
+                    {% for r in serie.linhas %}
+                        <tr class="{{ linha }}">
+                            <td class="{{ td }} pl-0 font-semibold text-slate-700 dark:text-slate-200 whitespace-nowrap">{{ r.faixa }} anos</td>
+                            <td class="{{ td }} text-right">{{ r.comN|number_format(0, ',', '.') }}{% if r.comN < p.minGrupo and r.comN > 0 %}<span class="text-amber-500">*</span>{% endif %}</td>
+                            <td class="{{ td }} text-right {{ forte }}">{{ c.num(r.comPct, 1, '%') }} <span class="font-normal text-slate-400">({{ r.comK }})</span></td>
+                            <td class="{{ td }} text-right">{{ r.semN|number_format(0, ',', '.') }}{% if r.semN < p.minGrupo and r.semN > 0 %}<span class="text-amber-500">*</span>{% endif %}</td>
+                            <td class="{{ td }} text-right">{{ c.num(r.semPct, 1, '%') }} <span class="text-slate-400">({{ r.semK }})</span></td>
+                            <td class="{{ td }} text-right font-semibold">{% if r.diferenca is null %}—{% else %}{{ r.diferenca > 0 ? '+' }}{{ r.diferenca|number_format(1, ',', '.') }} p.p.{% endif %}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endfor %}
+    <p class="{{ rodape }}">Entre parênteses, o número de pacientes com o antecedente. * menos de {{ p.minGrupo }} pacientes: sem percentual. A faixa de 0–17 anos não entra. Associação observada nos registros; não indica causalidade.</p>
+</section>
+
+{# ---------- 5. Matriz de condições ---------- #}
+{% set mz = p.matriz %}
+<section class="{{ card }} p-5" id="bloco-matriz">
+    {{ c.titulo('Associação entre comorbidades nos pacientes com ' ~ nome, 'Linha = pacientes com ' ~ nome ~ ' que têm a condição da linha; coluna = percentual deles que também têm a condição da coluna. Passe o mouse para ver o número de pacientes e o denominador.', 'Associação não significa causalidade. Linhas com menos de 10 pacientes ficam sem percentual e mostram só a contagem.') }}
+    <div class="max-w-4xl">
+        {{ g.calor(
+            mz.itens|map((nomeCol, j) => {nome: nomeCol, sub: 'n = ' ~ mz.totais[j]}),
+            mz.itens|map((nomeLinha, i) => {nome: nomeLinha, sub: 'n = ' ~ mz.totais[i] ~ (mz.totais[i] < p.minGrupo and mz.totais[i] > 0 ? '*'), celulas: mz.itens|map((nomeCol, j) => {
+                v: mz.pct[i][j],
+                texto: i == j ? '—' : (mz.pct[i][j] is null ? (mz.totais[i] > 0 ? mz.n[i][j] ~ ' de ' ~ mz.totais[i] : '—') : mz.pct[i][j]|number_format(0) ~ '%'),
+                dica: i == j ? '' : nomeLinha ~ ' + ' ~ nomeCol ~ ': ' ~ mz.n[i][j] ~ ' de ' ~ mz.totais[i] ~ ' pacientes com ' ~ nomeLinha ~ (mz.pct[i][j] is null ? '' : ' (' ~ mz.pct[i][j]|number_format(1, ',', '.') ~ '%)')
+            })})
+        ) }}
+    </div>
+    <p class="{{ rodape }}"><b>Associação não significa causalidade.</b> Condições reconhecidas pelo nome do item do catálogo; n = pacientes com {{ nome }} e a condição. * menos de {{ p.minGrupo }} pacientes na linha.</p>
+</section>
+
+{# ---------- 6. Volume mensal ---------- #}
+{% set v = p.volume %}
+<section class="{{ card }} p-5" id="bloco-volume">
+    {{ c.titulo('Volume mensal de pacientes com ' ~ nome, 'Quantidade absoluta por mês, para separar volume assistencial de prevalência: a coluna inteira é o total do mês e a parte azul são os pacientes (ou exames) com ' ~ nome ~ '.', 'Pacientes únicos atendidos no mês com o item marcado naquele mês. O gráfico de prevalência mensal, acima, mostra a proporção.') }}
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-x-10 gap-y-5">
+        <div>
+            <label class="flex flex-wrap items-center gap-3 mb-3">
+                <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Mostrar</span>
+                <select data-alterna="volume" class="{{ seletor }}"><option value="pacientes">Pacientes</option><option value="exames">Exames</option></select>
+            </label>
+            {% for vista in [{chave: 'pacientes', com: v.pacientesCom, total: v.pacientesTotal, r: 'pacientes'}, {chave: 'exames', com: v.examesCom, total: v.examesTotal, r: 'exames'}] %}
+                <div data-vista-de="volume" data-vista="{{ vista.chave }}" class="{{ not loop.first ? 'hidden' }}">
+                    {{ g.legenda([{classe: 'f-s1', rotulo: 'Com ' ~ nome}, {classe: 'f-neutro', rotulo: 'Demais ' ~ vista.r ~ ' com anamnese'}]) }}
+                    {{ g.colunas_pilha(v.meses, [{nome: 'Com ' ~ nome, valores: vista.com}, {nome: 'Demais', valores: vista.total|map((t, i) => t - vista.com[i])}], ['f-s1', 'f-neutro'], 'Volume mensal de ' ~ vista.r ~ ' com e sem ' ~ nome, 210) }}
+                </div>
+            {% endfor %}
+            <p class="{{ rodape }}">Sobre cada coluna, o total de pacientes (ou de exames) com anamnese no mês.</p>
+        </div>
+        <div class="overflow-y-auto max-h-[24rem]">
+            <table class="w-full text-xs">
+                <thead><tr class="{{ cabeca }}"><th class="{{ th }} pl-0">Mês</th><th class="{{ th }} text-right">Pacientes com {{ nome }}</th><th class="{{ th }} text-right">Total de pacientes</th><th class="{{ th }} text-right">%</th><th class="{{ th }} text-right">Exames com {{ nome }}</th><th class="{{ th }} text-right">Total de exames</th></tr></thead>
+                <tbody>
+                    {% for mes in v.meses %}
+                        {% set i = loop.index0 %}
+                        <tr class="{{ linha }}">
+                            <td class="{{ td }} pl-0 font-semibold text-slate-700 dark:text-slate-200">{{ mes }}</td>
+                            <td class="{{ td }} text-right {{ forte }}">{{ v.pacientesCom[i]|number_format(0, ',', '.') }}</td>
+                            <td class="{{ td }} text-right">{{ v.pacientesTotal[i]|number_format(0, ',', '.') }}</td>
+                            <td class="{{ td }} text-right">{{ c.num(v.pct[i], 1, '%') }}{% if v.pacientesTotal[i] > 0 and v.pacientesTotal[i] < p.minMes %}<span class="text-amber-500" title="Menos de 20 pacientes no mês: leia com cautela">*</span>{% endif %}</td>
+                            <td class="{{ td }} text-right">{{ v.examesCom[i]|number_format(0, ',', '.') }}</td>
+                            <td class="{{ td }} text-right">{{ v.examesTotal[i]|number_format(0, ',', '.') }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <p class="{{ rodape }}">Paciente = pessoa atendida no mês (conta uma vez por mês); exame = cada agendamento com anamnese. * mês com menos de {{ p.minMes }} pacientes.</p>
+</section>
+
+{# ---------- 7. Onde os pacientes com o item são atendidos ---------- #}
+<section class="{{ card }} p-5" id="bloco-procedimentos-item">
+    {{ c.titulo('Onde os pacientes com ' ~ nome ~ ' são atendidos', 'Só pacientes com ' ~ nome ~ ': quantos passaram por cada procedimento no período e quantos exames fizeram. É o inverso de “Onde o item aparece”.', 'Um mesmo paciente pode aparecer em mais de um procedimento, por isso os percentuais não precisam somar 100%.') }}
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-x-10 gap-y-5">
+        {{ g.barras(p.procedimentos|slice(0, 12)|map(r => {nome: r.nome, valor: r.pct, classe: 'f-s1', dica: r.nome ~ ': ' ~ r.n ~ ' de ' ~ p.com ~ ' pacientes'}), 'Percentual dos pacientes com o item por procedimento') }}
+        <table class="w-full text-xs self-start">
+            <thead><tr class="{{ cabeca }}"><th class="{{ th }} pl-0">Procedimento</th><th class="{{ th }} text-right">Pacientes com {{ nome }}</th><th class="{{ th }} text-right">% dos pacientes com {{ nome }}</th><th class="{{ th }} text-right">Exames</th></tr></thead>
+            <tbody>
+                {% for r in p.procedimentos|slice(0, 12) %}
+                    <tr class="{{ linha }}">
+                        <td class="{{ td }} pl-0 font-semibold text-slate-700 dark:text-slate-200">{{ r.nome }}</td>
+                        <td class="{{ td }} text-right">{{ r.n|number_format(0, ',', '.') }}</td>
+                        <td class="{{ td }} text-right {{ forte }}">{{ r.pct|number_format(1, ',', '.') }}%</td>
+                        <td class="{{ td }} text-right">{{ r.exames|number_format(0, ',', '.') }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <p class="{{ rodape }}"><b>Os percentuais por procedimento não precisam somar 100%</b>: o paciente conta em cada procedimento que realizou.{% if p.procedimentos|length > 12 %} Mostrando 12 de {{ p.procedimentos|length }} procedimentos; a lista completa está no CSV.{% endif %}</p>
+</section>
+
+{# ---------- 8. Acompanhamento longitudinal ---------- #}
+<section class="{{ card }} p-5" id="bloco-longitudinal">
+    {{ c.titulo('Acompanhamento longitudinal dos pacientes com ' ~ nome, 'Pacientes com ' ~ nome ~ ' e anamnese em dois ou mais momentos distintos do período. Anamneses do mesmo dia contam como um só momento; vacinas ficam de fora.', 'Novo registro = item ausente na primeira anamnese que apareceu em uma seguinte. Redução de itens não é cura nem melhora: costuma refletir o preenchimento.') }}
+    {% if lg.acompanhados == 0 %}
+        <p class="text-sm text-slate-400">Nenhum paciente com {{ nome }} e anamnese em mais de um dia no período.</p>
+    {% else %}
+        <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
+            {{ c.indicador('Pacientes acompanhados', lg.acompanhados|number_format(0, ',', '.'), (lg.acompanhados * 100 / p.com)|number_format(1, ',', '.') ~ '% dos pacientes com ' ~ nome, 'Pacientes com o item e anamnese em dois ou mais dias diferentes do período.') }}
+            {{ c.indicador('Momentos por paciente', c.num(lg.momentosMedia, 2), 'média · mediana de ' ~ c.num(lg.momentosMediana, 1), 'Dias distintos com anamnese, por paciente acompanhado.') }}
+            {{ c.indicador('Da primeira à última', c.num(lg.intervaloMedio, 0) ~ ' dias', 'intervalo médio', 'Dias entre a primeira e a última anamnese do paciente no período.') }}
+            {{ c.indicador('Intervalo mediano', c.num(lg.intervaloMediano, 0) ~ ' dias', 'entre a primeira e a última anamnese', 'Metade dos pacientes acompanhados tem intervalo menor que este.') }}
+            {{ c.indicador('Maior intervalo', lg.intervaloMaior ~ ' dias', 'maior distância observada', 'Limitado pelo período filtrado.') }}
+            {{ c.indicador('Mais comorbidades na última', (lg.mudanca[1].n + lg.mudanca[2].n)|number_format(0, ',', '.'), c.num((lg.mudanca[1].n + lg.mudanca[2].n) * 100 / lg.acompanhados, 1, '%') ~ ' dos acompanhados', 'Pacientes cuja última anamnese tem mais comorbidades registradas que a primeira.') }}
+        </div>
+        <div class="grid grid-cols-1 xl:grid-cols-2 gap-x-10 gap-y-5 mt-5">
+            {% for bloco in [{t: 'Momentos de anamnese por paciente', l: lg.distribuicao}, {t: 'Comorbidades: primeira × última anamnese', l: lg.mudanca}] %}
+                <div>
+                    <h3 class="{{ sub }}">{{ bloco.t }}</h3>
+                    <table class="w-full text-xs">
+                        <tbody>
+                            {% for r in bloco.l %}
+                                <tr class="{{ linha }}">
+                                    <td class="{{ td }} pl-0 font-semibold text-slate-700 dark:text-slate-200">{{ r.rotulo }}</td>
+                                    <td class="{{ td }} text-right">{{ r.n|number_format(0, ',', '.') }}</td>
+                                    <td class="{{ td }} text-right {{ forte }}">{{ c.num(r.pct, 1, '%') }}</td>
+                                    <td class="{{ td }} w-1/3"><div class="h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden"><div class="h-full rounded-full bg-sky-500" style="width: {{ r.pct ?? 0 }}%"></div></div></td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% endfor %}
+        </div>
+        <p class="{{ rodape }}">“Menos itens na última anamnese” significa apenas que itens da primeira não foram repetidos; não é interpretado como cura ou melhora.</p>
+
+        <h3 class="{{ sub }} mt-5">Novos registros após a primeira anamnese</h3>
+        <table class="w-full text-xs">
+            <thead><tr class="{{ cabeca }}"><th class="{{ th }} pl-0">Item</th><th class="{{ th }}">Categoria</th><th class="{{ th }} text-right">Pacientes em que apareceu posteriormente</th><th class="{{ th }} text-right">% dos acompanhados</th><th class="{{ th }} text-right">Mediana de dias até aparecer</th></tr></thead>
+            <tbody>
+                {% for it in lg.novos|slice(0, 15) %}
+                    <tr class="{{ linha }}">
+                        <td class="{{ td }} pl-0 font-semibold text-slate-700 dark:text-slate-200">{{ it.nome }}{% if it.destaque %} <span class="ml-1 px-1.5 py-0.5 rounded bg-sky-500/10 text-sky-700 dark:text-sky-300 text-[10px] font-bold">condição cardiovascular</span>{% endif %}</td>
+                        <td class="{{ td }} text-slate-500">{{ it.categoria }}</td>
+                        <td class="{{ td }} text-right">{{ it.n|number_format(0, ',', '.') }}</td>
+                        <td class="{{ td }} text-right {{ forte }}">{{ it.pct|number_format(1, ',', '.') }}%</td>
+                        <td class="{{ td }} text-right">{{ c.num(it.diasMediana, 0) }}</td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="5" class="py-3 text-sm text-slate-400">Nenhum item apareceu depois da primeira anamnese nesses pacientes.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <p class="{{ rodape }}">Primeiro as condições cardiovasculares (hipertensão, diabetes, infarto, AVC, cateterismo, angioplastia), depois os demais itens por frequência. “Apareceu posteriormente” não equivale a novo diagnóstico.{% if lg.novos|length > 15 %} Mostrando 15 de {{ lg.novos|length }} itens; a lista completa está no CSV.{% endif %}</p>
+    {% endif %}
+</section>

@@ -570,6 +570,11 @@ table {
     line-height: 1.15;
 }
 
+.matriz tbody th small {
+    font-weight: 400;
+    color: var(--muted);
+}
+
 .matriz td {
     height: 5.4mm;
     padding: 0;

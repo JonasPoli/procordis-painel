@@ -119,6 +119,75 @@ class AnamneseItemServiceTest extends TestCase
         $this->assertSame([['id' => 13, 'nome' => 'Diabete', 'n' => 0, 'motivo' => 'Termos que costumam designar a mesma condição']], $this->p['semelhantes']);
     }
 
+    public function testMultimorbidadeECargaCardiovascular(): void
+    {
+        $faixa6069 = $this->p['multiFaixa'][5];
+        $this->assertSame('60–69', $faixa6069['faixa']);
+        $this->assertSame(1, $faixa6069['n']);
+        $this->assertSame(['n' => 1, 'pct' => 100.0], $faixa6069['celulas'][1], 'Uma outra comorbidade além do item');
+        $this->assertTrue($faixa6069['pequena']);
+        $this->assertCount(8, $this->p['multiFaixa'], 'Sem linha "Sem idade" quando todos têm idade');
+
+        $cardio = $this->p['cardio'];
+        $this->assertSame(['Infarto', 'AVC', 'Cateterismo', 'Angioplastia'], array_column($cardio['eventos'], 'rotulo'));
+        $this->assertSame([1, 0, 0, 0], array_column($cardio['eventos'], 'n'));
+        $this->assertSame(['Infarto Prévio'], $cardio['eventos'][0]['itens']);
+        $this->assertSame(['AVC', 'Cateterismo', 'Angioplastia'], $cardio['semItem'], 'Avisa quais condições não têm item no catálogo');
+        $this->assertSame([2, 1, 0, 0, 0], array_column($cardio['classes'], 'n'));
+        $this->assertSame([66.7, 33.3, 0.0, 0.0, 0.0], array_column($cardio['classes'], 'pct'));
+        $this->assertSame(57.5, $cardio['classes'][0]['idadeMedia']);
+        $this->assertSame(['n' => 1, 'pct' => 33.3], $cardio['comAlgum']);
+    }
+
+    public function testSubgrupoComHipertensaoEstratificacaoEMatriz(): void
+    {
+        $sg = $this->p['subgrupo'];
+        $this->assertSame('Hipertensão', $sg['parceiro']);
+        $this->assertSame([2, 66.7, 57.5, 50.0, 0.0], [$sg['com']['n'], $sg['com']['pct'], $sg['com']['idadeMedia'], $sg['com']['pctFeminino'], $sg['com']['outrasMedia']]);
+        $this->assertSame([1, 33.3, 1.0], [$sg['sem']['n'], $sg['sem']['pct'], $sg['sem']['outrasMedia']]);
+        $this->assertSame(['n' => 1, 'pct' => 100.0], $sg['sem']['eventos']['infarto']);
+        $this->assertSame(['n' => 0, 'pct' => 0.0], $sg['com']['algum']);
+
+        $algum = $this->p['estratificado'][0];
+        $this->assertSame('algum', $algum['chave']);
+        $this->assertSame(['18–29', '30–39', '40–49', '50–59', '60–69', '70–79', '80+'], array_column($algum['linhas'], 'faixa'));
+        $this->assertSame(['faixa' => '70–79', 'comN' => 1, 'comK' => 1, 'comPct' => null, 'semN' => 0, 'semK' => 0, 'semPct' => null, 'diferenca' => null], $algum['linhas'][5]);
+
+        $mz = $this->p['matriz'];
+        $this->assertSame(['Hipertensão', 'Infarto', 'AVC', 'Cateterismo', 'Angioplastia'], $mz['itens'], 'O próprio item não entra na matriz');
+        $this->assertSame([2, 1, 0, 0, 0], $mz['totais']);
+        $this->assertSame(0, $mz['n'][0][1]);
+        $this->assertNull($mz['n'][0][0]);
+        $this->assertNull($mz['pct'][0][1], 'Denominador com menos de 10 pacientes fica sem percentual');
+    }
+
+    public function testVolumeProcedimentosEAcompanhamento(): void
+    {
+        $v = $this->p['volume'];
+        $this->assertSame([[0, 2, 1], [1, 3, 2], [0, 2, 1], [1, 3, 2]], [$v['pacientesCom'], $v['pacientesTotal'], $v['examesCom'], $v['examesTotal']]);
+        $this->assertSame([0.0, 66.7, 50.0], $v['pct']);
+
+        $this->assertSame([['nome' => 'Eletrocardiograma', 'n' => 3, 'pct' => 100.0, 'exames' => 5]], $this->p['procedimentos']);
+
+        $lg = $this->p['longitudinal'];
+        $this->assertSame(2, $lg['acompanhados']);
+        $this->assertSame([2.0, 2.0, 46.0, 46.0, 59], [$lg['momentosMedia'], $lg['momentosMediana'], $lg['intervaloMedio'], $lg['intervaloMediano'], $lg['intervaloMaior']]);
+        $this->assertSame([2, 0, 0], array_column($lg['distribuicao'], 'n'));
+        $this->assertSame([], $lg['novos'], 'O próprio item não entra entre os novos registros');
+        $this->assertSame(['Mesma quantidade' => 0, '+1 item registrado' => 1, '+2 ou mais' => 0, 'Menos itens na última anamnese' => 1], array_column($lg['mudanca'], 'n', 'rotulo'));
+    }
+
+    public function testItemQueEUmAntecedenteNaoContaASiMesmo(): void
+    {
+        $infarto = $this->calcular(3);
+        $hipertensao = $this->calcular(1);
+
+        $this->assertSame(['AVC', 'Cateterismo', 'Angioplastia'], array_column($infarto['cardio']['eventos'], 'rotulo'));
+        $this->assertSame(['Hipertensão', 'Diabetes', 'AVC', 'Cateterismo', 'Angioplastia'], $infarto['matriz']['itens']);
+        $this->assertSame('Diabetes', $hipertensao['subgrupo']['parceiro'], 'Para a hipertensão, o subgrupo é com e sem diabetes');
+        $this->assertSame(2, $hipertensao['subgrupo']['com']['n']);
+    }
+
     public function testSemItemDevolveSoAsOpcoes(): void
     {
         $semEscolha = $this->calcular(null);
@@ -144,6 +213,11 @@ class AnamneseItemServiceTest extends TestCase
         $this->assertSame($p['pacientes'], $p['com'] + $p['sem']);
         $this->assertSame($p['com'], array_sum($p['outras']['com']['n']));
         $this->assertSame($p['com'], array_sum(array_column($p['perfis'], 'n')));
+        $this->assertSame($p['com'], array_sum(array_column($p['multiFaixa'], 'n')));
+        $this->assertSame($p['com'], array_sum(array_column($p['cardio']['classes'], 'n')));
+        $this->assertSame($p['com'], $p['subgrupo']['com']['n'] + $p['subgrupo']['sem']['n']);
+        $this->assertSame($p['longitudinal']['acompanhados'], array_sum(array_column($p['longitudinal']['mudanca'], 'n')));
+        $this->assertSame($p['examesCom'], array_sum($p['volume']['examesCom']));
         $this->assertNotEmpty($this->servico->linhasExportacao($p));
     }
 

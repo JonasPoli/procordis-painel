@@ -389,3 +389,38 @@
         </ol>
     {% endif %}
 {% endmacro %}
+
+{#
+    Mapa de calor genérico em tabela: cada célula traz o texto pronto (ex.: "12 · 35%").
+    colunas = [{nome, sub?}]; linhas = [{nome, sub?, celulas: [{v (% ou null), texto, dica?}]}].
+    A cor segue v, do claro ao escuro; célula sem v (grupo pequeno, diagonal) fica neutra.
+#}
+{% macro calor(colunas, linhas, canto = '') %}
+    {% set rampa = ['#cde2fb', '#b7d3f6', '#9ec5f4', '#86b6ef', '#6da7ec', '#5598e7', '#3987e5', '#2a78d6', '#256abf', '#1c5cab', '#184f95', '#104281', '#0d366b'] %}
+    {% set maior = 1 %}
+    {% for l in linhas %}{% for cel in l.celulas %}{% if cel.v is not null and cel.v > maior %}{% set maior = cel.v %}{% endif %}{% endfor %}{% endfor %}
+    <table class="matriz">
+        <colgroup><col class="rot">{% for col in colunas %}<col>{% endfor %}</colgroup>
+        <thead>
+            <tr>
+                <th>{{ canto }}</th>
+                {% for col in colunas %}<th scope="col">{{ col.nome }}{% if col.sub|default('') %}<small>{{ col.sub }}</small>{% endif %}</th>{% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for l in linhas %}
+                <tr>
+                    <th scope="row">{{ l.nome }}{% if l.sub|default('') %} <small>{{ l.sub }}</small>{% endif %}</th>
+                    {% for cel in l.celulas %}
+                        {% if cel.v is null %}
+                            <td class="sem" title="{{ cel.dica|default('') }}">{{ cel.texto }}</td>
+                        {% else %}
+                            {% set passo = ((0.05 + cel.v / maior * 0.95) * 12)|round %}
+                            <td style="background: {{ rampa[passo] }}; color: {{ passo >= 6 ? '#ffffff' : '#0d366b' }}" title="{{ cel.dica|default('') }}">{{ cel.texto }}</td>
+                        {% endif %}
+                    {% endfor %}
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endmacro %}
