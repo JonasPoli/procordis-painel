@@ -102,6 +102,15 @@ Regras:
 - Grupos com menos de 10 pacientes ficam sem percentual nos mapas de calor e marcados com `*` nas tabelas; meses com menos de 20 pacientes não são medidos.
 - Nada é diagnóstico nem escore clínico, e nenhum dado é corrigido automaticamente.
 
+### Panorama de um item
+
+`/admin/anamnese/item?item=<id>` — escolha uma comorbidade (ou qualquer item) no seletor do painel, ou clique no nome do item na
+tabela completa. Usa os mesmos filtros e compara os pacientes **com** o item registrado com os pacientes **sem** ele
+(`AnamneseItemService`): prevalência e posição, idade e sexo, outras comorbidades, prevalência por faixa etária e sexo, evolução
+mensal e novos registros, itens que mais aparecem junto, combinações, perfis clínicos, prevalência por procedimento, tipo de
+atendimento e médico, e consistência do registro entre anamneses. Avisa quando o catálogo tem item de nome parecido
+(a contagem pode estar dividida). Versão A4 em `/admin/anamnese/item/relatorio` e CSV em `/admin/anamnese/item/exportar.csv`.
+
 ## Relatório A4
 
 `/admin/anamnese/relatorio` (botão **Gerar relatório (A4)** no painel, com os mesmos filtros) abre em nova aba um documento formal

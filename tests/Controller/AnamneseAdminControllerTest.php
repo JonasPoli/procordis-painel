@@ -5,6 +5,7 @@ namespace App\Tests\Controller;
 use App\Entity\ClassificacaoEstudo;
 use App\Service\AnamneseAnaliseService;
 use App\Service\AnamneseEstatisticaService;
+use App\Service\AnamneseItemService;
 use App\Tests\Support\AnamneseAmostra;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpFoundation\Request;
@@ -31,6 +32,9 @@ class AnamneseAdminControllerTest extends WebTestCase
             ['/admin/anamnese/exportar.csv'],
             ['/admin/anamnese/relatorio'],
             ['/admin/anamnese/exportar-tabela.csv?tabela=perfis'],
+            ['/admin/anamnese/item?item=2'],
+            ['/admin/anamnese/item/relatorio?item=2'],
+            ['/admin/anamnese/item/exportar.csv?item=2'],
         ];
     }
 
@@ -107,6 +111,60 @@ class AnamneseAdminControllerTest extends WebTestCase
         $this->assertStringContainsString('/admin/anamnese/exportar-tabela.csv?periodo=6m&amp;medico=7&amp;tabela=perfis', $html, 'Exportação mantém os filtros');
         $this->assertStringContainsString('/admin/anamnese/relatorio?periodo=6m&amp;medico=7', $html, 'Relatório A4 mantém os filtros');
         $this->assertStringNotContainsString('escore de risco', mb_strtolower($html));
+    }
+
+    /**
+     * @dataProvider itensDoPanorama
+     */
+    public function testPanoramaDoItem(?int $item, string $esperado, int $folhas): void
+    {
+        static::bootKernel();
+        $container = static::getContainer();
+        $container->get('request_stack')->push(Request::create('/admin/anamnese/item', 'GET', ['periodo' => '12m', 'item' => (string) $item]));
+        $amostra = AnamneseAmostra::base();
+        $panorama = $container->get(AnamneseItemService::class)->calcular($amostra['catalogo'], $amostra['examesP'], $amostra['novos'], $amostra['meses'], $item);
+        $filtros = ['inicio' => new \DateTime('2025-10-01'), 'fim' => new \DateTime('2026-09-30'), 'periodo' => '12m', 'sexo' => null, 'faixa' => null, 'tipo' => null, 'procedimento' => null, 'medico' => null];
+
+        $tela = $container->get('twig')->render('admin/anamnese/item.html.twig', [
+            'p' => $panorama,
+            'filtros' => $filtros,
+            'opcoes' => ['procedimentos' => [], 'medicos' => [], 'faixas' => AnamneseEstatisticaService::FAIXAS, 'tipos' => AnamneseEstatisticaService::TIPOS_ATENDIMENTO, 'primeiraData' => '2025-01-01', 'ultimaData' => '2026-09-30'],
+            'modoSimulacao' => false,
+        ]);
+        $this->assertStringContainsString($esperado, $tela);
+        $this->assertStringContainsString('<option value="2" >Diabetes', str_replace('selected', '', $tela), 'O seletor lista os itens do recorte');
+
+        if ($folhas === 0) {
+            $this->assertStringNotContainsString('<svg class="grafico"', $tela);
+
+            return;
+        }
+        $this->assertSame(5, substr_count($tela, '<svg class="grafico"'));
+        $this->assertStringContainsString('/admin/anamnese/item/relatorio?periodo=12m&amp;item=' . $item, $tela);
+
+        $a4 = $container->get('twig')->render('admin/anamnese/item-relatorio.html.twig', [
+            'p' => $panorama,
+            'filtros' => $filtros,
+            'tipos' => AnamneseEstatisticaService::TIPOS_ATENDIMENTO,
+            'medicos' => [],
+            'ultimaExecucao' => null,
+            'modoSimulacao' => false,
+            'emitidoEm' => new \DateTimeImmutable('2026-09-30 14:35:00'),
+        ]);
+        $this->assertSame($folhas, substr_count($a4, '<section class="folha">'));
+        $this->assertStringContainsString("Página {$folhas} de {$folhas}", $a4);
+        $this->assertSame(5, substr_count($a4, '<svg class="grafico"'));
+        $this->assertStringNotContainsString('chart.js', $a4);
+    }
+
+    public static function itensDoPanorama(): array
+    {
+        return [
+            'diabetes' => [2, 'Quem tem e quem não tem o item', 6],
+            'item com nome parecido no catálogo' => [6, 'O catálogo tem item com nome parecido', 6],
+            'fator de risco' => [17, 'Consistência do registro entre anamneses', 6],
+            'nenhum item escolhido' => [null, 'Escolha um item da anamnese', 0],
+        ];
     }
 
     private function renderizarRelatorio(array $dados, array $recorte = [], bool $modoSimulacao = false): string

@@ -8,6 +8,7 @@ use App\Repository\ClassificacaoEstudoRepository;
 use App\Repository\ConfiguracaoIntegracaoRepository;
 use App\Service\AnamneseAnaliseService;
 use App\Service\AnamneseEstatisticaService;
+use App\Service\AnamneseItemService;
 use App\Service\AnamneseSimuladorService;
 use App\Service\AnamneseSyncService;
 use Doctrine\ORM\EntityManagerInterface;
@@ -26,6 +27,7 @@ class AnamneseAdminController extends AbstractController
     public function __construct(
         private AnamneseEstatisticaService $estatistica,
         private AnamneseAnaliseService $analise,
+        private AnamneseItemService $item,
         private ClassificacaoEstudoRepository $classificacaoRepo,
         private AnamneseSyncExecucaoRepository $execucaoRepo,
         private AnamneseSyncService $sync,
@@ -88,6 +90,66 @@ class AnamneseAdminController extends AbstractController
         $nome = sprintf('anamnese_%s_a_%s.csv', $filtros['inicio']->format('Ymd'), $filtros['fim']->format('Ymd'));
         $resp->headers->set('Content-Type', 'text/csv; charset=utf-8');
         $resp->headers->set('Content-Disposition', 'attachment; filename="' . $nome . '"');
+
+        return $resp;
+    }
+
+    /** Panorama de um item da anamnese (ex.: Diabetes), com os mesmos filtros do painel. */
+    #[Route('/item', name: 'item', methods: ['GET'])]
+    public function item(Request $request): Response
+    {
+        $filtros = $this->filtros($request);
+
+        return $this->render('admin/anamnese/item.html.twig', [
+            'p' => $this->item->obter($filtros, $this->itemEscolhido($request)),
+            'filtros' => $filtros,
+            'opcoes' => $this->estatistica->opcoesFiltro(),
+            'modoSimulacao' => $this->configRepo->getObterOuCriarConfiguracao()->isModoSimulacao(),
+        ]);
+    }
+
+    /** Panorama do item em folhas A4 (imprimir / salvar em PDF). */
+    #[Route('/item/relatorio', name: 'item_relatorio', methods: ['GET'])]
+    public function itemRelatorio(Request $request): Response
+    {
+        $filtros = $this->filtros($request);
+        $panorama = $this->item->obter($filtros, $this->itemEscolhido($request));
+        if (!$panorama['item']) {
+            throw $this->createNotFoundException('Item não encontrado.');
+        }
+
+        return $this->render('admin/anamnese/item-relatorio.html.twig', [
+            'p' => $panorama,
+            'filtros' => $filtros,
+            'tipos' => AnamneseEstatisticaService::TIPOS_ATENDIMENTO,
+            'medicos' => $this->estatistica->opcoesFiltro()['medicos'],
+            'ultimaExecucao' => $this->execucaoRepo->findOneBy([], ['id' => 'DESC']),
+            'modoSimulacao' => $this->configRepo->getObterOuCriarConfiguracao()->isModoSimulacao(),
+            'emitidoEm' => new \DateTimeImmutable(),
+        ]);
+    }
+
+    #[Route('/item/exportar.csv', name: 'item_exportar', methods: ['GET'])]
+    public function itemExportar(Request $request): StreamedResponse
+    {
+        $filtros = $this->filtros($request);
+        $panorama = $this->item->obter($filtros, $this->itemEscolhido($request));
+        if (!$panorama['item']) {
+            throw $this->createNotFoundException('Item não encontrado.');
+        }
+        $linhas = $this->item->linhasExportacao($panorama);
+
+        $resp = new StreamedResponse(function () use ($linhas) {
+            $h = fopen('php://output', 'w');
+            fwrite($h, "\xEF\xBB\xBF");
+            foreach ($linhas as $l) {
+                fputcsv($h, $l, ';');
+            }
+            fclose($h);
+        });
+        $arquivo = sprintf('anamnese_item_%d_%s_a_%s.csv', $panorama['item']['id'], $filtros['inicio']->format('Ymd'), $filtros['fim']->format('Ymd'));
+        $resp->headers->set('Content-Type', 'text/csv; charset=utf-8');
+        $resp->headers->set('Content-Disposition', 'attachment; filename="' . $arquivo . '"');
 
         return $resp;
     }
@@ -237,6 +299,11 @@ class AnamneseAdminController extends AbstractController
         $this->addFlash('success', sprintf('Base simulada gerada: %d pacientes, %d exames, %d marcações.', $r['pacientes'], $r['exames'], $r['classificacoes']));
 
         return $this->redirectToRoute('app_admin_anamnese_sincronizacao');
+    }
+
+    private function itemEscolhido(Request $request): ?int
+    {
+        return filter_var($request->query->get('item'), FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) ?: null;
     }
 
     /**

@@ -1,0 +1,65 @@
+{#
+    Filtros da anamnese (período, sexo, faixa etária, atendimento, procedimento e médico).
+    Espera: filtros, opcoes, card, acao (URL do formulário), limpar (URL sem filtros) e, opcionalmente, ocultos ({nome: valor}).
+    Ao mudar o período, o campo de datas aparece só em "Personalizado".
+#}
+{% set campo = 'bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-1.5 text-xs text-slate-800 dark:text-slate-200 font-medium focus:ring-2 focus:ring-cyan-500 focus:outline-none' %}
+<form method="GET" action="{{ acao }}" class="{{ card }} p-4 flex flex-wrap items-end gap-3">
+    {% for nome, valor in ocultos|default({}) %}<input type="hidden" name="{{ nome }}" value="{{ valor }}">{% endfor %}
+    <label class="flex flex-col gap-1">
+        <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Período</span>
+        <select name="periodo" id="filtroPeriodo" class="{{ campo }}">
+            {% for v, l in {'30d': 'Últimos 30 dias', '6m': 'Últimos 6 meses', '12m': 'Últimos 12 meses', 'ano': 'Este ano', '24m': 'Últimos 24 meses', 'tudo': 'Todo o histórico', 'personalizado': 'Personalizado…'} %}
+                <option value="{{ v }}" {{ filtros.periodo == v ? 'selected' }}>{{ l }}</option>
+            {% endfor %}
+        </select>
+    </label>
+    <div id="filtroDatas" class="flex items-end gap-2 {{ filtros.periodo != 'personalizado' ? 'hidden' }}">
+        <label class="flex flex-col gap-1">
+            <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">De</span>
+            <input type="date" name="inicio" value="{{ filtros.inicio|date('Y-m-d') }}" min="{{ opcoes.primeiraData }}" class="{{ campo }}">
+        </label>
+        <label class="flex flex-col gap-1">
+            <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Até</span>
+            <input type="date" name="fim" value="{{ filtros.fim|date('Y-m-d') }}" class="{{ campo }}">
+        </label>
+    </div>
+    <label class="flex flex-col gap-1">
+        <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Sexo</span>
+        <select name="sexo" class="{{ campo }}">
+            <option value="">Todos</option>
+            {% for s in ['Feminino', 'Masculino'] %}<option value="{{ s }}" {{ filtros.sexo == s ? 'selected' }}>{{ s }}</option>{% endfor %}
+        </select>
+    </label>
+    <label class="flex flex-col gap-1">
+        <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Faixa etária</span>
+        <select name="faixa" class="{{ campo }}">
+            <option value="">Todas</option>
+            {% for f in opcoes.faixas %}<option value="{{ f }}" {{ filtros.faixa == f ? 'selected' }}>{{ f }} anos</option>{% endfor %}
+        </select>
+    </label>
+    <label class="flex flex-col gap-1">
+        <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Atendimento</span>
+        <select name="tipo" class="{{ campo }}">
+            <option value="">Todos</option>
+            {% for v, l in opcoes.tipos %}<option value="{{ v }}" {{ filtros.tipo == v ? 'selected' }}>{{ l }}</option>{% endfor %}
+        </select>
+    </label>
+    <label class="flex flex-col gap-1 min-w-0">
+        <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Procedimento</span>
+        <select name="procedimento" class="{{ campo }} max-w-[16rem]">
+            <option value="">Todos</option>
+            {% for p in opcoes.procedimentos %}<option value="{{ p }}" {{ filtros.procedimento == p ? 'selected' }}>{{ p }}</option>{% endfor %}
+        </select>
+    </label>
+    <label class="flex flex-col gap-1 min-w-0">
+        <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Médico</span>
+        <select name="medico" class="{{ campo }} max-w-[14rem]">
+            <option value="">Todos</option>
+            {% for id, nome in opcoes.medicos %}<option value="{{ id }}" {{ filtros.medico == id ? 'selected' }}>{{ nome }}</option>{% endfor %}
+        </select>
+    </label>
+    <button type="submit" class="px-4 py-1.5 bg-cyan-600 hover:bg-cyan-700 text-white font-bold text-xs rounded-xl transition shadow-sm">Aplicar</button>
+    <a href="{{ limpar }}" class="px-3 py-1.5 text-xs font-semibold text-slate-500 hover:text-slate-800 dark:hover:text-slate-200">Limpar</a>
+    <span class="ml-auto text-xs text-slate-400 self-center">{{ filtros.inicio|date('d/m/Y') }} a {{ filtros.fim|date('d/m/Y') }}</span>
+</form>
