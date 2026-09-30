@@ -6,6 +6,7 @@ use App\Entity\ClassificacaoEstudo;
 use App\Repository\AnamneseSyncExecucaoRepository;
 use App\Repository\ClassificacaoEstudoRepository;
 use App\Repository\ConfiguracaoIntegracaoRepository;
+use App\Service\AnamneseAnaliseService;
 use App\Service\AnamneseEstatisticaService;
 use App\Service\AnamneseSimuladorService;
 use App\Service\AnamneseSyncService;
@@ -24,6 +25,7 @@ class AnamneseAdminController extends AbstractController
 {
     public function __construct(
         private AnamneseEstatisticaService $estatistica,
+        private AnamneseAnaliseService $analise,
         private ClassificacaoEstudoRepository $classificacaoRepo,
         private AnamneseSyncExecucaoRepository $execucaoRepo,
         private AnamneseSyncService $sync,
@@ -43,10 +45,29 @@ class AnamneseAdminController extends AbstractController
 
         return $this->render('admin/anamnese/painel.html.twig', [
             'dados' => $dados,
+            'analise' => $this->analise->obter($filtros),
             'filtros' => $filtros,
             'opcoes' => $this->estatistica->opcoesFiltro(),
             'ultimaExecucao' => $this->execucaoRepo->findOneBy([], ['id' => 'DESC']),
             'modoSimulacao' => $this->configRepo->getObterOuCriarConfiguracao()->isModoSimulacao(),
+        ]);
+    }
+
+    /** Documento formal em folhas A4 (imprimir / salvar em PDF), com os mesmos filtros do painel. */
+    #[Route('/relatorio', name: 'relatorio', methods: ['GET'])]
+    public function relatorio(Request $request): Response
+    {
+        $filtros = $this->filtros($request);
+
+        return $this->render('admin/anamnese/relatorio.html.twig', [
+            'dados' => $this->estatistica->obterPainel($filtros),
+            'analise' => $this->analise->obter($filtros),
+            'filtros' => $filtros,
+            'tipos' => AnamneseEstatisticaService::TIPOS_ATENDIMENTO,
+            'medicos' => $this->estatistica->opcoesFiltro()['medicos'],
+            'ultimaExecucao' => $this->execucaoRepo->findOneBy([], ['id' => 'DESC']),
+            'modoSimulacao' => $this->configRepo->getObterOuCriarConfiguracao()->isModoSimulacao(),
+            'emitidoEm' => new \DateTimeImmutable(),
         ]);
     }
 
@@ -67,6 +88,33 @@ class AnamneseAdminController extends AbstractController
         $nome = sprintf('anamnese_%s_a_%s.csv', $filtros['inicio']->format('Ymd'), $filtros['fim']->format('Ymd'));
         $resp->headers->set('Content-Type', 'text/csv; charset=utf-8');
         $resp->headers->set('Content-Disposition', 'attachment; filename="' . $nome . '"');
+
+        return $resp;
+    }
+
+    /** Tabela de um bloco das análises complementares, com os mesmos filtros do painel. */
+    #[Route('/exportar-tabela.csv', name: 'exportar_tabela', methods: ['GET'])]
+    public function exportarTabela(Request $request): StreamedResponse
+    {
+        $filtros = $this->filtros($request);
+        $tabelas = $this->analise->tabelas($this->analise->obter($filtros));
+        $nome = (string) $request->query->get('tabela');
+        if (!isset($tabelas[$nome])) {
+            throw $this->createNotFoundException('Tabela desconhecida.');
+        }
+        $linhas = $tabelas[$nome]['linhas'];
+
+        $resp = new StreamedResponse(function () use ($linhas) {
+            $h = fopen('php://output', 'w');
+            fwrite($h, "\xEF\xBB\xBF");
+            foreach ($linhas as $l) {
+                fputcsv($h, $l, ';');
+            }
+            fclose($h);
+        });
+        $arquivo = sprintf('anamnese_%s_%s_a_%s.csv', $nome, $filtros['inicio']->format('Ymd'), $filtros['fim']->format('Ymd'));
+        $resp->headers->set('Content-Type', 'text/csv; charset=utf-8');
+        $resp->headers->set('Content-Disposition', 'attachment; filename="' . $arquivo . '"');
 
         return $resp;
     }
@@ -192,7 +240,7 @@ class AnamneseAdminController extends AbstractController
     }
 
     /**
-     * @return array{inicio: \DateTime, fim: \DateTime, periodo: string, sexo: ?string, faixa: ?string, tipo: ?string, procedimento: ?string}
+     * @return array{inicio: \DateTime, fim: \DateTime, periodo: string, sexo: ?string, faixa: ?string, tipo: ?string, procedimento: ?string, medico: ?int}
      */
     private function filtros(Request $request): array
     {
@@ -234,6 +282,7 @@ class AnamneseAdminController extends AbstractController
             'faixa' => $faixa,
             'tipo' => $tipo,
             'procedimento' => $proc,
+            'medico' => filter_var($q->get('medico'), FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) ?: null,
         ];
     }
 }

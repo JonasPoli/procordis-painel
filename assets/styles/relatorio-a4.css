@@ -1,0 +1,721 @@
+/*
+ * Documento formal em folhas A4 (relatórios para impressão / PDF).
+ * Independente do Tailwind e do layout do admin: cada .folha é uma página.
+ */
+
+:root {
+    color-scheme: light;
+    --papel: #ffffff;
+    --mesa: #e6e8eb;
+    --tinta: #0b0b0b;
+    --tinta2: #3f3e3b;
+    --muted: #6f6e69;
+    --fio: #c3c2b7;
+    --grade: #e1e0d9;
+    --trilho: #eeeeea;
+    --marca: #009355;
+    /* Séries (mesma ordem do painel) */
+    --s1: #2a78d6;
+    --s2: #eb6834;
+    --s3: #1baf7a;
+    --s4: #eda100;
+    --s5: #e87ba4;
+    --neutro: #a8a69f;
+}
+
+@page {
+    size: A4 portrait;
+    margin: 0;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html {
+    background: var(--mesa);
+}
+
+body {
+    margin: 0;
+    color: var(--tinta);
+    font: 9.5pt/1.45 system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+}
+
+/* ---------- Barra de ações (só na tela) ---------- */
+
+.barra-acoes {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 20px;
+    background: #1f2430;
+    color: #fff;
+    font-size: 13px;
+}
+
+.barra-acoes .dica {
+    margin-left: auto;
+    color: #b9bfcc;
+    font-size: 12px;
+}
+
+.barra-acoes a,
+.barra-acoes button {
+    font: inherit;
+    font-weight: 600;
+    border-radius: 8px;
+    padding: 7px 14px;
+    cursor: pointer;
+    text-decoration: none;
+    color: #fff;
+    background: transparent;
+    border: 1px solid #4b5263;
+}
+
+.barra-acoes a:hover,
+.barra-acoes button:hover {
+    background: #2f3645;
+}
+
+.barra-acoes button.principal {
+    background: var(--marca);
+    border-color: var(--marca);
+}
+
+.barra-acoes button.principal:hover {
+    background: #007a47;
+}
+
+.barra-acoes :focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: 2px;
+}
+
+/* ---------- Folha ---------- */
+
+.folha {
+    width: 210mm;
+    min-height: 297mm;
+    margin: 8mm auto;
+    padding: 12mm 16mm 9mm;
+    background: var(--papel);
+    box-shadow: 0 1px 3px rgba(15, 23, 42, .18), 0 10px 30px rgba(15, 23, 42, .12);
+    display: flex;
+    flex-direction: column;
+}
+
+.folha-cab,
+.folha-rodape {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    font-size: 7.5pt;
+    color: var(--muted);
+}
+
+.folha-cab {
+    padding-bottom: 2mm;
+    margin-bottom: 5mm;
+    border-bottom: .6pt solid var(--fio);
+}
+
+.folha-cab b {
+    color: var(--tinta2);
+    font-weight: 600;
+}
+
+.folha-corpo {
+    flex: 1 1 auto;
+}
+
+.folha-rodape {
+    padding-top: 2mm;
+    margin-top: 5mm;
+    border-top: .6pt solid var(--fio);
+}
+
+.folha-rodape .pagina {
+    color: var(--tinta2);
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+/* ---------- Primeira folha: timbre, título e identificação ---------- */
+
+.timbre {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10mm;
+    padding-bottom: 4mm;
+    margin-bottom: 6mm;
+    border-bottom: 1.5pt solid var(--marca);
+}
+
+.timbre img {
+    height: 13mm;
+    width: auto;
+    display: block;
+}
+
+.timbre .orgao {
+    text-align: right;
+    font-size: 8pt;
+    line-height: 1.35;
+    color: var(--muted);
+}
+
+.timbre .orgao b {
+    display: block;
+    font-size: 10pt;
+    color: var(--tinta);
+}
+
+.rotulo-doc {
+    margin: 0;
+    font-size: 8pt;
+    font-weight: 700;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--marca);
+}
+
+h1 {
+    margin: 1.5mm 0 1mm;
+    font-size: 21pt;
+    line-height: 1.15;
+    font-weight: 700;
+    letter-spacing: -.01em;
+}
+
+.subtitulo-doc {
+    margin: 0 0 5mm;
+    font-size: 10pt;
+    color: var(--tinta2);
+}
+
+.ficha {
+    display: grid;
+    grid-template-columns: 38mm 1fr 30mm 1fr;
+    margin: 0 0 5mm;
+    border-top: .6pt solid var(--fio);
+    font-size: 8.5pt;
+}
+
+.ficha dt,
+.ficha dd {
+    margin: 0;
+    padding: 1.6mm 0;
+    border-bottom: .6pt solid var(--grade);
+}
+
+.ficha dt {
+    color: var(--muted);
+}
+
+.ficha dd {
+    padding-right: 4mm;
+    font-weight: 600;
+}
+
+.ficha dd span {
+    font-weight: 400;
+}
+
+.ficha .larga {
+    grid-column: 2 / -1;
+}
+
+.aviso {
+    margin: 0 0 5mm;
+    padding: 2mm 4mm;
+    border: 1pt solid #b45309;
+    background: #fff7e6;
+    color: #7c2d12;
+    font-size: 8.5pt;
+    font-weight: 600;
+}
+
+/* ---------- Texto ---------- */
+
+h2 {
+    display: flex;
+    align-items: baseline;
+    gap: 3mm;
+    margin: 0 0 3.5mm;
+    padding-bottom: 1.2mm;
+    border-bottom: .9pt solid var(--tinta);
+    font-size: 12pt;
+    line-height: 1.25;
+    font-weight: 700;
+}
+
+h2 .num {
+    color: var(--marca);
+    font-variant-numeric: tabular-nums;
+}
+
+* + h2 {
+    margin-top: 6mm;
+}
+
+p {
+    margin: 0 0 3mm;
+    text-align: justify;
+    hyphens: auto;
+}
+
+.vazio {
+    margin: 2mm 0;
+    padding: 5mm;
+    border: .6pt dashed var(--fio);
+    color: var(--muted);
+    text-align: center;
+    font-size: 8.5pt;
+}
+
+.definicoes {
+    margin: 0;
+    font-size: 8pt;
+    line-height: 1.4;
+}
+
+.definicoes dt {
+    float: left;
+    clear: left;
+    width: 40mm;
+    font-weight: 700;
+}
+
+.definicoes dd {
+    margin: 0 0 1.6mm 42mm;
+    color: var(--tinta2);
+    text-align: justify;
+}
+
+/* ---------- Indicadores ---------- */
+
+.indicadores {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    margin: 0 0 5mm;
+    border-top: .6pt solid var(--fio);
+    border-left: .6pt solid var(--fio);
+}
+
+.indicadores div {
+    padding: 2.5mm 4mm 2.7mm;
+    border-right: .6pt solid var(--fio);
+    border-bottom: .6pt solid var(--fio);
+}
+
+.indicadores .rotulo {
+    margin: 0;
+    font-size: 7.5pt;
+    font-weight: 600;
+    color: var(--muted);
+    text-align: left;
+}
+
+.indicadores .valor {
+    margin: .5mm 0 0;
+    font-size: 19pt;
+    line-height: 1.15;
+    font-weight: 700;
+    letter-spacing: -.01em;
+    text-align: left;
+}
+
+.indicadores .obs {
+    margin: .5mm 0 0;
+    font-size: 7.5pt;
+    line-height: 1.3;
+    color: var(--tinta2);
+    text-align: left;
+    hyphens: manual;
+}
+
+.destaques {
+    display: flex;
+    gap: 8mm;
+    margin: 0 0 3mm;
+    font-size: 8.5pt;
+    color: var(--tinta2);
+}
+
+.destaques b {
+    display: block;
+    font-size: 15pt;
+    line-height: 1.2;
+    color: var(--tinta);
+}
+
+/* ---------- Figuras e tabelas ---------- */
+
+figure {
+    margin: 0 0 6mm;
+    break-inside: avoid;
+}
+
+figure:last-child {
+    margin-bottom: 0;
+}
+
+figcaption {
+    margin-bottom: 2mm;
+    font-size: 9pt;
+    font-weight: 600;
+    line-height: 1.3;
+}
+
+figcaption b {
+    font-weight: 700;
+}
+
+.nota {
+    margin: 1.5mm 0 0;
+    font-size: 7.5pt;
+    line-height: 1.35;
+    color: var(--muted);
+    text-align: left;
+    hyphens: manual;
+}
+
+.nota.intro {
+    margin: -1mm 0 4mm;
+    font-size: 8pt;
+    color: var(--tinta2);
+    text-align: justify;
+}
+
+.tab thead th.grupo {
+    text-align: center;
+    border-bottom: .4pt solid var(--fio);
+}
+
+.duas-colunas {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8mm;
+}
+
+.duas-colunas figure {
+    margin-bottom: 2mm;
+}
+
+.legenda {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1mm 5mm;
+    margin: 0 0 1.5mm;
+    padding: 0;
+    list-style: none;
+    font-size: 7.5pt;
+    color: var(--tinta2);
+}
+
+.legenda li {
+    display: inline-flex;
+    align-items: center;
+    gap: 1.5mm;
+}
+
+.legenda svg {
+    width: 2.6mm;
+    height: 2.6mm;
+    flex: none;
+}
+
+.legenda .v {
+    color: var(--muted);
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 8.5pt;
+    line-height: 1.3;
+    font-variant-numeric: tabular-nums;
+}
+
+.tab {
+    border-top: .9pt solid var(--tinta);
+    border-bottom: .9pt solid var(--tinta);
+}
+
+.tab th,
+.tab td {
+    padding: 1.15mm 2mm;
+    text-align: left;
+    vertical-align: middle;
+}
+
+.tab th:first-child,
+.tab td:first-child {
+    padding-left: 0;
+}
+
+.tab th:last-child,
+.tab td:last-child {
+    padding-right: 0;
+}
+
+.tab thead th {
+    border-bottom: .6pt solid var(--tinta);
+    font-size: 7.5pt;
+    font-weight: 700;
+    color: var(--tinta2);
+}
+
+.tab tbody tr + tr td {
+    border-top: .4pt solid var(--grade);
+}
+
+.tab.compacta td {
+    padding-top: .7mm;
+    padding-bottom: .7mm;
+}
+
+.tab .num {
+    text-align: right;
+    white-space: nowrap;
+}
+
+.tab .ordem {
+    width: 7mm;
+    color: var(--muted);
+}
+
+.tab .forte {
+    font-weight: 700;
+}
+
+.tab.fixa {
+    table-layout: fixed;
+}
+
+.tab .barra svg {
+    display: block;
+    width: 100%;
+    height: 1.6mm;
+}
+
+.tab .cat {
+    white-space: nowrap;
+    color: var(--tinta2);
+}
+
+.tab .cat svg {
+    width: 2.2mm;
+    height: 2.2mm;
+    margin-right: 1.2mm;
+    vertical-align: -.2mm;
+}
+
+/* Matriz de calor */
+
+.matriz {
+    table-layout: fixed;
+    border-collapse: separate;
+    border-spacing: .5mm;
+    font-size: 7.5pt;
+}
+
+.matriz col.rot {
+    width: 56mm;
+}
+
+.matriz thead th {
+    padding: 0 .5mm 1mm;
+    vertical-align: bottom;
+    font-weight: 600;
+    line-height: 1.15;
+    color: var(--tinta2);
+    overflow-wrap: anywhere;
+    hyphens: auto;
+}
+
+.matriz thead th small {
+    display: block;
+    font-size: 6.5pt;
+    font-weight: 400;
+    color: var(--muted);
+}
+
+.matriz thead th.sigla {
+    font-size: 8.5pt;
+    font-weight: 700;
+    color: var(--tinta);
+}
+
+.matriz tbody th .sigla {
+    display: inline-block;
+    width: 5mm;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.matriz tbody th {
+    padding-right: 2mm;
+    text-align: left;
+    font-weight: 600;
+    color: var(--tinta2);
+    line-height: 1.15;
+}
+
+.matriz td {
+    height: 5.4mm;
+    padding: 0;
+    text-align: center;
+    font-weight: 600;
+    border-radius: .6mm;
+}
+
+.matriz td.sem {
+    background: var(--trilho);
+    color: var(--muted);
+    font-weight: 400;
+}
+
+/* Nomes das colunas identificadas por letra */
+
+.chave {
+    columns: 2;
+    column-gap: 8mm;
+    margin: 2mm 0 0;
+    padding: 0;
+    list-style: none;
+    font-size: 7.5pt;
+    line-height: 1.5;
+    color: var(--tinta2);
+}
+
+.chave b {
+    display: inline-block;
+    width: 5mm;
+    color: var(--tinta);
+}
+
+/* ---------- Gráficos (SVG) ---------- */
+
+.grafico {
+    display: block;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+    font-family: inherit;
+}
+
+.grafico text {
+    font-size: 9.5px;
+    fill: var(--tinta2);
+}
+
+.grafico .g-eixo {
+    font-size: 9px;
+    fill: var(--muted);
+}
+
+.grafico .g-val {
+    font-weight: 600;
+    fill: var(--tinta);
+    font-variant-numeric: tabular-nums;
+}
+
+.grafico .g-tit {
+    font-weight: 700;
+    fill: var(--tinta);
+}
+
+.grafico .g-claro {
+    font-weight: 600;
+    fill: #ffffff;
+}
+
+.grafico .g-escuro {
+    font-weight: 600;
+    fill: #0d366b;
+}
+
+.grafico .g-peq {
+    font-size: 8.5px;
+}
+
+.grafico .g-grade {
+    stroke: var(--grade);
+    stroke-width: 1;
+}
+
+.grafico .g-base {
+    stroke: var(--fio);
+    stroke-width: 1;
+}
+
+.grafico .g-linha {
+    fill: none;
+    stroke-width: 2;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+}
+
+.grafico .g-ponto {
+    stroke: var(--papel);
+    stroke-width: 2;
+}
+
+.f-s1 { fill: var(--s1); }
+.f-s2 { fill: var(--s2); }
+.f-s3 { fill: var(--s3); }
+.f-s4 { fill: var(--s4); }
+.f-s5 { fill: var(--s5); }
+.f-neutro { fill: var(--neutro); }
+.f-trilho { fill: var(--trilho); }
+
+.t-s1 { stroke: var(--s1); }
+.t-s2 { stroke: var(--s2); }
+.t-s3 { stroke: var(--s3); }
+.t-s4 { stroke: var(--s4); }
+.t-s5 { stroke: var(--s5); }
+
+/* ---------- Tela estreita ---------- */
+
+@media screen and (max-width: 225mm) {
+    .folha {
+        margin: 4mm 0;
+    }
+
+    .barra-acoes .dica {
+        display: none;
+    }
+}
+
+/* ---------- Impressão ---------- */
+
+@media print {
+    html {
+        background: var(--papel);
+    }
+
+    .barra-acoes {
+        display: none;
+    }
+
+    .folha {
+        margin: 0;
+        box-shadow: none;
+        min-height: 0;
+        height: 297mm;
+        break-after: page;
+    }
+
+    .folha:last-of-type {
+        break-after: auto;
+    }
+}

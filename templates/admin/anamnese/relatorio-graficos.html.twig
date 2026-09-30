@@ -1,0 +1,392 @@
+{#
+    Gráficos do relatório A4 da anamnese, desenhados em SVG no servidor.
+    São vetoriais (imprimem nítidos), não dependem de JavaScript e trazem os valores escritos,
+    porque no papel não existe tooltip. Unidades do viewBox ≈ px; largura útil da folha = 680.
+    As cores vêm das classes .f-* / .t-* de assets/styles/relatorio-a4.css.
+#}
+
+{# Texto limitado a n caracteres #}
+{% macro curto(s, n) -%}
+    {{- s|length > n ? s|slice(0, n - 1)|trim ~ '…' : s -}}
+{%- endmacro %}
+
+{# Rótulo de uma marca do eixo #}
+{% macro marca(m, passo) -%}
+    {{- m|number_format(passo < 1 ? 2 : (passo == passo|round ? 0 : 1), ',', '.') -}}
+{%- endmacro %}
+
+{# Barra com a ponta do dado arredondada e a base reta. lado: dir | esq | cima (x,y = canto na linha de base) #}
+{% macro barra(x, y, w, h, lado, classe, dica = '', cor = '') %}
+    {%- if w > 0 and h > 0 -%}
+        {%- set r = lado == 'cima' ? min(3, w / 2, h) : min(3, h / 2, w) -%}
+        {%- if lado == 'dir' -%}
+            {%- set d = 'M' ~ x ~ ',' ~ y ~ ' h' ~ (w - r) ~ ' a' ~ r ~ ',' ~ r ~ ' 0 0 1 ' ~ r ~ ',' ~ r ~ ' v' ~ (h - 2 * r) ~ ' a' ~ r ~ ',' ~ r ~ ' 0 0 1 -' ~ r ~ ',' ~ r ~ ' h-' ~ (w - r) ~ ' z' -%}
+        {%- elseif lado == 'esq' -%}
+            {%- set d = 'M' ~ x ~ ',' ~ y ~ ' h-' ~ (w - r) ~ ' a' ~ r ~ ',' ~ r ~ ' 0 0 0 -' ~ r ~ ',' ~ r ~ ' v' ~ (h - 2 * r) ~ ' a' ~ r ~ ',' ~ r ~ ' 0 0 0 ' ~ r ~ ',' ~ r ~ ' h' ~ (w - r) ~ ' z' -%}
+        {%- else -%}
+            {%- set d = 'M' ~ x ~ ',' ~ y ~ ' v-' ~ (h - r) ~ ' a' ~ r ~ ',' ~ r ~ ' 0 0 1 ' ~ r ~ ',-' ~ r ~ ' h' ~ (w - 2 * r) ~ ' a' ~ r ~ ',' ~ r ~ ' 0 0 1 ' ~ r ~ ',' ~ r ~ ' v' ~ (h - r) ~ ' z' -%}
+        {%- endif -%}
+        <path {% if cor %}fill="{{ cor }}"{% else %}class="{{ classe }}"{% endif %} d="{{ d }}">{% if dica %}<title>{{ dica }}</title>{% endif %}</path>
+    {%- endif -%}
+{% endmacro %}
+
+{# Amostra de cor (SVG, para imprimir mesmo sem "gráficos de fundo") #}
+{% macro amostra(classe, cor = '') -%}
+    <svg viewBox="0 0 10 10" aria-hidden="true"><rect width="10" height="10" rx="2" {% if cor %}fill="{{ cor }}"{% else %}class="{{ classe }}"{% endif %}/></svg>
+{%- endmacro %}
+
+{# Legenda: itens = [{classe | cor, rotulo, extra?}] #}
+{% macro legenda(itens) %}
+    <ul class="legenda">
+        {% for it in itens %}
+            <li>{{ _self.amostra(it.classe|default(''), it.cor|default('')) }}<span>{{ it.rotulo }}{% if it.extra|default('') %} <span class="v">{{ it.extra }}</span>{% endif %}</span></li>
+        {% endfor %}
+    </ul>
+{% endmacro %}
+
+{# Barrinha de proporção para células de tabela (0–100) #}
+{% macro fita(pct, classe = 'f-s1') -%}
+    <svg viewBox="0 0 100 4" preserveAspectRatio="none" aria-hidden="true"><rect class="f-trilho" width="100" height="4"/><rect class="{{ classe }}" width="{{ max(0, min(100, pct))|round(1) }}" height="4"/></svg>
+{%- endmacro %}
+
+{# Barras horizontais de série única. itens = [{nome, valor, classe, dica}] em % #}
+{% macro barras(itens, descricao) %}
+    {% set e = escala_eixo(max(itens|map(i => i.valor)), 5, 100) %}
+    {% set x0 = 232 %}
+    {% set lw = 388 %}
+    {% set rh = 17 %}
+    {% set topo = 4 %}
+    {% set base = topo + itens|length * rh %}
+    <svg class="grafico" viewBox="0 0 680 {{ base + 18 }}" role="img" aria-label="{{ descricao }}">
+        {% for m in e.marcas %}
+            {% set x = (x0 + m / e.max * lw)|round(1) %}
+            <line class="{{ loop.first ? 'g-base' : 'g-grade' }}" x1="{{ x }}" x2="{{ x }}" y1="{{ topo }}" y2="{{ base }}"/>
+            <text class="g-eixo" x="{{ x }}" y="{{ base + 13 }}" text-anchor="middle">{{ _self.marca(m, e.passo) }}%</text>
+        {% endfor %}
+        {% for it in itens %}
+            {% set y = topo + loop.index0 * rh %}
+            {% set w = (it.valor / e.max * lw)|round(1) %}
+            <text x="{{ x0 - 8 }}" y="{{ y + 12 }}" text-anchor="end">{{ _self.curto(it.nome, 44) }}</text>
+            {{ _self.barra(x0, y + 3.5, w, 10, 'dir', it.classe, it.dica) }}
+            <text class="g-val" x="{{ x0 + w + 5 }}" y="{{ y + 12 }}">{{ it.valor|number_format(1, ',', '.') }}%</text>
+        {% endfor %}
+    </svg>
+{% endmacro %}
+
+{# Barras horizontais agrupadas. itens = [{nome, valores[]}] em %; grupos = rótulos; classes = uma por grupo #}
+{% macro barras_agrupadas(itens, grupos, classes, descricao) %}
+    {% set maior = 0 %}
+    {% for it in itens %}{% for v in it.valores %}{% if v is not null and v > maior %}{% set maior = v %}{% endif %}{% endfor %}{% endfor %}
+    {% set e = escala_eixo(maior, 5, 100) %}
+    {% set g = grupos|length %}
+    {% set bt = 8 %}
+    {% set vao = 2 %}
+    {% set bloco = g * bt + (g - 1) * vao %}
+    {% set rh = bloco + 9 %}
+    {% set x0 = 232 %}
+    {% set lw = 388 %}
+    {% set topo = 2 %}
+    {% set base = topo + itens|length * rh %}
+    <svg class="grafico" viewBox="0 0 680 {{ base + 18 }}" role="img" aria-label="{{ descricao }}">
+        {% for m in e.marcas %}
+            {% set x = (x0 + m / e.max * lw)|round(1) %}
+            <line class="{{ loop.first ? 'g-base' : 'g-grade' }}" x1="{{ x }}" x2="{{ x }}" y1="{{ topo }}" y2="{{ base }}"/>
+            <text class="g-eixo" x="{{ x }}" y="{{ base + 13 }}" text-anchor="middle">{{ _self.marca(m, e.passo) }}%</text>
+        {% endfor %}
+        {% for it in itens %}
+            {% set y = topo + loop.index0 * rh + 4.5 %}
+            <text x="{{ x0 - 8 }}" y="{{ (y + bloco / 2 + 3.5)|round(1) }}" text-anchor="end">{{ _self.curto(it.nome, 44) }}</text>
+            {% for v in it.valores %}
+                {% set yb = y + loop.index0 * (bt + vao) %}
+                {% if v is null %}
+                    <text class="g-eixo g-peq" x="{{ x0 + 5 }}" y="{{ yb + 7 }}">—</text>
+                {% else %}
+                    {% set w = (v / e.max * lw)|round(1) %}
+                    {{ _self.barra(x0, yb, w, bt, 'dir', classes[loop.index0], it.nome ~ ' · ' ~ grupos[loop.index0] ~ ': ' ~ v|number_format(1, ',', '.') ~ '%') }}
+                    <text class="g-val g-peq" x="{{ x0 + w + 5 }}" y="{{ yb + 7 }}">{{ v|number_format(1, ',', '.') }}%</text>
+                {% endif %}
+            {% endfor %}
+        {% endfor %}
+    </svg>
+{% endmacro %}
+
+{# Colunas de série única. cores = lista de hex (uma por coluna) ou null; etiquetas = texto sobre cada coluna ou null #}
+{% macro colunas(rotulos, valores, descricao, etiquetas = null, cores = null, tituloX = '', altura = 150) %}
+    {% set n = valores|length %}
+    {% set e = escala_eixo(max(valores), 4, null, true) %}
+    {% set xa = 44 %}
+    {% set xb = 676 %}
+    {% set ya = 16 %}
+    {% set yb = altura - (tituloX ? 34 : 20) %}
+    {% set vaga = (xb - xa) / max(1, n) %}
+    {% set bw = min(24, vaga * 0.62)|round(1) %}
+    {% set salto = (n / 14)|round(0, 'ceil') %}
+    <svg class="grafico" viewBox="0 0 680 {{ altura }}" role="img" aria-label="{{ descricao }}">
+        {% for m in e.marcas %}
+            {% set y = (yb - m / e.max * (yb - ya))|round(1) %}
+            <line class="{{ loop.first ? 'g-base' : 'g-grade' }}" x1="{{ xa }}" x2="{{ xb }}" y1="{{ y }}" y2="{{ y }}"/>
+            <text class="g-eixo" x="{{ xa - 6 }}" y="{{ y + 3 }}" text-anchor="end">{{ _self.marca(m, e.passo) }}</text>
+        {% endfor %}
+        {% for v in valores %}
+            {% set cx = (xa + vaga * (loop.index0 + 0.5))|round(1) %}
+            {% set h = (v / e.max * (yb - ya))|round(1) %}
+            {{ _self.barra((cx - bw / 2)|round(1), yb, bw, h, 'cima', 'f-s1', rotulos[loop.index0] ~ ': ' ~ v|number_format(0, ',', '.'), cores ? cores[loop.index0] : '') }}
+            {% if etiquetas %}
+                <text class="g-val" x="{{ cx }}" y="{{ yb - h - 5 }}" text-anchor="middle">{{ etiquetas[loop.index0] }}</text>
+            {% endif %}
+            {% if loop.index0 % salto == 0 %}
+                <text class="g-eixo" x="{{ cx }}" y="{{ yb + 13 }}" text-anchor="middle">{{ rotulos[loop.index0] }}</text>
+            {% endif %}
+        {% endfor %}
+        {% if tituloX %}
+            <text class="g-eixo" x="{{ (xa + xb) / 2 }}" y="{{ altura - 4 }}" text-anchor="middle">{{ tituloX }}</text>
+        {% endif %}
+    </svg>
+{% endmacro %}
+
+{# Colunas empilhadas em duas partes (base = série 1, topo = neutro), com o % da base sobre a coluna #}
+{% macro colunas_empilhadas(rotulos, baixo, cima, descricao, altura = 170) %}
+    {% set n = rotulos|length %}
+    {% set maior = 0 %}
+    {% for v in baixo %}{% if v + cima[loop.index0] > maior %}{% set maior = v + cima[loop.index0] %}{% endif %}{% endfor %}
+    {% set e = escala_eixo(maior, 4, null, true) %}
+    {% set xa = 44 %}
+    {% set xb = 676 %}
+    {% set ya = 16 %}
+    {% set yb = altura - 20 %}
+    {% set vaga = (xb - xa) / max(1, n) %}
+    {% set bw = min(24, vaga * 0.62)|round(1) %}
+    {% set salto = (n / 14)|round(0, 'ceil') %}
+    <svg class="grafico" viewBox="0 0 680 {{ altura }}" role="img" aria-label="{{ descricao }}">
+        {% for m in e.marcas %}
+            {% set y = (yb - m / e.max * (yb - ya))|round(1) %}
+            <line class="{{ loop.first ? 'g-base' : 'g-grade' }}" x1="{{ xa }}" x2="{{ xb }}" y1="{{ y }}" y2="{{ y }}"/>
+            <text class="g-eixo" x="{{ xa - 6 }}" y="{{ y + 3 }}" text-anchor="end">{{ _self.marca(m, e.passo) }}</text>
+        {% endfor %}
+        {% for a in baixo %}
+            {% set b = cima[loop.index0] %}
+            {% set cx = (xa + vaga * (loop.index0 + 0.5))|round(1) %}
+            {% set x = (cx - bw / 2)|round(1) %}
+            {% set ha = (a / e.max * (yb - ya))|round(1) %}
+            {% set hb = (b / e.max * (yb - ya))|round(1) %}
+            {% set dica = rotulos[loop.index0] ~ ': ' ~ a|number_format(0, ',', '.') ~ ' com, ' ~ b|number_format(0, ',', '.') ~ ' sem' %}
+            {% if hb > 2 %}
+                {# vão de 2 unidades na cor do papel separa as duas partes #}
+                {% if ha > 0 %}<rect class="f-s1" x="{{ x }}" y="{{ yb - ha }}" width="{{ bw }}" height="{{ ha }}"><title>{{ dica }}</title></rect>{% endif %}
+                {{ _self.barra(x, yb - ha - (ha > 0 ? 2 : 0), bw, hb - (ha > 0 ? 2 : 0), 'cima', 'f-neutro', dica) }}
+            {% else %}
+                {{ _self.barra(x, yb, bw, ha, 'cima', 'f-s1', dica) }}
+            {% endif %}
+            {% if n <= 14 and a + b > 0 %}
+                <text class="g-val" x="{{ cx }}" y="{{ yb - ha - hb - 5 }}" text-anchor="middle">{{ (a * 100 / (a + b))|number_format(0) }}%</text>
+            {% endif %}
+            {% if loop.index0 % salto == 0 %}
+                <text class="g-eixo" x="{{ cx }}" y="{{ yb + 13 }}" text-anchor="middle">{{ rotulos[loop.index0] }}</text>
+            {% endif %}
+        {% endfor %}
+    </svg>
+{% endmacro %}
+
+{# Colunas empilhadas com várias séries. series = [{nome, valores[]}]; classes = uma por série; total sobre a coluna #}
+{% macro colunas_pilha(rotulos, series, classes, descricao, altura = 170) %}
+    {% set n = rotulos|length %}
+    {% set totais = [] %}
+    {% for r in rotulos %}
+        {% set i = loop.index0 %}
+        {% set totais = totais|merge([series|reduce((t, s) => t + s.valores[i], 0)]) %}
+    {% endfor %}
+    {% set e = escala_eixo(max(totais), 4, null, true) %}
+    {% set xa = 44 %}
+    {% set xb = 676 %}
+    {% set ya = 16 %}
+    {% set yb = altura - 20 %}
+    {% set vaga = (xb - xa) / max(1, n) %}
+    {% set bw = min(24, vaga * 0.62)|round(1) %}
+    {% set salto = (n / 14)|round(0, 'ceil') %}
+    <svg class="grafico" viewBox="0 0 680 {{ altura }}" role="img" aria-label="{{ descricao }}">
+        {% for m in e.marcas %}
+            {% set y = (yb - m / e.max * (yb - ya))|round(1) %}
+            <line class="{{ loop.first ? 'g-base' : 'g-grade' }}" x1="{{ xa }}" x2="{{ xb }}" y1="{{ y }}" y2="{{ y }}"/>
+            <text class="g-eixo" x="{{ xa - 6 }}" y="{{ y + 3 }}" text-anchor="end">{{ _self.marca(m, e.passo) }}</text>
+        {% endfor %}
+        {% for r in rotulos %}
+            {% set i = loop.index0 %}
+            {% set cx = (xa + vaga * (i + 0.5))|round(1) %}
+            {% set x = (cx - bw / 2)|round(1) %}
+            {% set acumulado = 0 %}
+            {% for s in series %}
+                {% set h = (s.valores[i] / e.max * (yb - ya))|round(1) %}
+                {% if h > 0 %}
+                    {# vão de 2 unidades na cor do papel entre os segmentos #}
+                    <rect class="{{ classes[loop.index0] }}" x="{{ x }}" y="{{ (yb - acumulado - h)|round(1) }}" width="{{ bw }}" height="{{ max(1, h - (acumulado > 0 and h > 3 ? 2 : 0))|round(1) }}"><title>{{ r }} · {{ s.nome }}: {{ s.valores[i] }}</title></rect>
+                {% endif %}
+                {% set acumulado = acumulado + h %}
+            {% endfor %}
+            {% if n <= 14 and totais[i] > 0 %}
+                <text class="g-val" x="{{ cx }}" y="{{ (yb - acumulado - 5)|round(1) }}" text-anchor="middle">{{ totais[i]|number_format(0, ',', '.') }}</text>
+            {% endif %}
+            {% if i % salto == 0 %}
+                <text class="g-eixo" x="{{ cx }}" y="{{ yb + 13 }}" text-anchor="middle">{{ r }}</text>
+            {% endif %}
+        {% endfor %}
+    </svg>
+{% endmacro %}
+
+{# Linhas ao longo dos meses. series = [{nome, valores[] (número ou null)}]; lacunas são atravessadas. unidade '%' limita o eixo a 100 #}
+{% macro linhas(meses, series, classes, descricao, altura = 200, unidade = '%') %}
+    {% set n = meses|length %}
+    {% set maior = 0 %}
+    {% for s in series %}{% for v in s.valores %}{% if v is not null and v > maior %}{% set maior = v %}{% endif %}{% endfor %}{% endfor %}
+    {% set e = escala_eixo(maior, 4, unidade == '%' ? 100 : null) %}
+    {% set xa = 44 %}
+    {% set xb = 676 %}
+    {% set ya = 8 %}
+    {% set yb = altura - 20 %}
+    {% set passo = n > 1 ? (xb - xa - 20) / (n - 1) : 0 %}
+    {% set salto = (n / 12)|round(0, 'ceil') %}
+    <svg class="grafico" viewBox="0 0 680 {{ altura }}" role="img" aria-label="{{ descricao }}">
+        {% for m in e.marcas %}
+            {% set y = (yb - m / e.max * (yb - ya))|round(1) %}
+            <line class="{{ loop.first ? 'g-base' : 'g-grade' }}" x1="{{ xa }}" x2="{{ xb }}" y1="{{ y }}" y2="{{ y }}"/>
+            <text class="g-eixo" x="{{ xa - 6 }}" y="{{ y + 3 }}" text-anchor="end">{{ _self.marca(m, e.passo) }}{{ unidade }}</text>
+        {% endfor %}
+        {% for mes in meses %}
+            {% if loop.index0 % salto == 0 %}
+                <text class="g-eixo" x="{{ (n > 1 ? xa + 10 + loop.index0 * passo : (xa + xb) / 2)|round(1) }}" y="{{ yb + 13 }}" text-anchor="middle">{{ mes }}</text>
+            {% endif %}
+        {% endfor %}
+        {% for s in series %}
+            {% set classe = classes[loop.index0] %}
+            {% set pontos = '' %}
+            {% set fim = null %}
+            {% for v in s.valores %}
+                {% if v is not null %}
+                    {% set x = (n > 1 ? xa + 10 + loop.index0 * passo : (xa + xb) / 2)|round(1) %}
+                    {% set y = (yb - v / e.max * (yb - ya))|round(1) %}
+                    {% set pontos = pontos ~ x ~ ',' ~ y ~ ' ' %}
+                    {% set fim = {x: x, y: y, v: v} %}
+                {% endif %}
+            {% endfor %}
+            {% if fim %}
+                <polyline class="g-linha t-{{ classe }}" points="{{ pontos|trim }}"/>
+                <circle class="g-ponto f-{{ classe }}" cx="{{ fim.x }}" cy="{{ fim.y }}" r="4"><title>{{ s.nome }}: {{ fim.v|number_format(unidade == '%' ? 1 : 2, ',', '.') }}{{ unidade }}</title></circle>
+            {% endif %}
+        {% endfor %}
+    </svg>
+{% endmacro %}
+
+{# Pirâmide etária: Feminino à esquerda, Masculino à direita, faixa mais velha no topo #}
+{% macro piramide(faixas, fem, masc, descricao) %}
+    {% set e = escala_eixo(max(max(fem), max(masc)), 4, null, true) %}
+    {% set xe = 300 %}
+    {% set xd = 380 %}
+    {% set lw = 240 %}
+    {% set topo = 20 %}
+    {% set rh = 19 %}
+    {% set n = faixas|length %}
+    {% set base = topo + n * rh %}
+    <svg class="grafico" viewBox="0 0 680 {{ base + 18 }}" role="img" aria-label="{{ descricao }}">
+        <rect class="f-s1" x="{{ xe - 9 }}" y="3" width="9" height="9" rx="2"/>
+        <text class="g-tit" x="{{ xe - 14 }}" y="11" text-anchor="end">Feminino</text>
+        <rect class="f-s2" x="{{ xd }}" y="3" width="9" height="9" rx="2"/>
+        <text class="g-tit" x="{{ xd + 14 }}" y="11">Masculino</text>
+        <text class="g-eixo" x="340" y="11" text-anchor="middle">Idade</text>
+        {% for m in e.marcas %}
+            {% set d = (m / e.max * lw)|round(1) %}
+            <line class="{{ loop.first ? 'g-base' : 'g-grade' }}" x1="{{ xe - d }}" x2="{{ xe - d }}" y1="{{ topo }}" y2="{{ base }}"/>
+            <line class="{{ loop.first ? 'g-base' : 'g-grade' }}" x1="{{ xd + d }}" x2="{{ xd + d }}" y1="{{ topo }}" y2="{{ base }}"/>
+            <text class="g-eixo" x="{{ xe - d }}" y="{{ base + 13 }}" text-anchor="middle">{{ _self.marca(m, e.passo) }}</text>
+            <text class="g-eixo" x="{{ xd + d }}" y="{{ base + 13 }}" text-anchor="middle">{{ _self.marca(m, e.passo) }}</text>
+        {% endfor %}
+        {% for i in (n - 1)..0 %}
+            {% set y = topo + loop.index0 * rh %}
+            {% set wf = (fem[i] / e.max * lw)|round(1) %}
+            {% set wm = (masc[i] / e.max * lw)|round(1) %}
+            <text x="340" y="{{ y + 13 }}" text-anchor="middle">{{ faixas[i] }}</text>
+            {{ _self.barra(xe, y + 3.5, wf, 12, 'esq', 'f-s1', 'Feminino, ' ~ faixas[i] ~ ' anos: ' ~ fem[i]|number_format(0, ',', '.')) }}
+            <text class="g-val" x="{{ xe - wf - 5 }}" y="{{ y + 13 }}" text-anchor="end">{{ fem[i]|number_format(0, ',', '.') }}</text>
+            {{ _self.barra(xd, y + 3.5, wm, 12, 'dir', 'f-s2', 'Masculino, ' ~ faixas[i] ~ ' anos: ' ~ masc[i]|number_format(0, ',', '.')) }}
+            <text class="g-val" x="{{ xd + wm + 5 }}" y="{{ y + 13 }}">{{ masc[i]|number_format(0, ',', '.') }}</text>
+        {% endfor %}
+    </svg>
+{% endmacro %}
+
+{# Barras 100% empilhadas. series[i][linha] em %; cores[i] = hex; claros[i] = texto branco sobre a cor #}
+{% macro barras_100(linhas, rotulos, series, cores, claros, descricao) %}
+    {% set x0 = 78 %}
+    {% set lw = 590 %}
+    {% set topo = 2 %}
+    {% set rh = 21 %}
+    {% set base = topo + linhas|length * rh %}
+    <svg class="grafico" viewBox="0 0 680 {{ base + 18 }}" role="img" aria-label="{{ descricao }}">
+        {% for m in [0, 25, 50, 75, 100] %}
+            {% set x = x0 + m / 100 * lw %}
+            <line class="{{ loop.first ? 'g-base' : 'g-grade' }}" x1="{{ x }}" x2="{{ x }}" y1="{{ topo }}" y2="{{ base }}"/>
+            <text class="g-eixo" x="{{ x }}" y="{{ base + 13 }}" text-anchor="middle">{{ m }}%</text>
+        {% endfor %}
+        {% for linha in linhas %}
+            {% set li = loop.index0 %}
+            {% set y = topo + li * rh %}
+            {% set acumulado = 0 %}
+            <text x="{{ x0 - 8 }}" y="{{ y + 14 }}" text-anchor="end">{{ linha }}</text>
+            {% for r in rotulos %}
+                {% set v = series[loop.index0][li] %}
+                {% set x = (x0 + acumulado / 100 * lw)|round(1) %}
+                {% set w = (v / 100 * lw)|round(1) %}
+                {% if w > 2 %}
+                    <rect fill="{{ cores[loop.index0] }}" x="{{ x }}" y="{{ y + 3.5 }}" width="{{ w - 2 }}" height="14"><title>{{ linha }} · {{ r }}: {{ v|number_format(1, ',', '.') }}%</title></rect>
+                    {% if w >= 30 %}
+                        <text class="g-peq {{ claros[loop.index0] ? 'g-claro' : 'g-escuro' }}" x="{{ (x + (w - 2) / 2)|round(1) }}" y="{{ y + 13.5 }}" text-anchor="middle">{{ v|number_format(0) }}%</text>
+                    {% endif %}
+                {% endif %}
+                {% set acumulado = acumulado + v %}
+            {% endfor %}
+        {% endfor %}
+    </svg>
+{% endmacro %}
+
+{#
+    Matriz de calor em tabela. linhas = [{nome, valores[] (% ou null)}]; um só matiz, do claro ao escuro.
+    modo: '' = nome da coluna no cabeçalho | 'numerada' = matriz quadrada, colunas repetem o número das linhas
+          | 'chave' = colunas identificadas por letra, com a lista de nomes abaixo (nomes longos)
+#}
+{% macro matriz(linhas, colunas, totais = null, diagonal = false, modo = '') %}
+    {% set rampa = ['#cde2fb', '#b7d3f6', '#9ec5f4', '#86b6ef', '#6da7ec', '#5598e7', '#3987e5', '#2a78d6', '#256abf', '#1c5cab', '#184f95', '#104281', '#0d366b'] %}
+    {% set letras = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' %}
+    {% set maior = 1 %}
+    {% for l in linhas %}{% for v in l.valores %}{% if v is not null and v > maior %}{% set maior = v %}{% endif %}{% endfor %}{% endfor %}
+    <table class="matriz">
+        <colgroup><col class="rot">{% for c in colunas %}<col>{% endfor %}</colgroup>
+        <thead>
+            <tr>
+                <th></th>
+                {% for c in colunas %}
+                    <th scope="col"{% if modo %} class="sigla" title="{{ c }}"{% endif %}>
+                        {{- modo == 'numerada' ? loop.index : (modo == 'chave' ? letras|slice(loop.index0, 1) : c) -}}
+                        {% if totais is not null %}<small>n = {{ totais[loop.index0]|number_format(0, ',', '.') }}</small>{% endif %}
+                    </th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for l in linhas %}
+                <tr>
+                    <th scope="row" title="{{ l.nome }}">{% if modo == 'numerada' %}<span class="sigla">{{ loop.index }}</span>{% endif %}{{ l.nome }}</th>
+                    {% for v in l.valores %}
+                        {% if v is null %}
+                            <td class="sem">{{ diagonal ? '—' : '' }}</td>
+                        {% else %}
+                            {% set passo = ((0.05 + v / maior * 0.95) * 12)|round %}
+                            <td style="background: {{ rampa[passo] }}; color: {{ passo >= 6 ? '#ffffff' : '#0d366b' }}" title="{{ l.nome }} · {{ colunas[loop.index0] }}: {{ v|number_format(1, ',', '.') }}%">{{ v|number_format(0) }}%</td>
+                        {% endif %}
+                    {% endfor %}
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% if modo == 'chave' %}
+        <ol class="chave">
+            {% for c in colunas %}<li><b>{{ letras|slice(loop.index0, 1) }}</b>{{ c }}</li>{% endfor %}
+        </ol>
+    {% endif %}
+{% endmacro %}
