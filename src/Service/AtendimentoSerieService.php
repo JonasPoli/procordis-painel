@@ -58,20 +58,6 @@ class AtendimentoSerieService
         });
     }
 
-    /** Totais por categoria em todo o histórico (cards de destaque). */
-    public function totaisPorCategoria(bool $apenasSite = true): array
-    {
-        return $this->conn->fetchAllAssociative(
-            'SELECT c.slug, c.nome, c.cor, COUNT(a.id) total
-             FROM atendimento_categoria c
-             LEFT JOIN atendimento_procedimento p ON p.categoria_id = c.id
-             LEFT JOIN atendimento a ON a.procedimento_id = p.id AND a.realizado = 1
-             WHERE (? = 0 OR c.exibir_no_site = 1)
-             GROUP BY c.id ORDER BY c.ordem, c.nome',
-            [(int) $apenasSite]
-        );
-    }
-
     private function montar(string $agrupamento, \DateTimeImmutable $de, \DateTimeImmutable $ate, bool $apenasSite, ?\DateTimeImmutable $primeira, ?\DateTimeImmutable $ultima): array
     {
         $categorias = $this->conn->fetchAllAssociative(

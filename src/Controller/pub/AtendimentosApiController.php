@@ -53,10 +53,11 @@ class AtendimentosApiController extends AbstractController
         if ($request->isMethod('OPTIONS')) {
             return $this->cors($request, new JsonResponse(null, 204));
         }
+        // Totais por categoria saem da mesma série anual do total, para nunca divergirem.
         $anual = $this->series->serie('ano');
 
         return $this->publico($request, [
-            'categorias' => array_map(fn ($c) => ['slug' => $c['slug'], 'nome' => $c['nome'], 'cor' => $c['cor'], 'total' => (int) $c['total']], $this->series->totaisPorCategoria()),
+            'categorias' => array_map(fn ($c) => ['slug' => $c['slug'], 'nome' => $c['nome'], 'cor' => $c['cor'], 'total' => $c['total']], $anual['series']),
             'total' => $anual['total']['total'],
             'historico' => $anual['historico'],
             'atualizadoEm' => $anual['atualizadoEm'],

@@ -41,6 +41,7 @@
 - **pageSize maior que 500 é respeitado** (30 dias: 500 com pageSize=500, 1.058 com 20.000). Máximo observado em um dia: 104 → a carga dia a dia com pageSize 1000 é completa.
 - **Formato real do `Listar`:** lista de objetos; `status` vem como **texto** `'ATIVO'`/`'CANCELADO'` (no `ListarResumido` é `-1`/`0`); flags (`consulta`, `encaixe`, `particular`) vêm como `0`/`-1`; `retorno` como `'SIM'`/`'NÃO'`; datas `dd/MM/yyyy HH:mm`. `codigoTuss` e `codigo` vêm sempre nulos. `medico.especialidade` às vezes traz um nome de pessoa.
 - **Procedimentos em uso:** 5 Consulta médica ambulatorial, 39 Consulta de Retorno, 6 Ecocardiograma transtorácico, 7 Eletrocardiograma, 10 Teste Ergométrico, 8 Holter, 9 Mapa, 40 Retorno Mapa, 41 Retorno Holter.
+- **Histórico completo carregado em 06/10/2026:** 5.179 dias (08/2012 a 05/10/2026), 51.597 agendamentos. Antes de 24/11/2022 o eco era lançado como **17 Laudo de Ecocardiograma**; a partir dessa data como **6 Ecocardiograma transtorácico** (sem sobreposição: nenhum paciente com os dois no mesmo dia) — ambos na categoria Ecocardiogramas. Até 2022 a base tem praticamente só ecocardiogramas (carga migrada); consultas, ECG, Holter e MAPA aparecem a partir do fim de 2022 e o Teste Ergométrico a partir de 09/2025.
 - **Estágios:** realizado é quase sempre 5 (Liberado); 4 (Atendido) é raro. Há muitos agendamentos antigos parados em 1 (Agendado) que não contam.
 - `ultimaDataHora` devolveu só agendamentos do mês corrente (janela padrão) — não serve para reconciliar meses antigos; a reconciliação é por recaptura dos últimos dias.
 - `ProcedPlanoOp/Listar` sem filtros retorna vazio; o catálogo de procedimentos é montado a partir dos próprios agendamentos.
@@ -78,6 +79,10 @@ Somente leitura, sem autenticação, só agregados. CORS liberado para as origen
 |---|---|---|
 | `GET /api/publico/atendimentos/serie` | `agrupamento=dia\|mes\|ano` (padrão `mes`), `de`, `ate` (`AAAA-MM-DD`; diário limitado a 1.100 dias, padrão últimos 90) | `periodos`, `rotulos`, `series[]` (`slug`, `nome`, `cor`, `total`, `valores[]`), `total`, `pacientes` (distintos por período), `historico`, `atualizadoEm`, `regra` |
 | `GET /api/publico/atendimentos/resumo` | — | Totais por categoria em todo o histórico, total geral, primeira/última data |
+
+### A.3.6. Página pública no site
+
+`https://procordis.org.br/transparencia/atendimentos` (projeto `procordis-site`, link destacado no Portal da Transparência). O site lê esta API por um proxy próprio (`/transparencia/atendimentos/dados`) com cache de 15 min e reserva de 7 dias se o painel cair. Mostra o total e os totais por tipo, o gráfico geral de linhas (dia/mês/ano, períodos, liga e desliga de tipos), um gráfico por tipo e a tabela de histórico com download em CSV. O mês/ano em andamento aparece tracejado e fica fora da variação. URL da API no site: `PAINEL_ATENDIMENTOS_API`.
 
 ### A.3.6. Admin
 
