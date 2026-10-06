@@ -68,7 +68,7 @@ class MedwareSondagemServiceTest extends TestCase
         $valores = MedwareSondagemService::valoresSeguros($this->itens());
 
         $this->assertSame(['4' => 1, '5' => 1], $valores['codStatusAgendamento']);
-        $this->assertSame(["'CARDIOLOGIA'" => 2], $valores['medico.especialidade']);
+        $this->assertArrayNotHasKey('medico.especialidade', $valores, 'Na API real o campo às vezes traz nome de médico');
         $this->assertArrayHasKey("'ELETROCARDIOGRAMA'", $valores['procedimentoPlanoOperadora.descricaoProcedimento']);
         $this->assertArrayNotHasKey('paciente.nome', $valores);
     }

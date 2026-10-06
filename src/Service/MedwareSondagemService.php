@@ -21,7 +21,7 @@ class MedwareSondagemService
         'procedimentoPlanoOperadora.consulta', 'procedimentoPlanoOperadora.particular',
         'procedimentoPlanoOperadora.tipoProcedimento', 'procedimentoPlanoOperadora.descricaoPlano',
         'procedimentoPlanoOperadora.descricaoOperadora', 'procedimentoPlanoOperadora.descricaoPlanoOperadora',
-        'medico.especialidade', 'paciente.sexo',
+        'paciente.sexo',
     ];
 
     private const PAGE_SIZE_GRANDE = 20000;

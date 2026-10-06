@@ -14,6 +14,7 @@ use Doctrine\ORM\EntityManagerInterface;
  *   (o servidor pode estar ignorando o pageSize pedido).
  * - Dia só fica "completo" sem truncamento; dias completos são pulados nas próximas execuções (retomada).
  * - Falha nunca apaga um dia já capturado por completo.
+ * - Toda gravação de conteúdo zera processado_em, para a consolidação (AtendimentoConsolidacaoService) refazer o dia.
  *
  * Grava via DBAL para não acumular payloads grandes no EntityManager.
  */
@@ -140,7 +141,7 @@ class AtendimentoHistoricoService
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
              ON DUPLICATE KEY UPDATE payload = VALUES(payload), hash_conteudo = VALUES(hash_conteudo), qtd_registros = VALUES(qtd_registros),
                 page_size = VALUES(page_size), completo = VALUES(completo), http_status = VALUES(http_status), erro = VALUES(erro),
-                tempo_ms = VALUES(tempo_ms), tentativas = VALUES(tentativas), capturado_em = VALUES(capturado_em)',
+                tempo_ms = VALUES(tempo_ms), tentativas = VALUES(tentativas), capturado_em = VALUES(capturado_em), processado_em = NULL',
             [$data, $corpo, $corpo !== null ? hash('sha256', $corpo) : null, $qtd, $pageSize, (int) $completo, $status, $erro, $tempoMs, $tentativas, (new \DateTime())->format('Y-m-d H:i:s')]
         );
     }

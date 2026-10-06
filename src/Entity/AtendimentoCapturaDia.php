@@ -55,6 +55,10 @@ class AtendimentoCapturaDia
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
     private \DateTimeInterface $capturadoEm;
 
+    /** Quando o payload foi consolidado em atendimento; nulo ou anterior a capturadoEm = pendente. */
+    #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
+    private ?\DateTimeInterface $processadoEm = null;
+
     public function __construct()
     {
         $this->data = new \DateTime('today');
@@ -127,5 +131,10 @@ class AtendimentoCapturaDia
     public function getCapturadoEm(): \DateTimeInterface
     {
         return $this->capturadoEm;
+    }
+
+    public function getProcessadoEm(): ?\DateTimeInterface
+    {
+        return $this->processadoEm;
     }
 }

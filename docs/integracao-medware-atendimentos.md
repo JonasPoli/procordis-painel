@@ -35,22 +35,61 @@
 4. **Upsert por `codAgendamento`**; períodos registrados como concluídos só após persistência integral.
 5. **Regra de contagem** (validar com a clínica): `status = -1` (ativo) e `codStatusAgendamento` 4 (Atendido) ou 5 (Liberado), agrupado por código do procedimento e mapeado para categorias (Consulta, ECG, ECO, Ergométrico…).
 
-### A.3.1. Comandos
+### A.3.1. Resultado da sondagem em produção (06/10/2026)
+
+- **Histórico disponível desde 08/2012.** Volume por ano (ListarResumido): 2012–2021 entre 140 e 1.600 agendamentos/ano (todos Liberados — carga migrada); 2023: 7,2 mil; 2024: 12,6 mil; 2025: 18,2 mil; 2026 até out.: 13,6 mil.
+- **pageSize maior que 500 é respeitado** (30 dias: 500 com pageSize=500, 1.058 com 20.000). Máximo observado em um dia: 104 → a carga dia a dia com pageSize 1000 é completa.
+- **Formato real do `Listar`:** lista de objetos; `status` vem como **texto** `'ATIVO'`/`'CANCELADO'` (no `ListarResumido` é `-1`/`0`); flags (`consulta`, `encaixe`, `particular`) vêm como `0`/`-1`; `retorno` como `'SIM'`/`'NÃO'`; datas `dd/MM/yyyy HH:mm`. `codigoTuss` e `codigo` vêm sempre nulos. `medico.especialidade` às vezes traz um nome de pessoa.
+- **Procedimentos em uso:** 5 Consulta médica ambulatorial, 39 Consulta de Retorno, 6 Ecocardiograma transtorácico, 7 Eletrocardiograma, 10 Teste Ergométrico, 8 Holter, 9 Mapa, 40 Retorno Mapa, 41 Retorno Holter.
+- **Estágios:** realizado é quase sempre 5 (Liberado); 4 (Atendido) é raro. Há muitos agendamentos antigos parados em 1 (Agendado) que não contam.
+- `ultimaDataHora` devolveu só agendamentos do mês corrente (janela padrão) — não serve para reconciliar meses antigos; a reconciliação é por recaptura dos últimos dias.
+- `ProcedPlanoOp/Listar` sem filtros retorna vazio; o catálogo de procedimentos é montado a partir dos próprios agendamentos.
+
+### A.3.2. Regra de contagem e categorias
+
+- **Atendimento realizado** = `status` ativo **e** `codStatusAgendamento` 4 ou 5, contado pela **data agendada** (`Atendimento::ESTAGIOS_REALIZADOS`).
+- Cada procedimento recebe uma categoria automaticamente pela descrição (`AtendimentoConsolidacaoService::classificar`); o admin pode trocar (vira manual).
+- Categorias padrão: Consultas (inclui Consulta de Retorno), Ecocardiogramas, Eletrocardiogramas (ECG), Testes ergométricos (esteira), Holter 24h, MAPA, Outros procedimentos e **Retorno de Holter/MAPA (retirada)** — esta oculta no site para não contar o mesmo exame duas vezes (**validar com a clínica**).
+
+### A.3.3. Comandos
 
 | Comando | O que faz |
 |---|---|
-| `php bin/console app:medware:sondar` | Sondagem somente leitura: estrutura do retorno, pageSize aceito, cancelados, profundidade do histórico, volume por ano, `ultimaDataHora` e catálogo de procedimentos. Não grava no banco nem mostra dados pessoais; salva o relatório em `var/medware-sondagem/`. |
-| `php bin/console app:atendimentos:capturar-historico --de=2012-01-01` | Carga bruta dia a dia em `atendimento_captura_dia` (um registro por dia). Retoma de onde parou; dia truncado é refeito com pageSize maior. |
-| `php bin/console app:atendimentos:capturar-historico --recentes=30` | Rotina diária: recaptura os últimos 30 dias até ontem (pega mudanças de status e cancelamentos). |
-| `php bin/console app:atendimentos:capturar-historico --resumo` | Mostra dias capturados, completos e total de registros. |
+| `php bin/console app:medware:sondar` | Sondagem somente leitura (estrutura, pageSize, cancelados, profundidade, volume por ano, `ultimaDataHora`, procedimentos). Sem dados pessoais; relatório em `var/medware-sondagem/`. |
+| `php bin/console app:atendimentos:capturar-historico --de=2012-08-01` | Carga bruta dia a dia em `atendimento_captura_dia`. Retoma de onde parou; dia truncado é refeito com pageSize maior. |
+| `php bin/console app:atendimentos:capturar-historico --recentes=45` | Rotina diária: recaptura os últimos 45 dias até ontem (mudanças de estágio, cancelamentos, reagendamentos). |
+| `php bin/console app:atendimentos:capturar-historico --resumo` | Dias capturados, completos e total de registros. |
+| `php bin/console app:atendimentos:consolidar [--todos]` | Consolida os dias capturados em `atendimento` (um registro por `codAgendamento`, sem nome/CPF) e no catálogo de procedimentos. |
+
+### A.3.4. Cron (produção)
+
+```cron
+# Painel de atendimentos: recaptura 45 dias e consolida (madrugada)
+40 4 * * * cd /home/runcloud/webapps/procordis-painel && /usr/bin/flock -n var/atendimentos.lock sh -c '/RunCloud/Packages/php82rc/bin/php bin/console app:atendimentos:capturar-historico --recentes=45 --env=prod --no-debug; /RunCloud/Packages/php82rc/bin/php bin/console app:atendimentos:consolidar --env=prod --no-debug' >> var/log/atendimentos-sync.log 2>&1
+# Domingo: recaptura o último ano inteiro (correções tardias)
+10 3 * * 0 cd /home/runcloud/webapps/procordis-painel && /usr/bin/flock -n var/atendimentos.lock sh -c '/RunCloud/Packages/php82rc/bin/php bin/console app:atendimentos:capturar-historico --recentes=400 --env=prod --no-debug; /RunCloud/Packages/php82rc/bin/php bin/console app:atendimentos:consolidar --env=prod --no-debug' >> var/log/atendimentos-sync.log 2>&1
+```
+
+### A.3.5. API pública (consumida pelo site)
+
+Somente leitura, sem autenticação, só agregados. CORS liberado para as origens em `ATENDIMENTOS_CORS_ORIGENS` (`.env`). `Cache-Control: public, max-age=900`.
+
+| Endpoint | Parâmetros | Retorno |
+|---|---|---|
+| `GET /api/publico/atendimentos/serie` | `agrupamento=dia\|mes\|ano` (padrão `mes`), `de`, `ate` (`AAAA-MM-DD`; diário limitado a 1.100 dias, padrão últimos 90) | `periodos`, `rotulos`, `series[]` (`slug`, `nome`, `cor`, `total`, `valores[]`), `total`, `pacientes` (distintos por período), `historico`, `atualizadoEm`, `regra` |
+| `GET /api/publico/atendimentos/resumo` | — | Totais por categoria em todo o histórico, total geral, primeira/última data |
+
+### A.3.6. Admin
+
+Menu **Atendimentos Realizados** (`/admin/atendimentos`): indicadores, gráfico de linhas por tipo (dia/mês/ano), tabela de histórico, situação da captura e botão "Atualizar agora"; telas de **Procedimentos** (tipo de cada procedimento) e **Categorias** (nome, cor, ordem, exibir no site).
 
 ### A.4. Pendências
 
-- [ ] Rodar a sondagem em produção (pedir autorização antes de acessar o servidor).
-- [ ] Confirmar com a clínica quais estágios contam como realizado e qual data usar (agendada × chegada × liberação).
-- [ ] Montar a tabela procedimento → categoria.
+- [x] Rodar a sondagem em produção (06/10/2026, resultado em A.3.1).
+- [ ] Confirmar com a clínica: estágios 4 e 5 como realizado, data agendada como referência e se Retorno Holter/MAPA é só retirada do aparelho.
+- [x] Montar a tabela procedimento → categoria (automática + ajuste no admin).
 - [ ] Verificar se procedimentos da mesma visita viram agendamentos separados e se há procedimentos lançados fora da agenda.
-- [ ] Definir o formato do compartilhamento painel → site.
+- [x] Definir o formato do compartilhamento painel → site (API pública, A.3.5).
 - [ ] Levantar quais documentos da transparência têm números de atendimento e de quais períodos.
 
 ---
