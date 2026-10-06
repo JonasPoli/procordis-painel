@@ -12,7 +12,7 @@
 | Parte | Projeto | Onde |
 |---|---|---|
 | Carga, sincronização diária e base de dados | **procordis-painel** (este repositório) | Produção: `ssh runcloud@67.205.162.23` → `~/webapps/procordis-painel` |
-| Página pública com gráficos e tabela de histórico | **site** `app-procordis` | https://procordis.org.br/ — produção: `~/webapps/app-procordis` (mesmo servidor); local: `~/work/procordis-site` |
+| Página pública com gráficos e tabela de histórico | **site** `procordis-site` | https://procordis.org.br/transparencia/atendimentos — o domínio é servido por `~/webapps/app-procordis-producao` (mesmo servidor; `~/webapps/app-procordis` é outra cópia do repositório); local: `~/work/procordis-site` |
 | Dados que a API não fornecer (histórico antigo, números consolidados) | Extraídos e sistematizados dos documentos de https://procordis.org.br/transparencia/ | Importados no procordis-painel |
 
 - O painel compartilha com o site **apenas dados agregados** (totais por período e categoria), sem dados pessoais de pacientes.
@@ -82,7 +82,7 @@ Somente leitura, sem autenticação, só agregados. CORS liberado para as origen
 
 ### A.3.6. Página pública no site
 
-`https://procordis.org.br/transparencia/atendimentos` (projeto `procordis-site`, link destacado no Portal da Transparência). O site lê esta API por um proxy próprio (`/transparencia/atendimentos/dados`) com cache de 15 min e reserva de 7 dias se o painel cair. Mostra o total e os totais por tipo, o gráfico geral de linhas (dia/mês/ano, períodos, liga e desliga de tipos), um gráfico por tipo e a tabela de histórico com download em CSV. O mês/ano em andamento aparece tracejado e fica fora da variação. URL da API no site: `PAINEL_ATENDIMENTOS_API`.
+`https://procordis.org.br/transparencia/atendimentos` (projeto `procordis-site`, link destacado no Portal da Transparência). O site lê esta API por um proxy próprio (`/transparencia/atendimentos/dados`) com cache de 15 min e reserva de 7 dias se o painel cair. Mostra o total e os totais por tipo, o gráfico geral de linhas (dia/mês/ano, períodos, liga e desliga de tipos), um gráfico por tipo e a tabela de histórico com download em CSV. O mês/ano em andamento aparece tracejado e fica fora da variação. URL da API no site: `PAINEL_ATENDIMENTOS_API`. Publicado em 06/10/2026 (procordis-site PR #4); no mesmo deploy o `.env.local` do site ao vivo passou de `APP_ENV=env` para `APP_ENV=prod` (backup `.env.local.bak-20261006213159`), o que tirou as páginas de erro em modo debug.
 
 ### A.3.6. Admin
 
