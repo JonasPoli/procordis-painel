@@ -1,0 +1,209 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}Atendimentos realizados{% endblock %}
+
+{% set card = 'bg-white/80 dark:bg-slate-900/80 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm' %}
+{% set campo = 'bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-1.5 text-xs text-slate-800 dark:text-slate-200 font-medium focus:ring-2 focus:ring-cyan-500 focus:outline-none' %}
+{% set botao = 'px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-xl text-xs flex items-center gap-2 transition' %}
+{% set i = indicadores %}
+
+{% block body %}
+<div class="space-y-6">
+    {% for label, messages in app.flashes %}
+        {% for message in messages %}
+            <sl-alert variant="{{ label == 'success' ? 'success' : 'warning' }}" open closable>
+                <sl-icon slot="icon" name="{{ label == 'success' ? 'check-circle' : 'exclamation-triangle' }}"></sl-icon>
+                {{ message }}
+            </sl-alert>
+        {% endfor %}
+    {% endfor %}
+
+    {# ---------- Cabeçalho ---------- #}
+    <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-4 {{ card }} p-5">
+        <div>
+            <div class="flex items-center gap-2">
+                <sl-icon name="graph-up-arrow" class="text-cyan-500 text-2xl"></sl-icon>
+                <h1 class="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Atendimentos realizados</h1>
+            </div>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                Consultas e exames vindos da API Medware. Conta agendamentos ativos com estágio <b>Atendido</b> ou <b>Liberado</b>, pela data agendada. É a mesma base do gráfico público do site.
+            </p>
+            <p class="text-xs text-slate-400 mt-1">
+                Histórico de {{ serie.historico.primeiraData ? serie.historico.primeiraData|date('d/m/Y') : '—' }} a {{ serie.historico.ultimaData ? serie.historico.ultimaData|date('d/m/Y') : '—' }}
+                · Última consolidação: {{ captura.ultima_consolidacao ? captura.ultima_consolidacao|date('d/m/Y H:i') : 'nunca' }}
+            </p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+            <a href="{{ path('app_admin_atendimentos_procedimentos') }}" class="{{ botao }}"><sl-icon name="list-check"></sl-icon> Procedimentos</a>
+            <a href="{{ path('app_admin_atendimentos_categorias') }}" class="{{ botao }}"><sl-icon name="palette"></sl-icon> Categorias</a>
+            <a href="{{ path('api_publico_atendimentos_serie', {agrupamento: agrupamento}) }}" target="_blank" rel="noopener" class="{{ botao }}"><sl-icon name="braces"></sl-icon> API pública</a>
+            <form method="POST" action="{{ path('app_admin_atendimentos_atualizar') }}" class="flex items-center gap-2" onsubmit="this.querySelector('button').disabled = true; this.querySelector('button').textContent = 'Atualizando…';">
+                <input type="hidden" name="_token" value="{{ csrf_token('atendimentos_atualizar') }}">
+                <select name="dias" class="{{ campo }}" title="Quantos dias recapturar">
+                    {% for d in [7, 15, 30, 60] %}<option value="{{ d }}">Últimos {{ d }} dias</option>{% endfor %}
+                </select>
+                <button type="submit" class="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white font-bold rounded-xl text-xs flex items-center gap-2 shadow-sm transition">
+                    <sl-icon name="arrow-repeat"></sl-icon> Atualizar agora
+                </button>
+            </form>
+        </div>
+    </div>
+
+    {# ---------- Indicadores ---------- #}
+    <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
+        {% for k in [
+            {rotulo: 'Realizados (histórico)', valor: i.realizados_total ?? 0, icone: 'clipboard2-check', cor: 'text-cyan-500'},
+            {rotulo: 'Realizados (12 meses)', valor: i.realizados_12m ?? 0, icone: 'calendar3', cor: 'text-emerald-500'},
+            {rotulo: 'Pacientes distintos (12 meses)', valor: i.pacientes_12m ?? 0, icone: 'people', cor: 'text-violet-500'},
+            {rotulo: 'Faltas (12 meses)', valor: i.faltas_12m ?? 0, icone: 'person-x', cor: 'text-amber-500'},
+            {rotulo: 'Cancelados (12 meses)', valor: i.cancelados_12m ?? 0, icone: 'x-circle', cor: 'text-rose-500'},
+        ] %}
+            <div class="{{ card }} p-4">
+                <div class="flex items-center gap-2 text-[11px] uppercase tracking-wider text-slate-500 font-bold">
+                    <sl-icon name="{{ k.icone }}" class="{{ k.cor }} text-base"></sl-icon> {{ k.rotulo }}
+                </div>
+                <div class="mt-2 text-3xl font-black text-slate-900 dark:text-white tabular-nums">{{ k.valor|number_format(0, ',', '.') }}</div>
+            </div>
+        {% endfor %}
+    </div>
+
+    {# ---------- Gráfico ---------- #}
+    <div class="{{ card }} p-5">
+        <form method="GET" class="flex flex-wrap items-end justify-between gap-3 mb-4">
+            <div>
+                <h2 class="text-lg font-black text-slate-900 dark:text-white">Evolução por tipo de atendimento</h2>
+                <p class="text-xs text-slate-500">Clique na legenda para mostrar ou esconder um tipo. Tipos marcados como ocultos no site aparecem tracejados.</p>
+            </div>
+            <div class="flex flex-wrap items-end gap-2">
+                <div class="inline-flex rounded-xl border border-slate-300 dark:border-slate-700 overflow-hidden text-xs font-bold">
+                    {% for v, l in {dia: 'Dia', mes: 'Mês', ano: 'Ano'} %}
+                        <a href="{{ path('app_admin_atendimentos_painel', {agrupamento: v}) }}" class="px-3 py-1.5 {{ agrupamento == v ? 'bg-cyan-600 text-white' : 'bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-300 hover:bg-slate-100' }}">{{ l }}</a>
+                    {% endfor %}
+                </div>
+                <input type="hidden" name="agrupamento" value="{{ agrupamento }}">
+                <label class="text-[10px] uppercase text-slate-400 font-bold">De<input type="date" name="de" value="{{ serie.de }}" class="{{ campo }} block"></label>
+                <label class="text-[10px] uppercase text-slate-400 font-bold">Até<input type="date" name="ate" value="{{ serie.ate }}" class="{{ campo }} block"></label>
+                <button class="px-3 py-1.5 bg-slate-800 text-white rounded-xl text-xs font-bold">Aplicar</button>
+            </div>
+        </form>
+        {% if serie.total.total == 0 %}
+            <div class="py-16 text-center text-slate-400">
+                <sl-icon name="inbox" class="text-4xl"></sl-icon>
+                <p class="mt-2">Nenhum atendimento consolidado neste período. Rode a captura e a consolidação.</p>
+            </div>
+        {% else %}
+            <div class="h-[420px]"><canvas id="chAtendimentos"></canvas></div>
+        {% endif %}
+    </div>
+
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        {# ---------- Tabela de histórico ---------- #}
+        <div class="{{ card }} p-5 xl:col-span-2">
+            <h2 class="text-lg font-black text-slate-900 dark:text-white mb-3">Histórico ({{ {dia: 'por dia', mes: 'por mês', ano: 'por ano'}[agrupamento] }})</h2>
+            <div class="overflow-auto max-h-[520px]">
+                <table class="w-full text-sm">
+                    <thead class="sticky top-0 bg-white dark:bg-slate-900">
+                        <tr class="text-left text-[10px] uppercase tracking-wider text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                            <th class="py-2 pr-2">Período</th>
+                            {% for s in serie.series %}<th class="py-2 px-2 text-right whitespace-nowrap"><span class="inline-block w-2 h-2 rounded-full mr-1" style="background: {{ s.cor }}"></span>{{ s.nome }}</th>{% endfor %}
+                            <th class="py-2 pl-2 text-right">Total</th>
+                            <th class="py-2 pl-2 text-right">Pacientes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for idx in (serie.periodos|length - 1)..0 %}
+                            {% if serie.periodos|length > 0 %}
+                            <tr class="border-b border-slate-100 dark:border-slate-800/60">
+                                <td class="py-1.5 pr-2 font-semibold text-slate-700 dark:text-slate-200 whitespace-nowrap">{{ serie.rotulos[idx] }}</td>
+                                {% for s in serie.series %}<td class="py-1.5 px-2 text-right tabular-nums {{ s.slug in categoriasOcultas ? 'text-slate-400' }}">{{ s.valores[idx]|number_format(0, ',', '.') }}</td>{% endfor %}
+                                <td class="py-1.5 pl-2 text-right tabular-nums font-bold">{{ serie.total.valores[idx]|number_format(0, ',', '.') }}</td>
+                                <td class="py-1.5 pl-2 text-right tabular-nums text-slate-500">{{ serie.pacientes.valores[idx]|number_format(0, ',', '.') }}</td>
+                            </tr>
+                            {% endif %}
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr class="border-t-2 border-slate-300 dark:border-slate-700 font-black">
+                            <td class="py-2 pr-2">Total do período</td>
+                            {% for s in serie.series %}<td class="py-2 px-2 text-right tabular-nums">{{ s.total|number_format(0, ',', '.') }}</td>{% endfor %}
+                            <td class="py-2 pl-2 text-right tabular-nums">{{ serie.total.total|number_format(0, ',', '.') }}</td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            <p class="text-[11px] text-slate-400 mt-2">O total inclui só os tipos exibidos no site; tipos ocultos aparecem em cinza para conferência.</p>
+        </div>
+
+        {# ---------- Situação da captura ---------- #}
+        <div class="{{ card }} p-5 space-y-4">
+            <h2 class="text-lg font-black text-slate-900 dark:text-white">Captura da API</h2>
+            <dl class="grid grid-cols-2 gap-3 text-sm">
+                <div><dt class="text-[10px] uppercase text-slate-400 font-bold">Dias capturados</dt><dd class="font-black tabular-nums">{{ (captura.dias ?? 0)|number_format(0, ',', '.') }}</dd></div>
+                <div><dt class="text-[10px] uppercase text-slate-400 font-bold">Completos</dt><dd class="font-black tabular-nums text-emerald-600">{{ (captura.dias_completos ?? 0)|number_format(0, ',', '.') }}</dd></div>
+                <div><dt class="text-[10px] uppercase text-slate-400 font-bold">Agendamentos lidos</dt><dd class="font-black tabular-nums">{{ (captura.registros ?? 0)|number_format(0, ',', '.') }}</dd></div>
+                <div><dt class="text-[10px] uppercase text-slate-400 font-bold">Com problema</dt><dd class="font-black tabular-nums {{ (captura.dias_com_problema ?? 0) > 0 ? 'text-amber-600' }}">{{ captura.dias_com_problema ?? 0 }}</dd></div>
+                <div><dt class="text-[10px] uppercase text-slate-400 font-bold">Pendentes de consolidar</dt><dd class="font-black tabular-nums">{{ captura.pendentes_consolidacao ?? 0 }}</dd></div>
+                <div><dt class="text-[10px] uppercase text-slate-400 font-bold">Última captura</dt><dd class="font-semibold text-xs">{{ captura.ultima_captura ? captura.ultima_captura|date('d/m/Y H:i') : '—' }}</dd></div>
+            </dl>
+            <p class="text-xs text-slate-500">
+                Cobertura: {{ captura.primeira_data ? captura.primeira_data|date('d/m/Y') : '—' }} a {{ captura.ultima_data ? captura.ultima_data|date('d/m/Y') : '—' }}.
+                O cron recaptura os últimos 45 dias toda madrugada para pegar mudanças de estágio e cancelamentos.
+            </p>
+            {% if problemas %}
+                <div>
+                    <h3 class="text-xs font-black uppercase text-amber-600 mb-2">Dias com problema</h3>
+                    <ul class="space-y-1 text-xs max-h-56 overflow-auto">
+                        {% for p in problemas %}
+                            <li class="flex justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-1">
+                                <span class="font-semibold tabular-nums">{{ p.data|date('d/m/Y') }}</span>
+                                <span class="text-slate-500 truncate" title="{{ p.erro }}">{{ p.erro ?? 'incompleto' }}</span>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% if serie.total.total > 0 %}
+<script>
+(function () {
+    const D = {{ serie|json_encode|raw }};
+    const ocultas = {{ categoriasOcultas|json_encode|raw }};
+    const escuro = document.documentElement.classList.contains('dark');
+    const tinta = escuro ? '#cbd5e1' : '#475569';
+    const grade = escuro ? 'rgba(148,163,184,.15)' : 'rgba(100,116,139,.15)';
+    const muitos = D.periodos.length > 60;
+
+    const datasets = D.series.map(s => ({
+        label: s.nome, data: s.valores, borderColor: s.cor, backgroundColor: s.cor + '22',
+        borderWidth: 2, borderDash: ocultas.includes(s.slug) ? [5, 4] : [], hidden: ocultas.includes(s.slug),
+        pointRadius: muitos ? 0 : 2.5, pointHoverRadius: 5, tension: 0.3, fill: false,
+    }));
+    datasets.unshift({
+        label: 'Total', data: D.total.valores, borderColor: escuro ? '#f8fafc' : '#0f172a', backgroundColor: 'transparent',
+        borderWidth: 3, pointRadius: muitos ? 0 : 3, pointHoverRadius: 6, tension: 0.3,
+    });
+
+    new Chart(document.getElementById('chAtendimentos'), {
+        type: 'line',
+        data: { labels: D.rotulos, datasets },
+        options: {
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: { position: 'bottom', labels: { color: tinta, usePointStyle: true, boxWidth: 8, padding: 16 } },
+                tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${Number(ctx.raw).toLocaleString('pt-BR')}` } },
+            },
+            scales: {
+                x: { ticks: { color: tinta, maxRotation: 0, autoSkip: true, maxTicksLimit: 14 }, grid: { display: false } },
+                y: { beginAtZero: true, ticks: { color: tinta, callback: v => Number(v).toLocaleString('pt-BR') }, grid: { color: grade } },
+            },
+        },
+    });
+})();
+</script>
+{% endif %}
+{% endblock %}
