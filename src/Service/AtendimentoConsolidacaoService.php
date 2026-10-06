@@ -19,16 +19,20 @@ use Doctrine\ORM\EntityManagerInterface;
  */
 class AtendimentoConsolidacaoService
 {
-    /** slug => [nome, cor, ordem, exibirNoSite] */
+    /**
+     * slug => [nome, cor, ordem, exibirNoSite].
+     * Cores: paleta categórica validada (daltonismo e contraste) na ordem fixa; o site usa o tom próprio
+     * de cada uma no modo escuro (public/js/atendimentos.js do procordis-site).
+     */
     public const CATEGORIAS_PADRAO = [
-        'consulta' => ['Consultas', '#2563eb', 1, true],
-        'ecocardiograma' => ['Ecocardiogramas', '#e11d48', 2, true],
-        'eletrocardiograma' => ['Eletrocardiogramas (ECG)', '#f59e0b', 3, true],
-        'teste-ergometrico' => ['Testes ergométricos (esteira)', '#10b981', 4, true],
-        'holter' => ['Holter 24h', '#8b5cf6', 5, true],
-        'mapa' => ['MAPA', '#06b6d4', 6, true],
-        'outros' => ['Outros procedimentos', '#64748b', 7, true],
-        'retirada-equipamento' => ['Retorno de Holter/MAPA (retirada)', '#94a3b8', 8, false],
+        'consulta' => ['Consultas', '#2a78d6', 1, true],
+        'ecocardiograma' => ['Ecocardiogramas', '#eb6834', 2, true],
+        'eletrocardiograma' => ['Eletrocardiogramas (ECG)', '#1baf7a', 3, true],
+        'teste-ergometrico' => ['Testes ergométricos (esteira)', '#eda100', 4, true],
+        'holter' => ['Holter 24h', '#e87ba4', 5, true],
+        'mapa' => ['MAPA', '#008300', 6, true],
+        'outros' => ['Outros procedimentos', '#4a3aa7', 7, true],
+        'retirada-equipamento' => ['Retorno de Holter/MAPA (retirada)', '#e34948', 8, false],
     ];
 
     private Connection $conn;
