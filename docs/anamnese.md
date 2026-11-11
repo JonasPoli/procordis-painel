@@ -63,7 +63,7 @@ O fuso do cron deve ser o de São Paulo (ou ajuste as horas para UTC).
 
 - Indicadores: pacientes e exames com anamnese, cobertura do preenchimento, comorbidades por paciente, multimorbidade, novos diagnósticos
 - Prevalência por item (cor por categoria) e tabela completa
-- Multimorbidade e combinações mais frequentes de comorbidades
+- Multimorbidade e combinações mais frequentes de comorbidades (as 5 duplas e os 3 trios; ver a regra abaixo)
 - Evolução mensal das principais comorbidades
 - Pirâmide etária, prevalência por sexo e mapa de calor por faixa etária
 - Novos diagnósticos por mês e por item
@@ -72,6 +72,14 @@ O fuso do cron deve ser o de São Paulo (ou ajuste as horas para UTC).
 - Qualidade do preenchimento: exames com/sem anamnese por mês, por procedimento e por médico
 
 **Como ler:** prevalência = pacientes com o item marcado em algum exame do período ÷ pacientes com anamnese no período.
+
+**Combinações** (decisão do Jonas em 11/11/2026: sempre "quantos têm os dois", nunca "quantos têm só esse conjunto"): uma
+combinação conta os pacientes que têm **todas** as suas comorbidades, **com ou sem outras**, e um paciente entra em várias linhas
+(`AnamneseEstatisticaService::combinacoesFrequentes()`). No painel e no A4, o % é sobre os pacientes com anamnese no período,
+o mesmo da matriz de associação em "% sobre o total" (ex.: Diabetes + Hipertensão, 866 de 2.660 = 32,6%, e não os 156 que
+têm só essas duas). No panorama do item, as linhas são as outras comorbidades de quem tem o item (4 com uma outra, 4 com
+duas outras), com o % sobre quem tem o item, o mesmo do "% condicional" da matriz (ex.: no panorama de Diabetes, Hipertensão
+= 866 de 1.008 = 85,9%).
 A ausência da marcação não prova ausência da condição.
 
 ### Análises complementares

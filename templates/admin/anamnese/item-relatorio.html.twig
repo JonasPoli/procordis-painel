@@ -298,7 +298,7 @@
             {% set maxComb = (p.combinacoes|first).n %}
             <table class="tab fixa">
                 <colgroup><col style="width: 8mm"><col><col style="width: 18mm"><col style="width: 16mm"><col style="width: 28mm"></colgroup>
-                <thead><tr><th class="ordem num">Nº</th><th>Outras comorbidades do paciente</th><th class="num">Pacientes</th><th class="num">%</th><th class="barra"></th></tr></thead>
+                <thead><tr><th class="ordem num">Nº</th><th>Outras comorbidades (tem todas, com ou sem outras)</th><th class="num">Pacientes</th><th class="num">%</th><th class="barra"></th></tr></thead>
                 <tbody>
                     {% for cb in p.combinacoes %}
                         <tr>
@@ -311,7 +311,7 @@
                     {% endfor %}
                 </tbody>
             </table>
-            <p class="nota">Conjuntos exatos das outras comorbidades dos pacientes com {{ nome }}; percentual sobre esses pacientes.</p>
+            <p class="nota">Pacientes com {{ nome }} que também têm todas as comorbidades da linha, com ou sem outras; um paciente entra em várias linhas. Percentual sobre os {{ p.com|number_format(0, ',', '.') }} pacientes com {{ nome }}.</p>
         </figure>
         <figure>
             <figcaption><b>Tabela 4</b> — Perfis clínicos dos pacientes com {{ nome }}</figcaption>

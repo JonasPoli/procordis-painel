@@ -208,7 +208,7 @@ class AnamneseItemService
         };
 
         $contCom = [];
-        $combinacoes = [];
+        $outrasPorPaciente = [];
         foreach ($com as $p) {
             $outras = [];
             foreach ($p['cids'] as $cid => $_) {
@@ -220,9 +220,7 @@ class AnamneseItemService
                     $outras[] = $cid;
                 }
             }
-            sort($outras);
-            $chave = implode(',', $outras);
-            $combinacoes[$chave] = ($combinacoes[$chave] ?? 0) + 1;
+            $outrasPorPaciente[] = $outras;
         }
         $associados = [];
         foreach ($contItem as $cid => $n) {
@@ -244,13 +242,15 @@ class AnamneseItemService
         }
         usort($associados, fn ($a, $b) => [$b['nCom'], $b['diferenca']] <=> [$a['nCom'], $a['diferenca']]);
 
-        arsort($combinacoes);
+        // Combinações: pacientes com o item que também têm TODAS as outras comorbidades listadas, com ou sem outras
+        // (4 com uma outra e 4 com duas outras); % sobre quem tem o item, o mesmo do "% condicional" da matriz
         $topCombinacoes = [];
-        foreach (array_slice($combinacoes, 0, 8, true) as $chave => $n) {
+        foreach (AnamneseEstatisticaService::combinacoesFrequentes($outrasPorPaciente, [1 => 4, 2 => 4]) as $c) {
             $topCombinacoes[] = [
-                'itens' => $chave === '' ? [] : array_map(fn ($cid) => $titulo((int) $cid), explode(',', (string) $chave)),
-                'n' => $n,
-                'pct' => $this->pct($n, $nCom),
+                'itens' => array_map(fn (int $cid) => $titulo($cid), $c['ids']),
+                'tamanho' => count($c['ids']),
+                'n' => $c['n'],
+                'pct' => $this->pct($c['n'], $nCom),
             ];
         }
 
@@ -705,9 +705,9 @@ class AnamneseItemService
         }
 
         $l[] = [];
-        $l[] = ['combinacao_de_outras_comorbidades', 'pacientes', 'pct_de_quem_tem_o_item'];
+        $l[] = ['outras_comorbidades_tem_todas_com_ou_sem_outras', 'pacientes', 'pct_de_quem_tem_o_item'];
         foreach ($p['combinacoes'] as $c) {
-            $l[] = [$c['itens'] ? implode(' + ', $c['itens']) : 'Nenhuma outra comorbidade', $c['n'], $n($c['pct'])];
+            $l[] = [implode(' + ', $c['itens']), $c['n'], $n($c['pct'])];
         }
 
         $l[] = [];

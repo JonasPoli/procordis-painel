@@ -207,10 +207,13 @@
     {# ---------- Combinações + perfis ---------- #}
     <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
         <section class="{{ card }} p-5">
-            {{ c.titulo('Combinações mais frequentes', 'Conjuntos exatos das outras comorbidades dos pacientes com o item.', '“Nenhuma outra comorbidade” = o paciente só tem este item entre as comorbidades.') }}
+            {{ c.titulo('Combinações mais frequentes', 'Pacientes com o item que também têm todas as comorbidades da linha, com ou sem outras. % sobre os ' ~ p.com|number_format(0, ',', '.') ~ ' pacientes com o item.', 'Um paciente entra em várias linhas: quem tem Hipertensão e Covid conta em “Hipertensão”, em “Covid” e em “Covid + Hipertensão”. É o mesmo % condicional da matriz de associação.') }}
             {% set maxComb = p.combinacoes|length ? (p.combinacoes|first).n : 1 %}
             <ol class="space-y-2.5">
                 {% for cb in p.combinacoes %}
+                    {% if loop.first or cb.itens|length != p.combinacoes[loop.index0 - 1].itens|length %}
+                        <li class="text-[10px] font-bold uppercase tracking-wider text-slate-400 {{ not loop.first ? 'pt-1' }}">{{ cb.itens|length == 1 ? 'Com mais uma comorbidade' : 'Com mais ' ~ (cb.itens|length == 2 ? 'duas' : cb.itens|length) ~ ' comorbidades' }}</li>
+                    {% endif %}
                     <li>
                         <div class="flex items-start justify-between gap-3">
                             <div class="flex flex-wrap gap-1">

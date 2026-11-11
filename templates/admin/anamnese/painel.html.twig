@@ -128,11 +128,15 @@
             <section class="{{ card }} p-5 flex-1">
                 <header class="mb-3">
                     <h2 class="text-base font-bold text-slate-900 dark:text-white">Combinações mais frequentes</h2>
-                    <p class="text-xs text-slate-500 dark:text-slate-400">Conjuntos exatos de comorbidades (pacientes com 2 ou mais).</p>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Pacientes que têm todas as comorbidades da combinação, com ou sem outras (um paciente entra em várias linhas). % sobre os {{ dados.kpis.pacientes|number_format(0, ',', '.') }} pacientes com anamnese no período.</p>
                 </header>
                 {% set maxComb = dados.combinacoes|length ? dados.combinacoes|first.n : 1 %}
+                {% set listaComb = dados.combinacoes|slice(0, 8) %}
                 <ol class="space-y-2.5">
-                    {% for c in dados.combinacoes|slice(0, 8) %}
+                    {% for c in listaComb %}
+                        {% if loop.first or c.itens|length != listaComb[loop.index0 - 1].itens|length %}
+                            <li class="text-[10px] font-bold uppercase tracking-wider text-slate-400 {{ not loop.first ? 'pt-1' }}">{{ c.itens|length == 2 ? 'Duas comorbidades' : c.itens|length ~ ' comorbidades' }}</li>
+                        {% endif %}
                         <li>
                             <div class="flex items-start justify-between gap-3">
                                 <div class="flex flex-wrap gap-1">

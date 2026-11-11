@@ -106,6 +106,25 @@ class AnamneseConsolidacaoTest extends KernelTestCase
         $this->assertSame([], $diabetes['item']['variantes']);
     }
 
+    public function testCombinacoesContamQuemTemTodosEBatemComAMatriz(): void
+    {
+        $f = $this->filtros();
+        $painel = static::getContainer()->get(AnamneseEstatisticaService::class)->obterPainel($f);
+        $assoc = static::getContainer()->get(\App\Service\AnamneseAnaliseService::class)->obter($f)['associacao'];
+        $i = array_search('Diabetes', $assoc['itens'], true);
+        $j = array_search('Covid', $assoc['itens'], true);
+
+        // Paciente 1 tem Diabetes + Covid; o paciente 3 tem Diabetes + Derrame. Cada dupla tem 1 paciente.
+        $duplas = array_column(array_map(fn ($c) => ['k' => implode(' + ', $c['itens']), 'pct' => $c['pct'], 'n' => $c['n']], $painel['combinacoes']), null, 'k');
+        $this->assertSame(1, $duplas['Diabetes + Covid']['n'] ?? $duplas['Covid + Diabetes']['n']);
+        $this->assertSame($assoc['total'][$i][$j], $duplas['Diabetes + Covid']['pct'] ?? $duplas['Covid + Diabetes']['pct'], 'Mesmo % do "% sobre o total" da matriz');
+
+        // No panorama de Diabetes, a Covid aparece com o % condicional da matriz (linha Diabetes → coluna Covid)
+        $p = static::getContainer()->get(AnamneseItemService::class)->obter($f, $this->ids['DIABETES']);
+        $covid = current(array_filter($p['combinacoes'], fn ($c) => $c['itens'] === ['Covid']));
+        $this->assertSame($assoc['condicional'][$i][$j], $covid['pct']);
+    }
+
     public function testCsvDePesquisaTemUmaColunaCovid(): void
     {
         $linhas = iterator_to_array(static::getContainer()->get(AnamneseEstatisticaService::class)->linhasExportacao($this->filtros(), 'segredo'), false);
