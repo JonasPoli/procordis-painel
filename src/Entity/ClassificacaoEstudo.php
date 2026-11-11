@@ -55,6 +55,18 @@ class ClassificacaoEstudo
     #[ORM\Column(options: ['default' => true])]
     private bool $presenteNaApi = true;
 
+    /** Termo do thesaurus a que o item pertence (os itens de um termo contam como um só nas estatísticas). */
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?AnamneseTermo $termo = null;
+
+    /**
+     * Quando true, o vínculo com o termo (ou a falta dele) foi escolhido no admin e as regras de nome não o alteram.
+     * Quando false, o termo é o que as regras de nome indicarem (AnamneseThesaurusService).
+     */
+    #[ORM\Column(options: ['default' => false])]
+    private bool $termoManual = false;
+
     #[ORM\Column(type: Types::JSON, nullable: true)]
     private ?array $dadosBrutos = null;
 
@@ -215,6 +227,30 @@ class ClassificacaoEstudo
     public function setPresenteNaApi(bool $presenteNaApi): static
     {
         $this->presenteNaApi = $presenteNaApi;
+
+        return $this;
+    }
+
+    public function getTermo(): ?AnamneseTermo
+    {
+        return $this->termo;
+    }
+
+    public function setTermo(?AnamneseTermo $termo): static
+    {
+        $this->termo = $termo;
+
+        return $this;
+    }
+
+    public function isTermoManual(): bool
+    {
+        return $this->termoManual;
+    }
+
+    public function setTermoManual(bool $termoManual): static
+    {
+        $this->termoManual = $termoManual;
 
         return $this;
     }

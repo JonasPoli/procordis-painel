@@ -116,6 +116,10 @@
         <p class="subtitulo-doc">{{ p.item.categoriaRotulo }} — estatísticas agregadas do item, comparando os pacientes que o têm registrado com os que não têm.</p>
 
         <dl class="ficha">
+            {% if p.item.variantes|length > 1 %}
+                <dt>Nomes reunidos</dt>
+                <dd class="larga">{{ p.item.variantes|join(', ') }} <span>(thesaurus: contados como um item só)</span></dd>
+            {% endif %}
             <dt>Período analisado</dt>
             <dd class="larga">{{ intervalo }} <span>({{ periodos[filtros.periodo] ?? filtros.periodo }})</span></dd>
 

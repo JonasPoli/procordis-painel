@@ -11,6 +11,7 @@ use App\Service\AnamneseEstatisticaService;
 use App\Service\AnamneseItemService;
 use App\Service\AnamneseSimuladorService;
 use App\Service\AnamneseSyncService;
+use App\Service\AnamneseThesaurusService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -31,6 +32,7 @@ class AnamneseAdminController extends AbstractController
         private ClassificacaoEstudoRepository $classificacaoRepo,
         private AnamneseSyncExecucaoRepository $execucaoRepo,
         private AnamneseSyncService $sync,
+        private AnamneseThesaurusService $thesaurus,
         private ConfiguracaoIntegracaoRepository $configRepo,
         private EntityManagerInterface $em,
         #[Autowire('%kernel.project_dir%')] private string $projectDir,
@@ -195,6 +197,8 @@ class AnamneseAdminController extends AbstractController
             'itens' => $this->classificacaoRepo->findBy([], ['codClassificacao' => 'ASC']),
             'contagens' => $contagens,
             'categorias' => ClassificacaoEstudo::CATEGORIAS,
+            'vinculos' => $this->thesaurus->vinculos(),
+            'nomesTermos' => array_map(fn (array $t) => $t['nome'], $this->thesaurus->termos()),
         ]);
     }
 

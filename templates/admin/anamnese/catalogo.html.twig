@@ -23,11 +23,17 @@
             </div>
             <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
                 Classificações de estudo vindas de <code>/api/ClassificacaoEstudo</code>. A categoria agrupa os gráficos; itens inativos saem das estatísticas (os dados continuam guardados).
+                Itens do mesmo termo do <a class="text-cyan-600 underline" href="{{ path('app_admin_anamnese_thesaurus') }}">thesaurus</a> contam como um só nas estatísticas, com o nome e a categoria do termo.
             </p>
         </div>
+        <div class="flex flex-wrap items-center gap-2">
+        <a href="{{ path('app_admin_anamnese_thesaurus') }}" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-xl text-xs flex items-center gap-2 transition">
+            <sl-icon name="diagram-3"></sl-icon> Thesaurus
+        </a>
         <a href="{{ path('app_admin_anamnese_painel') }}" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-xl text-xs flex items-center gap-2 transition">
             <sl-icon name="bar-chart"></sl-icon> Voltar ao painel
         </a>
+        </div>
     </div>
 
     <form method="POST" action="{{ path('app_admin_anamnese_catalogo_salvar') }}" class="{{ card }} p-5">
@@ -40,6 +46,7 @@
                         <th class="py-2 px-2">Item</th>
                         <th class="py-2 px-2">Código / Tipo (API)</th>
                         <th class="py-2 px-2">Categoria</th>
+                        <th class="py-2 px-2">Termo (thesaurus)</th>
                         <th class="py-2 px-2 text-right">Marcações</th>
                         <th class="py-2 px-2 text-right">Pacientes</th>
                         <th class="py-2 px-2">Último exame</th>
@@ -60,6 +67,17 @@
                                 </select>
                                 {% if c.categoriaManual %}<span class="ml-1 text-[10px] text-slate-400" title="Definida manualmente; o sync não altera">manual</span>{% endif %}
                             </td>
+                            {% set v = vinculos[c.id] ?? null %}
+                            <td class="py-2 px-2 text-xs">
+                                {% if v and v.termo is not null %}
+                                    <a href="{{ path('app_admin_anamnese_thesaurus_editar', {id: v.termo}) }}" class="font-semibold text-slate-700 dark:text-slate-200 hover:text-cyan-600 hover:underline">{{ nomesTermos[v.termo] }}</a>
+                                    <span class="{{ v.origem == 'manual' ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400' }}">{{ v.origem == 'manual' ? 'manual' : 'automático' }}</span>
+                                {% elseif c.termoManual %}
+                                    <span class="text-amber-600 dark:text-amber-400" title="Tirado de um termo no admin">fora de termo (manual)</span>
+                                {% else %}
+                                    <span class="text-slate-400">—</span>
+                                {% endif %}
+                            </td>
                             <td class="py-2 px-2 text-right tabular-nums">{{ ct ? ct.n|number_format(0, ',', '.') : 0 }}</td>
                             <td class="py-2 px-2 text-right tabular-nums">{{ ct ? ct.pac|number_format(0, ',', '.') : 0 }}</td>
                             <td class="py-2 px-2 text-xs text-slate-500">{{ ct and ct.ultimo ? ct.ultimo|date('d/m/Y') : '—' }}</td>
@@ -69,7 +87,7 @@
                             <td class="py-2 pl-2 text-center"><input type="checkbox" name="ativo[{{ c.id }}]" value="1" {{ c.ativo ? 'checked' }} class="w-4 h-4 accent-cyan-600"></td>
                         </tr>
                     {% else %}
-                        <tr><td colspan="9" class="py-6 text-center text-slate-400">Catálogo vazio. Rode a sincronização.</td></tr>
+                        <tr><td colspan="10" class="py-6 text-center text-slate-400">Catálogo vazio. Rode a sincronização.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>

@@ -1,0 +1,188 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}Anamnese — Thesaurus{% endblock %}
+
+{% set card = 'bg-white/80 dark:bg-slate-900/80 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm' %}
+{% set botao = 'px-4 py-2 font-bold rounded-xl text-xs flex items-center gap-2 transition' %}
+{% set th = 'py-2 px-2 text-[10px] uppercase tracking-wider text-slate-400 font-bold' %}
+{% set linha = 'border-b border-slate-100 dark:border-slate-800/60' %}
+
+{% block body %}
+<div class="space-y-6">
+    {% for label, messages in app.flashes %}
+        {% for message in messages %}
+            <sl-alert variant="{{ label == 'success' ? 'success' : 'warning' }}" open closable>
+                <sl-icon slot="icon" name="{{ label == 'success' ? 'check-circle' : 'exclamation-triangle' }}"></sl-icon>
+                {{ message }}
+            </sl-alert>
+        {% endfor %}
+    {% endfor %}
+
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 {{ card }} p-5">
+        <div>
+            <div class="flex items-center gap-2">
+                <sl-icon name="diagram-3" class="text-cyan-500 text-2xl"></sl-icon>
+                <h1 class="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Thesaurus da anamnese</h1>
+            </div>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1 max-w-3xl">
+                Reúne itens do catálogo que têm nomes diferentes mas são a mesma coisa (ex.: COVID 2019, COVID 2020… = Covid).
+                No painel, no panorama do item, nos relatórios A4 e nos CSVs, os itens de um termo contam como um só.
+                O prontuário e os dados importados da API não mudam.
+            </p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+            <a href="{{ path('app_admin_anamnese_thesaurus_novo') }}" class="{{ botao }} bg-cyan-600 hover:bg-cyan-700 text-white shadow-sm">
+                <sl-icon name="plus-lg"></sl-icon> Novo termo
+            </a>
+            <a href="{{ path('app_admin_anamnese_catalogo') }}" class="{{ botao }} bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200">
+                <sl-icon name="tags"></sl-icon> Catálogo de itens
+            </a>
+            <a href="{{ path('app_admin_anamnese_painel') }}" class="{{ botao }} bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200">
+                <sl-icon name="bar-chart"></sl-icon> Voltar ao painel
+            </a>
+        </div>
+    </div>
+
+    <div class="{{ card }} p-5 text-sm text-slate-600 dark:text-slate-300 space-y-1.5">
+        <p class="font-bold text-slate-800 dark:text-slate-100">Como um item entra num termo</p>
+        <p><strong>Pela regra de nome</strong> (automático): uma regra por linha, comparada ao nome inteiro do item, sem diferença de maiúsculas, acentos e pontuação. <code>#</code> vale um dígito e <code>*</code> qualquer trecho. Ex.: <code>COVID ####</code> reconhece COVID 2019 … COVID 2026 e também os anos que vierem (COVID 2027), mas não “Vacina da Covid dose 1”.</p>
+        <p><strong>Por escolha manual</strong>: marcar ou desmarcar o item no termo. A escolha manual prevalece sobre as regras, inclusive nas sincronizações seguintes, até voltar ao automático.</p>
+        <p class="text-xs text-slate-400">{{ totalItens }} itens no catálogo, {{ totalItens - semTermo }} em algum termo.</p>
+    </div>
+
+    {% if conflitos|length %}
+        <p class="rounded-xl border border-amber-300 bg-amber-50 dark:bg-amber-500/10 dark:border-amber-500/40 px-4 py-2.5 text-xs text-amber-800 dark:text-amber-300">
+            <sl-icon name="exclamation-triangle" class="align-middle"></sl-icon>
+            Regras de mais de um termo reconhecem o mesmo item; vale o termo cadastrado primeiro:
+            {% for i in conflitos %}<strong>{{ i.titulo }}</strong> ({{ i.casam|map(t => nomesTermos[t])|join(', ') }}){{ not loop.last ? '; ' }}{% endfor %}.
+        </p>
+    {% endif %}
+
+    {% for t in termos %}
+        <div class="{{ card }} p-5">
+            <div class="flex flex-col md:flex-row md:items-start justify-between gap-3">
+                <div>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <h2 class="text-lg font-black text-slate-900 dark:text-white">{{ t.nome }}</h2>
+                        <span class="px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 text-[11px] font-bold">{{ t.categoriaRotulo }}</span>
+                        <span class="text-xs text-slate-500">{{ t.itens|length }} {{ t.itens|length == 1 ? 'nome' : 'nomes' }} · {{ t.pacientes|number_format(0, ',', '.') }} pacientes</span>
+                    </div>
+                    {% if t.observacao %}<p class="text-xs text-slate-500 mt-1">{{ t.observacao }}</p>{% endif %}
+                    <p class="text-xs text-slate-500 mt-1">
+                        Regras:
+                        {% for p in t.padroes %}<code class="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200">{{ p }}</code> {% else %}<span class="italic">nenhuma (só escolha manual)</span>{% endfor %}
+                    </p>
+                </div>
+                <div class="flex items-center gap-2 shrink-0">
+                    <a href="{{ path('app_admin_anamnese_thesaurus_editar', {id: t.id}) }}" class="{{ botao }} bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200">
+                        <sl-icon name="pencil"></sl-icon> Editar
+                    </a>
+                    <form method="POST" action="{{ path('app_admin_anamnese_thesaurus_excluir', {id: t.id}) }}" onsubmit="return confirm('Excluir o termo “{{ t.nome|e('js') }}”? Os seus itens voltam a contar separados (nada do catálogo é apagado).')">
+                        <input type="hidden" name="_token" value="{{ csrf_token('anamnese_thesaurus') }}">
+                        <button type="submit" class="{{ botao }} bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 text-rose-700 dark:text-rose-300">
+                            <sl-icon name="trash"></sl-icon> Excluir
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            {% if t.regrasInvalidas|length %}
+                <p class="mt-3 text-xs text-amber-700 dark:text-amber-300"><sl-icon name="exclamation-triangle" class="align-middle"></sl-icon> Regra ignorada por não ter letra nem número: {{ t.regrasInvalidas|join(', ') }}.</p>
+            {% endif %}
+            {% if t.misturaDoses %}
+                <p class="mt-3 text-xs text-amber-700 dark:text-amber-300"><sl-icon name="exclamation-triangle" class="align-middle"></sl-icon> O termo junta doses diferentes de vacina e por isso sai do gráfico de dose da vacina.</p>
+            {% endif %}
+
+            <div class="overflow-x-auto mt-3">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="text-left border-b border-slate-200 dark:border-slate-800">
+                            <th class="{{ th }} pl-0">Nome no catálogo</th>
+                            <th class="{{ th }}">Vínculo</th>
+                            <th class="{{ th }} text-right">Pacientes</th>
+                            <th class="{{ th }} text-right">Marcações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for i in t.itens %}
+                            <tr class="{{ linha }} {{ not i.ativo ? 'opacity-50' }}">
+                                <td class="py-1.5 pr-2 font-semibold text-slate-700 dark:text-slate-200">{{ i.nome }}{% if not i.ativo %} <span class="text-[10px] font-normal text-slate-400">(inativo)</span>{% endif %}</td>
+                                <td class="py-1.5 px-2 text-xs">
+                                    {% if i.origem == 'manual' %}<span class="text-amber-600 dark:text-amber-400 font-semibold" title="Escolhido no admin; as regras não alteram">manual</span>{% else %}<span class="text-emerald-600 dark:text-emerald-400 font-semibold" title="Ligado pela regra de nome">automático</span>{% endif %}
+                                </td>
+                                <td class="py-1.5 px-2 text-right tabular-nums">{{ i.pacientes|number_format(0, ',', '.') }}</td>
+                                <td class="py-1.5 pl-2 text-right tabular-nums">{{ i.marcacoes|number_format(0, ',', '.') }}</td>
+                            </tr>
+                        {% else %}
+                            <tr><td colspan="4" class="py-3 text-center text-slate-400 text-xs">Nenhum item do catálogo neste termo.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% if t.itens|length > 1 %}
+                <p class="text-[11px] text-slate-400 mt-2">Nas estatísticas, estes {{ t.itens|length }} nomes contam como um item só, “{{ t.nome }}”. A soma de pacientes por nome pode passar de {{ t.pacientes|number_format(0, ',', '.') }}, porque o mesmo paciente pode ter mais de um nome marcado.</p>
+            {% endif %}
+        </div>
+    {% else %}
+        <div class="{{ card }} p-10 text-center">
+            <sl-icon name="diagram-3" class="text-4xl text-slate-400"></sl-icon>
+            <p class="mt-3 font-bold text-slate-700 dark:text-slate-200">Nenhum termo cadastrado.</p>
+            <p class="text-sm text-slate-500 mt-1">Sem termos, cada item do catálogo conta separado.</p>
+        </div>
+    {% endfor %}
+
+    {% if manuais|length %}
+        <div class="{{ card }} p-5">
+            <h2 class="text-sm font-black text-slate-800 dark:text-slate-100">Escolhas manuais</h2>
+            <p class="text-xs text-slate-500 mt-1">Itens em que o vínculo foi decidido no admin. As regras de nome não os alteram até voltarem ao automático.</p>
+            <table class="w-full text-sm mt-3">
+                <tbody>
+                    {% for i in manuais %}
+                        <tr class="{{ linha }}">
+                            <td class="py-1.5 pr-2 font-semibold text-slate-700 dark:text-slate-200">{{ i.nome }}</td>
+                            <td class="py-1.5 px-2 text-xs text-slate-500">{{ i.termo is not null ? 'no termo “' ~ nomesTermos[i.termo] ~ '”' : 'fora de qualquer termo' }}</td>
+                            <td class="py-1.5 pl-2 text-right">
+                                <form method="POST" action="{{ path('app_admin_anamnese_thesaurus_item_automatico', {id: i.id}) }}" class="inline">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('anamnese_thesaurus') }}">
+                                    <button type="submit" class="text-xs font-bold text-cyan-700 dark:text-cyan-300 hover:underline">Voltar ao automático</button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+
+    <div class="{{ card }} p-5">
+        <h2 class="text-sm font-black text-slate-800 dark:text-slate-100">Sugestões: itens com nome parecido</h2>
+        <p class="text-xs text-slate-500 mt-1">Pares que podem designar a mesma condição e ainda contam separados. Nada é juntado sem decisão: confira com a equipe clínica antes de criar o termo.</p>
+        {% if sugestoes|length %}
+            <table class="w-full text-sm mt-3">
+                <thead>
+                    <tr class="text-left border-b border-slate-200 dark:border-slate-800">
+                        <th class="{{ th }} pl-0">Item A</th>
+                        <th class="{{ th }}">Item B</th>
+                        <th class="{{ th }}">Por que conferir</th>
+                        <th class="{{ th }}"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in sugestoes %}
+                        <tr class="{{ linha }}">
+                            <td class="py-1.5 pr-2 font-semibold text-slate-700 dark:text-slate-200">{{ s.a.nome }} <span class="font-normal text-slate-400">({{ s.a.pacientes|number_format(0, ',', '.') }})</span></td>
+                            <td class="py-1.5 px-2 font-semibold text-slate-700 dark:text-slate-200">{{ s.b.nome }} <span class="font-normal text-slate-400">({{ s.b.pacientes|number_format(0, ',', '.') }})</span></td>
+                            <td class="py-1.5 px-2 text-xs text-slate-500">{{ s.motivo }}</td>
+                            <td class="py-1.5 pl-2 text-right">
+                                <a href="{{ path('app_admin_anamnese_thesaurus_novo', {nome: (s.a.nome|length <= s.b.nome|length ? s.a.titulo : s.b.titulo), itens: [s.a.id, s.b.id]}) }}" class="text-xs font-bold text-cyan-700 dark:text-cyan-300 hover:underline">Criar termo com os dois</a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p class="text-xs text-slate-400 mt-3">Nenhuma sugestão no momento.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -21,9 +21,12 @@ class AnamneseEstatisticaService
 
     public const TIPOS_ATENDIMENTO = ['sus' => 'SUS', 'convenio' => 'Convênio', 'particular' => 'Particular', 'filantropico' => 'Filantrópico'];
 
-    public function __construct(private EntityManagerInterface $em)
+    public function __construct(private EntityManagerInterface $em, private ?AnamneseThesaurusService $thesaurus = null)
     {
     }
+
+    /** @var array{chave: array<int, int>, grupos: array<int, array>}|null */
+    private ?array $consolidacao = null;
 
     /** @var array<string, array> */
     private array $bases = [];
@@ -47,6 +50,7 @@ class AnamneseEstatisticaService
         }
 
         $catalogo = $this->catalogo();
+        $chaveTermo = $this->consolidacao()['chave'];
 
         // Todas as marcações ativas (histórico inteiro — necessário para "novos diagnósticos").
         $rows = $this->em->getConnection()->fetchAllAssociative(
@@ -84,7 +88,8 @@ class AnamneseEstatisticaService
                     'cids' => [],
                 ];
             }
-            $exames[$ag]['cids'][(int) $r['cid']] = true;
+            $cid = (int) $r['cid'];
+            $exames[$ag]['cids'][$chaveTermo[$cid] ?? $cid] = true; // itens de um termo do thesaurus contam como um só
         }
 
         // ---- 2. Novos diagnósticos (histórico completo por paciente) -------------------
@@ -156,6 +161,7 @@ class AnamneseEstatisticaService
                 'id' => $cid,
                 'nome' => $this->titulo($catalogo[$cid]['nome'] ?? '?'),
                 'categoria' => $catalogo[$cid]['categoria'] ?? 'outros',
+                'variantes' => array_map(fn (string $v) => $this->titulo($v), $catalogo[$cid]['variantes'] ?? []),
                 'n' => $n,
                 'pct' => $this->pct($n, $nPac),
             ];
@@ -309,7 +315,30 @@ class AnamneseEstatisticaService
             ],
             'cobertura' => $cobertura,
             'categorias' => ClassificacaoEstudo::CATEGORIAS,
+            'consolidados' => $this->consolidados(),
         ];
+    }
+
+    /**
+     * Itens que reúnem vários nomes do catálogo (termos do thesaurus), para as telas e relatórios avisarem.
+     *
+     * @return list<array{id: int, nome: string, variantes: list<string>}>
+     */
+    public function consolidados(): array
+    {
+        $out = [];
+        foreach ($this->consolidacao()['grupos'] as $k => $g) {
+            $out[] = ['id' => $k, 'nome' => $this->titulo($g['nome']), 'variantes' => array_map(fn (string $v) => $this->titulo($v), $g['variantes'])];
+        }
+        usort($out, fn ($a, $b) => strcmp($a['nome'], $b['nome']));
+
+        return $out;
+    }
+
+    /** Id usado nas estatísticas para um item do catálogo (o do termo do thesaurus, quando o item pertence a um). */
+    public function chaveDoItem(int $id): int
+    {
+        return $this->consolidacao()['chave'][$id] ?? $id;
     }
 
     /** Opções para os filtros. */
@@ -343,6 +372,7 @@ class AnamneseEstatisticaService
     public function linhasExportacao(array $f, string $segredo): iterable
     {
         $catalogo = $this->catalogo(true);
+        $chaveTermo = $this->consolidacao()['chave'];
         $conn = $this->em->getConnection();
         $rows = $conn->fetchAllAssociative(
             'SELECT ec.cod_agendamento AS ag, ec.cod_paciente AS codpac, ec.data_exame AS dt, ec.classificacao_id AS cid,
@@ -403,7 +433,8 @@ class AnamneseEstatisticaService
                     'medico' => $r['mid'] !== null ? (int) $r['mid'] : null, 'medicoNome' => (string) $r['medico'],
                 ];
             }
-            $atual['cids'][(int) $r['cid']] = true;
+            $cid = (int) $r['cid'];
+            $atual['cids'][$chaveTermo[$cid] ?? $cid] = true;
         }
         if ($l = $flush($atual)) {
             yield $l;
@@ -568,16 +599,43 @@ class AnamneseEstatisticaService
         return ['grupos' => $grupos, 'totais' => array_values($tot), 'itens' => $linhas];
     }
 
+    /**
+     * Catálogo usado nas estatísticas: uma entrada por item consolidado. Os itens de um termo do thesaurus viram uma
+     * entrada só, na chave do termo (menor id entre os seus itens), com o nome e a categoria do termo e os nomes
+     * originais em "variantes". A dose (vacinas) do termo é a dose comum a todos os seus itens, se houver.
+     *
+     * @return array<int, array{nome: string, categoria: string, dose: ?int, termo?: int, variantes?: list<string>}>
+     */
     private function catalogo(bool $somenteAtivos = false): array
     {
+        $consolidacao = $this->consolidacao();
         $out = [];
+        $doses = [];
         $sql = 'SELECT id, nome, categoria FROM classificacao_estudo' . ($somenteAtivos ? ' WHERE ativo = 1' : '') . ' ORDER BY cod_classificacao';
         foreach ($this->em->getConnection()->fetchAllAssociative($sql) as $r) {
-            $c = (new ClassificacaoEstudo())->setNome($r['nome']);
-            $out[(int) $r['id']] = ['nome' => $r['nome'], 'categoria' => $r['categoria'], 'dose' => $r['categoria'] === 'vacina' ? $c->getNumeroDose() : null];
+            $id = (int) $r['id'];
+            $dose = $r['categoria'] === 'vacina' ? (new ClassificacaoEstudo())->setNome($r['nome'])->getNumeroDose() : null;
+            $k = $consolidacao['chave'][$id] ?? null;
+            if ($k === null) {
+                $out[$id] = ['nome' => $r['nome'], 'categoria' => $r['categoria'], 'dose' => $dose];
+                continue;
+            }
+            $g = $consolidacao['grupos'][$k];
+            $out[$k] ??= ['nome' => $g['nome'], 'categoria' => $g['categoria'], 'dose' => null, 'termo' => $g['termo'], 'variantes' => $g['variantes']];
+            $doses[$k][] = $dose;
+        }
+        foreach ($doses as $k => $lista) {
+            $unicas = array_unique($lista);
+            $out[$k]['dose'] = $out[$k]['categoria'] === 'vacina' && count($unicas) === 1 ? reset($unicas) : null;
         }
 
         return $out;
+    }
+
+    /** @return array{chave: array<int, int>, grupos: array<int, array>} */
+    private function consolidacao(): array
+    {
+        return $this->consolidacao ??= $this->thesaurus?->consolidacao() ?? ['chave' => [], 'grupos' => []];
     }
 
     private function passaRecorte(array $e, array $f): bool

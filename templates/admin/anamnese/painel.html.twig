@@ -32,6 +32,9 @@
             <a href="{{ path('app_admin_anamnese_catalogo') }}" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-xl text-xs flex items-center gap-2 transition">
                 <sl-icon name="tags"></sl-icon> Catálogo de itens
             </a>
+            <a href="{{ path('app_admin_anamnese_thesaurus') }}" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-xl text-xs flex items-center gap-2 transition">
+                <sl-icon name="diagram-3"></sl-icon> Thesaurus
+            </a>
             <a href="{{ path('app_admin_anamnese_sincronizacao') }}" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-xl text-xs flex items-center gap-2 transition">
                 <sl-icon name="arrow-repeat"></sl-icon> Sincronização
             </a>
@@ -313,7 +316,7 @@
                 <tbody>
                     {% for p in dados.prevalencia %}
                         <tr class="border-b border-slate-100 dark:border-slate-800/60">
-                            <td class="py-1.5 pr-2 font-semibold text-slate-700 dark:text-slate-200"><a href="{{ path('app_admin_anamnese_item', app.request.query.all|merge({item: p.id})) }}" class="hover:text-cyan-600 hover:underline" title="Ver o panorama deste item">{{ p.nome }}</a></td>
+                            <td class="py-1.5 pr-2 font-semibold text-slate-700 dark:text-slate-200"><a href="{{ path('app_admin_anamnese_item', app.request.query.all|merge({item: p.id})) }}" class="hover:text-cyan-600 hover:underline" title="Ver o panorama deste item">{{ p.nome }}</a>{% if p.variantes is defined and p.variantes|length > 1 %} <span class="text-[10px] font-normal text-slate-400" title="Thesaurus: reúne {{ p.variantes|join(', ') }}">({{ p.variantes|length }} nomes)</span>{% endif %}</td>
                             <td class="py-1.5 px-2"><span class="inline-flex items-center gap-1.5 text-slate-500"><span class="w-2 h-2 rounded-sm cat-dot" data-cat="{{ p.categoria }}"></span>{{ dados.categorias[p.categoria] ?? p.categoria }}</span></td>
                             <td class="py-1.5 px-2 text-right tabular-nums">{{ p.n|number_format(0, ',', '.') }}</td>
                             <td class="py-1.5 px-2 text-right tabular-nums font-bold text-slate-800 dark:text-slate-100">{{ p.pct|number_format(1, ',', '.') }}%</td>

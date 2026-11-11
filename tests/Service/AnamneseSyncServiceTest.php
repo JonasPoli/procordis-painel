@@ -2,6 +2,7 @@
 
 namespace App\Tests\Service;
 
+use App\Entity\AnamneseTermo;
 use App\Entity\ConfiguracaoIntegracao;
 use App\Entity\ExameClassificacao;
 use App\Entity\Paciente;
@@ -102,6 +103,21 @@ class AnamneseSyncServiceTest extends KernelTestCase
 
         // Paginação: tamanhoPagina foi enviado
         $this->assertNotEmpty(array_filter($this->requisicoes, fn ($u) => str_contains($u, 'tamanhoPagina=')));
+    }
+
+    public function testAnoNovoDeCovidEntraNoTermoDoThesaurus(): void
+    {
+        $termo = (new AnamneseTermo())->setNome('Covid')->setCategoria('comorbidade')->setPadroes('COVID ####');
+        $this->em->persist($termo);
+        $this->em->flush();
+        $this->itensApi[] = $this->item(7329, 'PACIENTE A', 47259, '22/12/2025 15:30', 27, 'COVID 2027');
+
+        $exec = static::getContainer()->get(AnamneseSyncService::class)->executar('completo', 'cli', ['desde' => '2025-01-01', 'diasAgendamentos' => 0, 'maxDiasBackfill' => 0]);
+        $this->assertSame('sucesso', $exec->getStatus(), (string) $exec->getErros());
+
+        $conn = $this->em->getConnection();
+        $this->assertSame($termo->getId(), (int) $conn->fetchOne('SELECT termo_id FROM classificacao_estudo WHERE cod_classificacao = 27'));
+        $this->assertNull($conn->fetchOne('SELECT termo_id FROM classificacao_estudo WHERE cod_classificacao = 20'), 'A vacina da Covid fica fora do termo');
     }
 
     public function testApiVaziaNaoApagaDados(): void

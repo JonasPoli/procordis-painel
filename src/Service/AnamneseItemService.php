@@ -26,6 +26,8 @@ class AnamneseItemService
     public function obter(array $f, ?int $item): array
     {
         $b = $this->estatistica->base($f);
+        // Qualquer nome de um termo do thesaurus (ex.: COVID 2021) abre o termo consolidado (Covid)
+        $item = $item !== null ? $this->estatistica->chaveDoItem($item) : null;
 
         return $this->calcular($b['catalogo'], $b['examesP'], $b['novos'], $b['meses'], $item);
     }
@@ -90,6 +92,8 @@ class AnamneseItemService
             'categoria' => $categoria($x),
             'categoriaRotulo' => ClassificacaoEstudo::CATEGORIAS[$categoria($x)] ?? 'Outros',
             'ehComorbidade' => $categoria($x) === 'comorbidade',
+            // Nomes do catálogo reunidos neste item pelo thesaurus (vazio quando o item não é um termo)
+            'variantes' => array_map(fn (string $v) => AnamneseEstatisticaService::titulo($v), $catalogo[$x]['variantes'] ?? []),
         ];
         $nCom = $contItem[$x] ?? 0;
         $base['com'] = $nCom;

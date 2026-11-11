@@ -35,6 +35,9 @@ class AnamneseAdminControllerTest extends WebTestCase
             ['/admin/anamnese/item?item=2'],
             ['/admin/anamnese/item/relatorio?item=2'],
             ['/admin/anamnese/item/exportar.csv?item=2'],
+            ['/admin/anamnese/thesaurus'],
+            ['/admin/anamnese/thesaurus/novo'],
+            ['/admin/anamnese/thesaurus/1'],
         ];
     }
 

@@ -203,6 +203,11 @@
                 <dd>Item marcado pela primeira vez em paciente que já tinha exame anterior com anamnese sem esse item (vacinas excluídas).</dd>
                 <dt>Cobertura</dt>
                 <dd>Exames atendidos com anamnese ÷ exames atendidos (agendamentos não cancelados, com chegada registrada ou finalizados).</dd>
+                {% if dados.consolidados is defined and dados.consolidados|length %}
+                    <dt>Itens consolidados</dt>
+                    <dd>Nomes do catálogo que designam a mesma condição contam como um item só (thesaurus):
+                        {% for c in dados.consolidados %}<strong>{{ c.nome }}</strong> ({{ c.variantes|join(', ') }}){{ not loop.last ? '; ' }}{% endfor %}.</dd>
+                {% endif %}
             </dl>
         {% endif %}
     </div>

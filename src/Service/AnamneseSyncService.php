@@ -44,6 +44,7 @@ class AnamneseSyncService
         private ClassificacaoEstudoRepository $classificacaoRepo,
         private AnamneseSyncExecucaoRepository $execucaoRepo,
         private AnamneseSimuladorService $simulador,
+        private AnamneseThesaurusService $thesaurus,
     ) {
     }
 
@@ -210,6 +211,7 @@ class AnamneseSyncService
 
         $this->em->flush();
         $this->log(sprintf('Catálogo: %d itens (%d novos, %d alterados, %d ausentes).', count($r['itens']), $novos, $alterados, $ausentes));
+        $this->aplicarThesaurus();
 
         return ['total' => count($r['itens']), 'novos' => $novos, 'alterados' => $alterados, 'ausentes' => $ausentes];
     }
@@ -511,6 +513,7 @@ class AnamneseSyncService
         }
 
         $agora = (new \DateTime())->format('Y-m-d H:i:s');
+        $criados = 0;
         foreach ($itens as $item) {
             $cod = (int) ($item['codClassificacao'] ?? 0);
             if ($cod <= 0 || isset($this->mapaClassificacoes[$cod])) {
@@ -530,6 +533,19 @@ class AnamneseSyncService
                 'ultimo_visto_em' => $agora,
             ]);
             $this->mapaClassificacoes[$cod] = (int) $conn->lastInsertId();
+            $criados++;
+        }
+        if ($criados) {
+            $this->aplicarThesaurus();
+        }
+    }
+
+    /** Liga os itens do catálogo aos termos do thesaurus pelas regras de nome (ex.: COVID 2027 → Covid). */
+    private function aplicarThesaurus(): void
+    {
+        $n = $this->thesaurus->aplicarRegras();
+        if ($n) {
+            $this->log(sprintf('Thesaurus: %d itens ligados ou desligados pelas regras de nome.', $n));
         }
     }
 

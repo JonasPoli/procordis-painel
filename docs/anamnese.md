@@ -23,6 +23,7 @@ Cada item: `codPaciente`, `nomePaciente`, `codAgendamento`, `dataExame` (`dd/mm/
 |---|---|
 | `api_captura` | JSON bruto de cada resposta (anamnese e agendamentos). Resposta idêntica à anterior não é regravada, só `ultima_verificacao_em` muda. Permite reprocessar tudo no futuro. |
 | `classificacao_estudo` | Catálogo. `categoria` (comorbidade, fator de risco, vacina, medicação, sintoma, outros) é nossa, sugerida pelo nome e editável no admin; `ativo` tira o item das estatísticas. |
+| `anamnese_termo` | Thesaurus: termos que reúnem itens do catálogo com nomes diferentes (ex.: "Covid" = COVID 2019…2026). Nome único, categoria, regras de nome (uma por linha) e observação. |
 | `exame_classificacao` | Um item marcado num exame. `primeiro_visto_em`, `ultimo_visto_em`, `removido_em` formam o histórico. Nada é apagado. |
 | `paciente` | Agora com `cod_paciente` (código Medware, único). É a chave de identificação — nunca mais o nome. |
 | `paciente_historico` | Cada mudança de nome, CPF, celular, sexo ou nascimento, com valor anterior e novo. |
@@ -102,6 +103,33 @@ Regras:
 - Grupos com menos de 10 pacientes ficam sem percentual nos mapas de calor e marcados com `*` nas tabelas; meses com menos de 20 pacientes não são medidos.
 - Nada é diagnóstico nem escore clínico, e nenhum dado é corrigido automaticamente.
 
+### Thesaurus (itens com nomes diferentes que são a mesma coisa)
+
+`/admin/anamnese/thesaurus` — a API cria um item de Covid por ano (COVID 2019, COVID 2020…). O thesaurus junta esses nomes
+num **termo** ("Covid"), e em todas as estatísticas (painel, panorama do item, análises, relatórios A4 e CSVs) os itens de um
+termo contam como **um item só**, com o nome e a categoria do termo. Um paciente com Covid em três anos conta uma vez na
+prevalência, uma comorbidade na multimorbidade, e a Covid de um ano novo não vira "novo diagnóstico" de quem já tinha Covid.
+
+- **Regra de nome** (automático): uma por linha em `anamnese_termo.padroes`, comparada ao nome inteiro do item, sem diferença de
+  maiúsculas, acentos e pontuação; `#` = um dígito, `*` = qualquer trecho, espaço = espaço opcional. `COVID ####` reconhece
+  "COVID 2027" e "Covid-2020", mas não "VACINA DA COVID DOSE 1". Regra sem letra nem número é recusada.
+- **Escolha manual**: marcar ou desmarcar o item no formulário do termo. Grava `classificacao_estudo.termo_manual = 1` e prevalece
+  sobre as regras (inclusive nas sincronizações) até "Voltar ao automático". Só vira manual a marcação que contraria a regra.
+- **Vínculo efetivo** (`AnamneseThesaurusService::vinculos()`): manual → `termo_id` gravado; senão, o primeiro termo (menor id) cuja
+  regra reconhece o nome. É calculado na leitura, então um item novo da API já sai consolidado; o `termo_id` dos itens automáticos é
+  só um espelho, regravado por `aplicarRegras()` no fim do sync do catálogo e ao salvar um termo. Regras de dois termos no mesmo
+  item: vale o termo mais antigo, e a tela avisa.
+- **Nas estatísticas**: `AnamneseEstatisticaService::catalogo()` devolve uma entrada por termo, na chave = **menor id** entre os itens
+  do termo (para a Covid, o id de COVID 2019), com `variantes` (nomes originais). `base()` e `linhasExportacao()` trocam o id de cada
+  marcação por essa chave. `?item=<id de qualquer nome do termo>` abre o termo (`chaveDoItem()`). As condições cardiovasculares
+  testam o nome do termo e, se não reconhecerem, os nomes originais. Termo que junta doses diferentes de vacina sai do gráfico de dose.
+- **Onde aparece**: "(N nomes)" na tabela completa do painel; aviso no panorama do item e "Nomes reunidos" no A4 do item;
+  "Itens consolidados" nas definições do relatório A4; coluna "Termo (thesaurus)" no catálogo; sugestões de itens parecidos
+  (ex.: Quimio × Tratamento Quimio) na tela do thesaurus, sem juntar nada sozinho.
+- **Não muda**: o prontuário do paciente e as marcações importadas continuam com o nome original. Excluir um termo devolve os itens
+  ao modo automático e separados; nada do catálogo é apagado.
+- Termo inicial (migration `Version20261111140000`, 11/11/2026): "Covid", comorbidade, regra `COVID ####`, ligando COVID 2019–2026.
+
 ### Panorama de um item
 
 `/admin/anamnese/item?item=<id>` — escolha uma comorbidade (ou qualquer item) no seletor do painel, ou clique no nome do item na
@@ -125,7 +153,7 @@ em folhas A4 para imprimir ou salvar em PDF. É uma página independente (`templ
 (`assets/styles/relatorio-a4.css`) e gráficos em SVG desenhados no servidor (`relatorio-graficos.html.twig`), sem JavaScript.
 Cada `<section class="folha">` é uma página de 297 mm: ao mudar o conteúdo de uma folha, confira se ainda cabe.
 
-Outras telas: `/admin/anamnese/catalogo` (categorias e itens ativos), `/admin/anamnese/sincronizacao` (execuções, totais e botões
+Outras telas: `/admin/anamnese/catalogo` (categorias, itens ativos e o termo do thesaurus de cada item), `/admin/anamnese/thesaurus` (termos), `/admin/anamnese/sincronizacao` (execuções, totais e botões
 para rodar agora) e `/admin/anamnese/exportar.csv` (uma linha por exame, paciente pseudonimizado, 0/1 por item — para pesquisa e
 para cruzar com os ECGs pelo `cod_agendamento`; inclui médico, nº de comorbidades, nº de condições cardiovasculares e histórico cardiovascular). O prontuário do paciente mostra a anamnese exame a exame e as alterações cadastrais.
 

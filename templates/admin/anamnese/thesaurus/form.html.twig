@@ -1,0 +1,101 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}Anamnese — {{ termo.id ? 'Editar termo' : 'Novo termo' }}{% endblock %}
+
+{% set card = 'bg-white/80 dark:bg-slate-900/80 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm' %}
+{% set campo = 'w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-800 dark:text-slate-200' %}
+{% set rotulo = 'block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1' %}
+{% set th = 'py-2 px-2 text-[10px] uppercase tracking-wider text-slate-400 font-bold' %}
+
+{% block body %}
+<form method="POST" class="space-y-6">
+    <input type="hidden" name="_token" value="{{ csrf_token('anamnese_thesaurus') }}">
+
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 {{ card }} p-5">
+        <div class="flex items-center gap-2">
+            <sl-icon name="diagram-3" class="text-cyan-500 text-2xl"></sl-icon>
+            <h1 class="text-2xl font-black text-slate-900 dark:text-white tracking-tight">{{ termo.id ? 'Editar termo' : 'Novo termo do thesaurus' }}</h1>
+        </div>
+        <a href="{{ path('app_admin_anamnese_thesaurus') }}" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-xl text-xs flex items-center gap-2 transition">
+            <sl-icon name="arrow-left"></sl-icon> Voltar ao thesaurus
+        </a>
+    </div>
+
+    {% if erros|length %}
+        <sl-alert variant="warning" open>
+            <sl-icon slot="icon" name="exclamation-triangle"></sl-icon>
+            {% for e in erros %}<div>{{ e }}</div>{% endfor %}
+        </sl-alert>
+    {% endif %}
+
+    <div class="{{ card }} p-5 grid md:grid-cols-2 gap-4">
+        <div>
+            <label class="{{ rotulo }}" for="nome">Nome do termo</label>
+            <input id="nome" name="nome" value="{{ termo.nome }}" required maxlength="120" class="{{ campo }}" placeholder="Ex.: Covid">
+            <p class="text-[11px] text-slate-400 mt-1">É o nome que aparece no painel, no panorama, nos relatórios e no CSV.</p>
+        </div>
+        <div>
+            <label class="{{ rotulo }}" for="categoria">Categoria</label>
+            <select id="categoria" name="categoria" class="{{ campo }}">
+                {% for v, l in categorias %}<option value="{{ v }}" {{ termo.categoria == v ? 'selected' }}>{{ l }}</option>{% endfor %}
+            </select>
+            <p class="text-[11px] text-slate-400 mt-1">Vale para o item consolidado (ex.: só comorbidades entram na multimorbidade).</p>
+        </div>
+        <div>
+            <label class="{{ rotulo }}" for="padroes">Regras de nome (uma por linha)</label>
+            <textarea id="padroes" name="padroes" rows="4" class="{{ campo }} font-mono" placeholder="COVID ####">{{ termo.listaPadroes|join("\n") }}</textarea>
+            <p class="text-[11px] text-slate-400 mt-1"><code>#</code> = um dígito, <code>*</code> = qualquer trecho; vale o nome inteiro, sem diferença de maiúsculas, acentos e pontuação. Itens novos que a API trouxer entram sozinhos.</p>
+        </div>
+        <div>
+            <label class="{{ rotulo }}" for="observacao">Observação</label>
+            <input id="observacao" name="observacao" value="{{ termo.observacao }}" maxlength="255" class="{{ campo }}" placeholder="Por que estes nomes são a mesma coisa">
+        </div>
+    </div>
+
+    <div class="{{ card }} p-5">
+        <h2 class="text-sm font-black text-slate-800 dark:text-slate-100">Itens do catálogo neste termo</h2>
+        <p class="text-xs text-slate-500 mt-1">
+            Marque os itens que pertencem a este termo. Um item que a regra já reconhece fica automático; o que você marcar ou
+            desmarcar contra a regra fica como escolha manual. Um item marcado que está em outro termo passa para este.
+        </p>
+        <div class="overflow-x-auto mt-3">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="text-left border-b border-slate-200 dark:border-slate-800">
+                        <th class="{{ th }} pl-0 w-8"></th>
+                        <th class="{{ th }}">Item</th>
+                        <th class="{{ th }}">Categoria</th>
+                        <th class="{{ th }}">Termo atual</th>
+                        <th class="{{ th }} text-right">Pacientes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for i in itens %}
+                        <tr class="border-b border-slate-100 dark:border-slate-800/60 {{ not i.ativo ? 'opacity-50' }}">
+                            <td class="py-1.5 pr-2"><input type="checkbox" id="item-{{ i.id }}" name="itens[]" value="{{ i.id }}" {{ marcados[i.id] is defined ? 'checked' }} class="w-4 h-4 accent-cyan-600"></td>
+                            <td class="py-1.5 px-2"><label for="item-{{ i.id }}" class="font-semibold text-slate-700 dark:text-slate-200 cursor-pointer">{{ i.nome }}</label></td>
+                            <td class="py-1.5 px-2 text-xs text-slate-500">{{ categorias[i.categoria] ?? i.categoria }}</td>
+                            <td class="py-1.5 px-2 text-xs">
+                                {% if i.termo is not null %}
+                                    <span class="font-semibold text-slate-700 dark:text-slate-200">{{ nomesTermos[i.termo] }}</span>
+                                    <span class="{{ i.origem == 'manual' ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400' }}">({{ i.origem == 'manual' ? 'manual' : 'automático' }})</span>
+                                {% elseif i.manual %}
+                                    <span class="text-amber-600 dark:text-amber-400">fora de termo (manual)</span>
+                                {% else %}
+                                    <span class="text-slate-400">—</span>
+                                {% endif %}
+                            </td>
+                            <td class="py-1.5 pl-2 text-right tabular-nums">{{ i.pacientes|number_format(0, ',', '.') }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="flex justify-end gap-2">
+        <a href="{{ path('app_admin_anamnese_thesaurus') }}" class="px-5 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-xl transition">Cancelar</a>
+        <button type="submit" class="px-5 py-2 bg-cyan-600 hover:bg-cyan-700 text-white font-bold text-xs rounded-xl transition shadow-sm">Salvar termo</button>
+    </div>
+</form>
+{% endblock %}

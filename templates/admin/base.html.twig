@@ -130,7 +130,8 @@
                             </a>
 
                             {% set isAnamneseItem = app.current_route starts with 'app_admin_anamnese_item' %}
-                            {% set isAnamnese = app.current_route starts with 'app_admin_anamnese_' and not isAnamneseItem %}
+                            {% set isAnamneseThesaurus = app.current_route starts with 'app_admin_anamnese_thesaurus' %}
+                            {% set isAnamnese = app.current_route starts with 'app_admin_anamnese_' and not isAnamneseItem and not isAnamneseThesaurus %}
                             <a class='py-2 px-4 mx-4 mb-2 block rounded hover:shadow hover:from-white hover:to-white/60 hover:bg-gradient-to-r dark:hover:from-white/5 dark:hover:via-white/10 dark:hover:to-white/5 {% if isAnamnese %}shadow bg-gradient-to-r from-cyan-500/20 to-sky-500/20 font-bold text-cyan-400 border border-cyan-500/30{% endif %}' href="{{ path('app_admin_anamnese_painel') }}">
                                 <sl-icon name="clipboard2-pulse" class="mr-2 align-text-top text-rose-400"></sl-icon>
                                 Anamnese — Panorama
@@ -138,6 +139,10 @@
                             <a class='py-1.5 pl-10 pr-4 mx-4 mb-1 block text-sm rounded hover:shadow hover:from-white hover:to-white/60 hover:bg-gradient-to-r dark:hover:from-white/5 dark:hover:via-white/10 dark:hover:to-white/5 {% if isAnamneseItem %}shadow bg-gradient-to-r from-cyan-500/20 to-sky-500/20 font-bold text-cyan-400 border border-cyan-500/30{% endif %}' href="{{ path('app_admin_anamnese_item') }}">
                                 <sl-icon name="search" class="mr-2 align-text-top text-rose-400"></sl-icon>
                                 Panorama do item
+                            </a>
+                            <a class='py-1.5 pl-10 pr-4 mx-4 mb-1 block text-sm rounded hover:shadow hover:from-white hover:to-white/60 hover:bg-gradient-to-r dark:hover:from-white/5 dark:hover:via-white/10 dark:hover:to-white/5 {% if isAnamneseThesaurus %}shadow bg-gradient-to-r from-cyan-500/20 to-sky-500/20 font-bold text-cyan-400 border border-cyan-500/30{% endif %}' href="{{ path('app_admin_anamnese_thesaurus') }}">
+                                <sl-icon name="diagram-3" class="mr-2 align-text-top text-rose-400"></sl-icon>
+                                Thesaurus
                             </a>
                             <a target="_blank" rel="noopener" class='py-1.5 pl-10 pr-4 mx-4 mb-1 block text-sm rounded hover:shadow hover:from-white hover:to-white/60 hover:bg-gradient-to-r dark:hover:from-white/5 dark:hover:via-white/10 dark:hover:to-white/5 mb-2' href="{{ path('app_admin_anamnese_relatorio') }}">
                                 <sl-icon name="file-earmark-text" class="mr-2 align-text-top text-rose-400"></sl-icon>
