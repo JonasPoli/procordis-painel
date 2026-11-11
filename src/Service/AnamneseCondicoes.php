@@ -51,8 +51,11 @@ final class AnamneseCondicoes
         '/MARCA.?PASSO/',
     ];
 
-    /** Maiúsculas, sem acentos e sem pontuação: base para todas as comparações de nome. */
-    public static function normalizar(string $nome): string
+    /**
+     * Maiúsculas, sem acentos e sem pontuação: base para todas as comparações de nome.
+     * $manter lista caracteres de pontuação que não viram espaço (ex.: os curingas "*#" das regras do thesaurus).
+     */
+    public static function normalizar(string $nome, string $manter = ''): string
     {
         $s = mb_strtoupper(trim($nome), 'UTF-8');
         $s = strtr($s, [
@@ -61,7 +64,7 @@ final class AnamneseCondicoes
             'Ú' => 'U', 'Ù' => 'U', 'Û' => 'U', 'Ü' => 'U', 'Ç' => 'C', 'Ñ' => 'N',
         ]);
 
-        return trim((string) preg_replace('/\s+/', ' ', (string) preg_replace('/[^A-Z0-9 ]+/', ' ', $s)));
+        return trim((string) preg_replace('/\s+/', ' ', (string) preg_replace('/[^A-Z0-9 ' . preg_quote($manter, '/') . ']+/', ' ', $s)));
     }
 
     /**
@@ -86,7 +89,7 @@ final class AnamneseCondicoes
     /**
      * Itens do catálogo por condição.
      *
-     * @param array<int, array{nome: string, categoria: string}> $catalogo
+     * @param array<int, array{nome: string, categoria: string, variantes?: list<string>}> $catalogo
      *
      * @return array<string, list<int>> chave da condição => ids dos itens (vacinas ficam de fora)
      */
@@ -97,7 +100,11 @@ final class AnamneseCondicoes
             if (($item['categoria'] ?? '') === 'vacina') {
                 continue;
             }
+            // Item consolidado pelo thesaurus: vale o nome do termo e, se ele não for reconhecido, os nomes originais
             $chave = self::condicao($item['nome']);
+            foreach ($item['variantes'] ?? [] as $variante) {
+                $chave ??= self::condicao($variante);
+            }
             if ($chave !== null) {
                 $mapa[$chave][] = (int) $cid;
             }

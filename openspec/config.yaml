@@ -1,0 +1,55 @@
+schema: spec-driven
+
+# Contexto do projeto: só restrições que um agente não descobre lendo o código.
+# A documentação viva está em docs/ (anamnese.md, paineis.md, integracao-medware-atendimentos.md).
+context: |
+  Language: pt-BR
+  All artifacts must be written in pt-BR.
+  Keep OpenSpec structural headings and SHALL/MUST keywords in English.
+
+  Projeto: painel interno (painel.procordis.org.br) da Associação Procordis Araraquara (ambulatório
+  cardiológico filantrópico). Integra a API Medware/Procordis: agendamentos, atendimentos realizados (fonte
+  da página de Transparência do procordis-site) e a anamnese (ClassificacaoEstudo), com painel estatístico,
+  panorama por item, relatórios A4 e CSV para pesquisa.
+  Cliente WAB 212 "Associação Procordis Araraquara", projeto 82 "Painel". Não há contrato de plano de horas.
+  Contato sugerido secretaria@procordis.org.br (Karine), Cc suporte@wab.com.br.
+  Sistemas irmãos no mesmo servidor: procordis-site (procordis.org.br), procordis-documentos e wab-curriculos.
+
+  Produção (conferida em 11/11/2026)
+  - Servidor wab001 (67.205.162.23, DigitalOcean + RunCloud), webapp procordis-painel em
+    /home/runcloud/webapps/procordis-painel, branch main. Acesso: ssh runcloud@67.205.162.23 (dono do webapp,
+    sem sudo). Servidor compartilhado com cerca de 19 apps: nada pesado em horário comercial.
+  - Não há homologação do painel.
+  - PHP de linha de comando só por /RunCloud/Packages/php83rc/bin/php (8.3.36). Symfony 7.2, MariaDB 11.1.6.
+  - Cron do runcloud (/etc/cron.d/runcloud-runcloud): app:anamnese:sync incremental às 7h, 12h e 18h e completo
+    às 2h, com flock em var/anamnese.lock. O cron de atendimentos usa var/atendimentos.lock.
+  - Valores do .env.local nunca são exibidos. PHP_CLI_BINARY no .env.local é usado pelo botão "Rodar agora".
+  - Até 11/11/2026 o .env.local tinha serverVersion=8.0 com MariaDB 11.1.6, e o doctrine:migrations:status
+    falhava ("metadata storage is not up to date"). A correção é a mesma dos outros webapps em 09/11/2026:
+    serverVersion=11.1.6-MariaDB, com backup .env.local.bak-AAAAMMDD-serverversion.
+
+  Deploy
+  - Fluxo: branch → PR no GitHub (JonasPoli/procordis-painel) → merge na main. No servidor, como runcloud (nunca
+    root), em ~/webapps/procordis-painel: git pull, doctrine:migrations:migrate --env=prod quando houver
+    migration, e PHP=/RunCloud/Packages/php83rc/bin/php ./build.sh (cache:clear, tailwind:build, asset-map:compile).
+  - vendor/ fica fora do git: se o composer.lock mudar, composer install é um passo à parte.
+  - Testes: APP_ENV=test ./vendor/bin/phpunit, com MySQL local (banco procordis_painel_test, do .env.test).
+
+  Decisões que não se revertem
+  - O painel da anamnese mostra só agregados: nenhum nome de paciente sai do AnamneseEstatisticaService.
+    O CSV de pesquisa usa pseudônimo (HMAC do código do paciente).
+  - Paciente é identificado pelo cod_paciente do Medware, nunca pelo nome.
+  - Nada é apagado da anamnese: o que some da API ganha removido_em.
+  - Condições cardiovasculares são reconhecidas pelo nome (AnamneseCondicoes); "Derrame" não é somado ao AVC
+    sem decisão do cliente.
+
+rules:
+  design:
+    - Quando tocar em produção, dizer se a ação é leitura ou escrita.
+    - Estatística nova da anamnese parte do AnamneseEstatisticaService::base(), para valer em todas as telas.
+  tasks:
+    - Toda tarefa que muda servidor ou banco de produção tem uma tarefa de backup antes e uma de conferência depois.
+    - Rota nova do painel ganha caso no teste de "exige login".
+    - Regra de negócio nova ou alterada tem teste PHPUnit.
+    - A tarefa de deploy diz quais passos se aplicam (git pull, migrations, ./build.sh, composer install) e termina com a conferência em painel.procordis.org.br.
+    - Quando for pedido do cliente, registrar o resultado num ticket do sistema WAB (cliente 212, projeto 82).

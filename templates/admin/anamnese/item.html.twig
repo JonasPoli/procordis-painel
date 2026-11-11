@@ -46,6 +46,12 @@
                 {% if p.item %}{{ p.item.categoriaRotulo }} · {% endif %}Tudo o que a base permite medir sobre um item da anamnese, comparando quem tem o item registrado com quem não tem. Nenhum paciente é identificado.
                 {% if modoSimulacao %}<span class="ml-2 px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 font-bold text-xs">Dados simulados</span>{% endif %}
             </p>
+            {% if p.item and p.item.variantes|length > 1 %}
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    <sl-icon name="diagram-3" class="align-middle text-cyan-500"></sl-icon>
+                    Termo do <a href="{{ path('app_admin_anamnese_thesaurus') }}" class="underline hover:text-cyan-600">thesaurus</a>: reúne {{ p.item.variantes|length }} nomes do catálogo, contados como um item só — {{ p.item.variantes|join(', ') }}.
+                </p>
+            {% endif %}
         </div>
         <div class="flex flex-wrap items-center gap-2">
             <form method="GET" action="{{ path('app_admin_anamnese_item') }}" class="flex items-center gap-2">
