@@ -278,7 +278,7 @@
                 {% set maxComb = (dados.combinacoes|first).n %}
                 <table class="tab fixa">
                     <colgroup><col style="width: 8mm"><col><col style="width: 18mm"><col style="width: 16mm"><col style="width: 28mm"></colgroup>
-                    <thead><tr><th class="ordem num">Nº</th><th>Combinação exata de comorbidades</th><th class="num">Pacientes</th><th class="num">%</th><th class="barra"></th></tr></thead>
+                    <thead><tr><th class="ordem num">Nº</th><th>Comorbidades (o paciente tem todas, com ou sem outras)</th><th class="num">Pacientes</th><th class="num">%</th><th class="barra"></th></tr></thead>
                     <tbody>
                         {% for c in dados.combinacoes|slice(0, 8) %}
                             <tr>
@@ -291,7 +291,7 @@
                         {% endfor %}
                     </tbody>
                 </table>
-                <p class="nota">Conjuntos exatos de comorbidades entre os pacientes com duas ou mais.</p>
+                <p class="nota">Pacientes que têm todas as comorbidades de cada linha, com ou sem outras; um paciente entra em várias linhas. As duplas e os trios mais frequentes; percentual sobre os {{ dados.kpis.pacientes|number_format(0, ',', '.') }} pacientes com anamnese no período.</p>
             {% else %}
                 <p class="vazio">Nenhum paciente com 2 ou mais comorbidades no recorte.</p>
             {% endif %}

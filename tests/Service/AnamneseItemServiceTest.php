@@ -95,7 +95,7 @@ class AnamneseItemServiceTest extends TestCase
             array_map(fn ($a) => [$a['nome'], $a['nCom'], $a['pctCom'], $a['nSem'], $a['pctSem'], $a['diferenca']], $this->p['associados'])
         );
         $this->assertSame(
-            [['itens' => ['Hipertensão'], 'n' => 2, 'pct' => 66.7], ['itens' => ['Infarto Prévio'], 'n' => 1, 'pct' => 33.3]],
+            [['itens' => ['Hipertensão'], 'tamanho' => 1, 'n' => 2, 'pct' => 66.7], ['itens' => ['Infarto Prévio'], 'tamanho' => 1, 'n' => 1, 'pct' => 33.3]],
             $this->p['combinacoes']
         );
         $this->assertSame(['Cardiometabólico com histórico cardiovascular' => 1, 'Cardiometabólico' => 2], array_filter(array_column($this->p['perfis'], 'n', 'nome')));

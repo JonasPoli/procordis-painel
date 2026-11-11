@@ -175,25 +175,22 @@ class AnamneseEstatisticaService
         // ---- 5. Multimorbidade (quantas comorbidades por paciente) ---------------------
         $multi = array_fill_keys(['0', '1', '2', '3', '4', '5+'], 0);
         $somaComorb = 0;
-        $combinacoes = [];
+        $comorbidadesPorPaciente = [];
         foreach ($pacientes as $p) {
             $cs = array_values(array_filter(array_keys($p['cids']), fn ($cid) => ($catalogo[$cid]['categoria'] ?? '') === 'comorbidade'));
             $k = count($cs);
             $somaComorb += $k;
             $multi[$k >= 5 ? '5+' : (string) $k]++;
-            if ($k >= 2) {
-                sort($cs);
-                $chave = implode(',', $cs);
-                $combinacoes[$chave] = ($combinacoes[$chave] ?? 0) + 1;
-            }
+            $comorbidadesPorPaciente[] = $cs;
         }
-        arsort($combinacoes);
+        // Combinações: pacientes que têm todas as comorbidades do conjunto, com ou sem outras (as 5 duplas e os 3 trios)
         $topComb = [];
-        foreach (array_slice($combinacoes, 0, 10, true) as $chave => $n) {
+        foreach (self::combinacoesFrequentes($comorbidadesPorPaciente, [2 => 5, 3 => 3]) as $c) {
             $topComb[] = [
-                'itens' => array_map(fn ($cid) => $this->titulo($catalogo[(int) $cid]['nome'] ?? '?'), explode(',', (string) $chave)),
-                'n' => $n,
-                'pct' => $this->pct($n, $nPac),
+                'itens' => array_map(fn ($cid) => $this->titulo($catalogo[$cid]['nome'] ?? '?'), $c['ids']),
+                'tamanho' => count($c['ids']),
+                'n' => $c['n'],
+                'pct' => $this->pct($c['n'], $nPac),
             ];
         }
 
@@ -333,6 +330,64 @@ class AnamneseEstatisticaService
         usort($out, fn ($a, $b) => strcmp($a['nome'], $b['nome']));
 
         return $out;
+    }
+
+    /**
+     * Combinações de itens mais frequentes, contando os pacientes que têm TODOS os itens da combinação, com ou sem
+     * outros (decisão de 11/11/2026: "quantos têm os dois", nunca "quantos têm só esse conjunto"). Um paciente entra
+     * em todas as combinações contidas no seu conjunto.
+     *
+     * @param iterable<list<int>> $conjuntos itens de cada paciente
+     * @param array<int, int>     $limites   tamanho da combinação => quantas devolver (na ordem das chaves)
+     *
+     * @return list<array{ids: list<int>, n: int}> por tamanho (na ordem de $limites) e, dentro dele, por pacientes
+     */
+    public static function combinacoesFrequentes(iterable $conjuntos, array $limites): array
+    {
+        $cont = [];
+        foreach ($conjuntos as $ids) {
+            $ids = array_values(array_unique(array_map('intval', $ids)));
+            sort($ids);
+            foreach (array_keys($limites) as $k) {
+                foreach (self::subconjuntos($ids, $k) as $sub) {
+                    $chave = implode(',', $sub);
+                    $cont[$k][$chave] = ($cont[$k][$chave] ?? 0) + 1;
+                }
+            }
+        }
+
+        $out = [];
+        foreach ($limites as $k => $limite) {
+            $lista = [];
+            foreach ($cont[$k] ?? [] as $chave => $n) {
+                $lista[] = ['ids' => array_map('intval', explode(',', (string) $chave)), 'n' => $n, 'chave' => (string) $chave];
+            }
+            usort($lista, fn ($a, $b) => [$b['n'], $a['chave']] <=> [$a['n'], $b['chave']]);
+            foreach (array_slice($lista, 0, $limite) as $c) {
+                $out[] = ['ids' => $c['ids'], 'n' => $c['n']];
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * @param list<int> $ids ordenados
+     *
+     * @return \Generator<list<int>>
+     */
+    private static function subconjuntos(array $ids, int $k, int $inicio = 0): \Generator
+    {
+        if ($k === 0) {
+            yield [];
+
+            return;
+        }
+        for ($i = $inicio, $total = count($ids); $i <= $total - $k; $i++) {
+            foreach (self::subconjuntos($ids, $k - 1, $i + 1) as $resto) {
+                yield [$ids[$i], ...$resto];
+            }
+        }
     }
 
     /** Id usado nas estatísticas para um item do catálogo (o do termo do thesaurus, quando o item pertence a um). */
