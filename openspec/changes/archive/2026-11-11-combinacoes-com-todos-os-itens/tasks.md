@@ -12,9 +12,9 @@
 
 ## 3. Integração e produção
 
-- [ ] 3.1 Suíte completa (`APP_ENV=test ./vendor/bin/phpunit`), `lint:twig` e `lint:container` verdes; PR e merge na main
-- [ ] 3.2 Deploy no wab001 como runcloud (backup: o commit anterior `86fff2a` é o ponto de volta; sem migration nem composer): `git pull` e `PHP=/RunCloud/Packages/php83rc/bin/php ./build.sh`; conferir com os serviços no servidor que Diabetes + Hipertensão mostra 866 (32,6%) no painel e 85,9% no panorama de Diabetes
-- [ ] 3.3 Lançar as horas no ticket #13423 (cliente 212, projeto 82, sem e-mail ao cliente)
+- [x] 3.1 Suíte completa (`APP_ENV=test ./vendor/bin/phpunit`), `lint:twig` e `lint:container` verdes; PR e merge na main
+- [x] 3.2 Deploy no wab001 como runcloud (backup: o commit anterior `86fff2a` é o ponto de volta; sem migration nem composer): `git pull` e `PHP=/RunCloud/Packages/php83rc/bin/php ./build.sh`; conferir com os serviços no servidor que Diabetes + Hipertensão mostra 866 (32,6%) no painel e 85,9% no panorama de Diabetes
+- [x] 3.3 Lançar as horas no ticket #13423 (cliente 212, projeto 82, sem e-mail ao cliente)
 
 ## Workflow follow-up
 
